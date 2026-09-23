@@ -548,6 +548,7 @@ function pageFromLocation(): NavId {
 
 export function ReelroomApp() {
   const [page, setPageState] = useState<NavId>("home");
+  const [routeReady, setRouteReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [query, setQuery] = useState("");
@@ -568,7 +569,10 @@ export function ReelroomApp() {
   };
 
   useEffect(() => {
-    const syncPage = () => setPageState(pageFromLocation());
+    const syncPage = () => {
+      setPageState(pageFromLocation());
+      setRouteReady(true);
+    };
     syncPage();
     window.addEventListener("popstate", syncPage);
     window.addEventListener("hashchange", syncPage);
@@ -1753,6 +1757,10 @@ export function ReelroomApp() {
       </div>
     </div>
   ) : null;
+
+  if (!routeReady) {
+    return <div className="min-h-screen bg-[#08070d]" aria-label="Loading Reelscape" />;
+  }
 
   return (
     <div
