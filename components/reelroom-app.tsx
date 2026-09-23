@@ -540,8 +540,14 @@ function HeaderNavMenu({
   );
 }
 
+function pageFromLocation(): NavId {
+  if (typeof window === "undefined") return "home";
+  const candidate = window.location.hash.slice(1);
+  return nav.some(([id]) => id === candidate) ? (candidate as NavId) : "home";
+}
+
 export function ReelroomApp() {
-  const [page, setPage] = useState<(typeof nav)[number][0]>("home");
+  const [page, setPageState] = useState<NavId>("home");
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [query, setQuery] = useState("");
@@ -552,6 +558,25 @@ export function ReelroomApp() {
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const setPage = (nextPage: NavId) => {
+    setPageState(nextPage);
+    if (typeof window === "undefined") return;
+    const nextHash = nextPage === "home" ? "" : `#${nextPage}`;
+    if (window.location.hash === nextHash) return;
+    window.history.pushState({ page: nextPage }, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+  };
+
+  useEffect(() => {
+    const syncPage = () => setPageState(pageFromLocation());
+    syncPage();
+    window.addEventListener("popstate", syncPage);
+    window.addEventListener("hashchange", syncPage);
+    return () => {
+      window.removeEventListener("popstate", syncPage);
+      window.removeEventListener("hashchange", syncPage);
+    };
+  }, []);
 
   useEffect(() => {
     let frame = 0;
