@@ -1041,19 +1041,17 @@ export function ReelroomApp() {
           </Button>
         </form>
       </section>
-      <section className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border bg-surface md:min-h-[29rem]">
+      <section className="relative min-h-[22rem] overflow-hidden md:min-h-[calc(100vh-7rem)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,hsl(var(--cobalt)/.22),transparent_45%),linear-gradient(145deg,hsl(var(--surface-2)/.8),hsl(var(--canvas)/.76))]" />
         <div className="absolute left-5 top-5 font-mono text-[10px] uppercase tracking-[.18em] text-muted">
           01 / return to orbit
         </div>
-        <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[29rem] md:pb-8">
-          <div className="relative min-h-0 w-full max-w-lg flex-1 overflow-hidden">
-            <img
-              src="/astronaut.png"
-              alt="Astronaut floating through a violet star field"
-              className="absolute inset-0 size-full object-contain object-center mix-blend-screen"
-            />
-          </div>
+        <img
+          src="/astronaut.png"
+          alt="Astronaut floating through a violet star field"
+          className="absolute inset-0 size-full object-cover object-center mix-blend-screen"
+        />
+        <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[calc(100vh-7rem)] md:pb-8">
           <div className="relative z-10 text-center">
             <p className="text-xl font-medium tracking-[-.04em] text-ink md:text-2xl">
               Keep exploring.
@@ -1815,7 +1813,7 @@ export function ReelroomApp() {
                 reel<span className="text-amber">scape</span>
               </strong>
               <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
-                {nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
+                {page !== "login" && nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
                   <button
                     key={id}
                     onClick={() => setPage(id)}
@@ -1829,7 +1827,7 @@ export function ReelroomApp() {
                   </button>
                 ))}
               </nav>
-              <div className="relative hidden lg:block">
+              {page !== "login" ? <div className="relative hidden lg:block">
                 <button
                   type="button"
                   onClick={() => setMoreOpen((open) => !open)}
@@ -1851,7 +1849,7 @@ export function ReelroomApp() {
                     }}
                   />
                 </div>
-              </div>
+              </div> : null}
             </div>
             {page === "updates" || page === "login" ? (
               <div className="flex-1" aria-hidden="true" />
@@ -1879,6 +1877,31 @@ export function ReelroomApp() {
               >
                 <Bell className="size-4" />
               </button>
+              {page === "login" ? (
+                <div className="relative hidden lg:block">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((open) => !open)}
+                    aria-expanded={moreOpen}
+                    aria-controls="reelroom-login-overflow-menu"
+                    aria-label="Open navigation menu"
+                    className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
+                  >
+                    <EllipsisVertical className="size-4" />
+                  </button>
+                  <div id="reelroom-login-overflow-menu">
+                    <MoreAccessMenu
+                      open={moreOpen}
+                      header
+                      currentPage={page}
+                      onNavigate={(nextPage) => {
+                        setMoreOpen(false);
+                        setPage(nextPage);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
               <div className="relative reelroom-header-overflow lg:hidden">
                 <button
                   type="button"
