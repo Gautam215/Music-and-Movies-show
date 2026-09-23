@@ -695,7 +695,7 @@ export function ReelroomApp() {
         </div>
       </section>
       <section className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-4">
+        <div className="relative h-fit self-start overflow-hidden rounded-2xl border border-border bg-surface p-4">
           <div className="absolute right-6 top-5 font-mono text-[10px] text-muted">
             01 / 06
           </div>
@@ -855,7 +855,7 @@ export function ReelroomApp() {
         </div>
       </section>
       <section className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-4">
+        <div className="relative h-fit self-start overflow-hidden rounded-2xl border border-border bg-surface p-4">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
             Tonight's note
           </div>
