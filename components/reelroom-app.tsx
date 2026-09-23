@@ -383,7 +383,7 @@ function FeaturedScreening({ onOpen }: { onOpen: (item: Movie) => void }) {
   const item = movies[2];
 
   return (
-    <article className="group reelroom-featured-screening w-full max-w-sm overflow-hidden rounded-2xl border border-border">
+    <article className="group reelroom-featured-screening w-full overflow-hidden rounded-2xl border border-border">
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={item.backdrop}
@@ -790,7 +790,7 @@ export function ReelroomApp() {
       starBrightness={0.55}
       spinSpeed={0.36}
     >
-      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-end gap-8 p-6 sm:min-h-[42rem] sm:p-8 md:min-h-[38rem] md:p-10 lg:min-h-[34rem] lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)]">
+      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-end gap-8 p-6 sm:min-h-[42rem] sm:p-8 md:min-h-[38rem] md:grid-cols-2 md:gap-10 md:p-10 lg:min-h-[34rem]">
         <FeaturedScreening onOpen={setSelected} />
         <div className="max-w-2xl lg:pb-1">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
