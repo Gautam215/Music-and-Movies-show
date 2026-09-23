@@ -80,6 +80,49 @@ button, input, select { font: inherit; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid hsl(var(--amber)); outline-offset: 3px; }
 ::selection { color: hsl(var(--canvas)); background: hsl(var(--amber)); }
 
+@media (hover: hover) and (pointer: fine) {
+  html, body, body * { cursor: none !important; }
+  .reelroom-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    width: 26px;
+    height: 26px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(var(--cursor-x, -100px), var(--cursor-y, -100px), 0) translate(-50%, -50%);
+    transition: opacity 180ms ease;
+  }
+  .reelroom-cursor[data-visible="true"] { opacity: 1; }
+  .reelroom-cursor-mark {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    --cursor-scale: 1;
+    background: radial-gradient(circle, hsl(var(--amber)) 0 1.2px, transparent 1.5px);
+    filter: drop-shadow(0 0 5px hsl(var(--amber) / .5));
+    transition: transform 180ms cubic-bezier(.16, 1.2, .3, 1);
+  }
+  .reelroom-cursor-mark::before,
+  .reelroom-cursor-mark::after {
+    content: "";
+    position: absolute;
+    background: hsl(var(--amber) / .9);
+  }
+  .reelroom-cursor-mark::before { top: 0; left: 50%; width: 1px; height: 100%; transform: translateX(-50%); }
+  .reelroom-cursor-mark::after { top: 50%; left: 0; width: 100%; height: 1px; transform: translateY(-50%); }
+  .reelroom-cursor[data-hover="true"] .reelroom-cursor-mark { --cursor-scale: 1.24; transform: scale(var(--cursor-scale)); }
+  .reelroom-cursor[data-moving="true"] .reelroom-cursor-mark { animation: reelroom-cursor-drift .72s ease-in-out infinite alternate; }
+}
+
+@keyframes reelroom-cursor-drift {
+  from { transform: scale(var(--cursor-scale)) rotate(-4deg); }
+  to { transform: scale(var(--cursor-scale)) rotate(4deg); }
+}
+
 .grain::after {
   content: "";
   position: fixed;
