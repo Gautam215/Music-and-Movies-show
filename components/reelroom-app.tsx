@@ -434,8 +434,11 @@ function MoreAccessMenu({
   onNavigate: (page: NavId) => void;
 }) {
   if (!open) return null;
-  const updatesDisabled = currentPage === "updates";
-  const items = nav.filter(([id]) => !mobile || (id !== "updates" && id !== "home"));
+  const items = nav.filter(([id]) => {
+    if (id === "home" || id === currentPage) return false;
+    if (mobile && id === "updates") return false;
+    return true;
+  });
   return (
     <div
       className={cn(
@@ -449,16 +452,12 @@ function MoreAccessMenu({
     >
       {items.map(([id, label, Icon]) => (
         <button
-          key={id}
-          type="button"
-          role="menuitem"
-          onClick={() => onNavigate(id)}
-          disabled={id === "updates" && updatesDisabled}
-          aria-current={
-            id === "updates" && updatesDisabled ? "page" : undefined
-          }
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-        >
+            key={id}
+            type="button"
+            role="menuitem"
+            onClick={() => onNavigate(id)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
           <Icon className="size-4 text-amber" />
           {label}
         </button>
@@ -694,7 +693,7 @@ export function ReelroomApp() {
           ))}
         </div>
       </section>
-      <section className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
+      <section className="reelroom-note-row">
         <div className="relative h-fit self-start overflow-hidden rounded-2xl border border-border bg-surface p-4">
           <div className="absolute right-6 top-5 font-mono text-[10px] text-muted">
             01 / 06
@@ -854,7 +853,7 @@ export function ReelroomApp() {
           ))}
         </div>
       </section>
-      <section className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
+      <section className="reelroom-note-row">
         <div className="relative h-fit self-start overflow-hidden rounded-2xl border border-border bg-surface p-4">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
             Tonight's note
@@ -1746,7 +1745,7 @@ export function ReelroomApp() {
             Explore
           </div>
           <nav className="space-y-1">
-            {nav.map(([id, label, Icon]) => (
+            {nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
               <button
                 key={id}
                 onClick={() => setPage(id)}
@@ -1837,13 +1836,6 @@ export function ReelroomApp() {
                 aria-label="Notifications"
               >
                 <Bell className="size-4" />
-              </button>
-              <button
-                onClick={() => setPage("profile")}
-                className="grid size-9 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface"
-                aria-label="Profile"
-              >
-                <UserRound className="size-4" />
               </button>
               <div className="relative reelroom-header-overflow lg:hidden">
                 <button

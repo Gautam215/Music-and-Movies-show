@@ -165,12 +165,13 @@ button.border-border.bg-transparent { border-radius: 14px; transition: transform
 }
 .min-h-screen > .flex.min-h-screen > aside.sticky > div:first-child { margin: 0; padding: 0; }
 .min-h-screen > .flex.min-h-screen > aside.sticky > .mb-3,
-.min-h-screen > .flex.min-h-screen > aside.sticky > .relative,
 .min-h-screen > .flex.min-h-screen > aside.sticky > .flex.items-center.gap-3.border-t { display: none; }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav { display: flex; min-width: 0; flex: 1; align-items: center; justify-content: center; gap: 4px; }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav button { width: auto; flex: 1; justify-content: center; border-radius: 12px; padding: 10px 12px; font-size: 11px; }
+.min-h-screen > .flex.min-h-screen > aside.sticky nav { display: flex; min-width: 0; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px; }
+.min-h-screen > .flex.min-h-screen > aside.sticky nav button { width: auto; flex: 0 0 auto; justify-content: center; border-radius: 12px; padding: 10px 12px; font-size: 11px; }
 .min-h-screen > .flex.min-h-screen > aside.sticky nav button:hover { background: hsl(var(--surface-3) / .7); }
 .min-h-screen > .flex.min-h-screen > aside.sticky nav button:focus-visible { outline-offset: -2px; }
+.min-h-screen > .flex.min-h-screen > aside.sticky > .relative { display: flex; margin: 0; padding: 0; align-items: center; }
+.min-h-screen > .flex.min-h-screen > aside.sticky > .relative > button { width: auto; border-radius: 12px; padding: 10px 12px; font-size: 11px; }
 .min-h-screen > .flex.min-h-screen > aside.sticky + main { min-width: 0; padding-top: 8px; }
 body:has(img[src="/black-hole.jpg"]) .min-h-screen > .flex.min-h-screen > aside.sticky nav button {
   border: 1px solid hsl(var(--border-strong) / .58);
@@ -212,6 +213,14 @@ body:has(img[src="/black-hole.jpg"]) .reelroom-featured-screening:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem .75rem;
+}
+.reelroom-note-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .75rem;
+}
+@media (min-width: 1024px) {
+  .reelroom-note-row { grid-template-columns: fit-content(28rem) minmax(0, 1fr); }
 }
 @media (min-width: 640px) {
   .reelroom-movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 1rem; }
