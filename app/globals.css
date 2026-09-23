@@ -1,0 +1,148 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: 222 27% 5%;
+  --surface: 219 29% 9%;
+  --surface-2: 219 28% 13%;
+  --surface-3: 220 29% 17%;
+  --border: 219 29% 22%;
+  --border-strong: 219 28% 36%;
+  --ink: 220 33% 97%;
+  --ink-2: 217 21% 69%;
+  --muted: 217 15% 48%;
+  --cobalt: 229 100% 65%;
+  --amber: 40 25% 92%;
+  --mint: 169 59% 58%;
+}
+
+* { box-sizing: border-box; }
+html { background: hsl(var(--canvas)); scroll-behavior: smooth; }
+body { margin: 0; background: hsl(var(--canvas)); color: hsl(var(--ink)); font-family: Inter, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+body:has(img[src="/black-hole.jpg"]) {
+  background-color: hsl(var(--canvas));
+  background-image: linear-gradient(90deg, hsl(var(--canvas)) 0%, hsl(var(--canvas)) 54%, hsl(var(--canvas) / .72) 70%, hsl(var(--canvas) / .14) 90%, hsl(var(--canvas) / 0) 100%), linear-gradient(0deg, hsl(var(--canvas) / .9), hsl(var(--canvas) / .16) 62%, hsl(var(--canvas) / .36)), url("/black-hole.jpg");
+  background-attachment: fixed;
+  background-position: center calc(50% + var(--reelroom-parallax-bg, 0px));
+  background-size: cover;
+}
+body:has(img[src="/black-hole.jpg"]) .min-h-screen.bg-canvas { background-color: transparent; }
+body:has(img[src="/black-hole.jpg"]) header .relative:has(> input) { display: none; }
+body:has(img[src="/black-hole.jpg"]) img[src="/black-hole.jpg"] { display: none; }
+body:has(img[src="/black-hole.jpg"]) .bg-black { background-color: transparent; }
+body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] > div[aria-hidden="true"] { display: none; }
+body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] {
+  will-change: transform;
+  transform: translate3d(0, var(--reelroom-parallax-hero, 0px), 0);
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: transform 620ms cubic-bezier(.16, 1.35, .3, 1);
+}
+body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] button.border-amber.bg-amber {
+  color: hsl(var(--ink));
+  border-color: hsl(var(--amber) / .68);
+  background: linear-gradient(145deg, hsl(var(--ink) / .2), hsl(var(--ink) / .06));
+  box-shadow: 0 12px 30px hsl(var(--canvas) / .22), inset 0 1px hsl(var(--ink) / .22);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] button.border-amber.bg-amber:hover {
+  border-color: hsl(var(--amber) / .9);
+  background: linear-gradient(145deg, hsl(var(--ink) / .3), hsl(var(--ink) / .1));
+}
+button, input, select { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid hsl(var(--amber)); outline-offset: 3px; }
+::selection { color: hsl(var(--canvas)); background: hsl(var(--amber)); }
+
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: .13;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@keyframes reelroom-menu-in {
+  from { opacity: 0; transform: translateY(10px) scale(.94); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.reelroom-more-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: bottom left; }
+.reelroom-header-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: top right; }
+
+/* Liquid-glass treatment is reserved for navigation and floating controls. */
+aside.sticky {
+  background: linear-gradient(155deg, hsl(var(--surface) / .78), hsl(var(--canvas) / .58));
+  border-right-color: hsl(var(--border-strong) / .72);
+  box-shadow: 18px 0 48px hsl(var(--canvas) / .28), inset -1px 0 hsl(var(--ink) / .035);
+  backdrop-filter: blur(26px) saturate(1.35);
+}
+
+header .grid.size-9,
+nav.fixed.inset-x-3 {
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .72), hsl(var(--surface) / .42));
+  border-color: hsl(var(--border-strong) / .78);
+  box-shadow: 0 10px 26px hsl(var(--canvas) / .25), inset 0 1px hsl(var(--ink) / .08);
+  backdrop-filter: blur(20px) saturate(1.3);
+}
+
+header .grid.size-9:hover {
+  background: linear-gradient(145deg, hsl(var(--surface-3) / .78), hsl(var(--surface-2) / .5));
+  border-color: hsl(var(--amber) / .68);
+}
+
+button.border-border.bg-surface-2,
+button.border-border.bg-transparent {
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .62), hsl(var(--surface) / .34));
+  border-color: hsl(var(--border-strong) / .68);
+  box-shadow: inset 0 1px hsl(var(--ink) / .06);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+
+button.border-border.bg-surface-2:hover,
+button.border-border.bg-transparent:hover {
+  background: linear-gradient(145deg, hsl(var(--surface-3) / .78), hsl(var(--surface-2) / .48));
+  border-color: hsl(var(--cobalt) / .72);
+}
+
+.reelroom-more-menu,
+.reelroom-header-menu {
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .88), hsl(var(--surface) / .68));
+  border-color: hsl(var(--border-strong) / .82);
+  box-shadow: 0 20px 48px hsl(var(--canvas) / .46), inset 0 1px hsl(var(--ink) / .09);
+  backdrop-filter: blur(24px) saturate(1.35);
+}
+
+body:has(img[src="/black-hole.jpg"]) .rounded-2xl.bg-surface {
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .64), hsl(var(--surface) / .38));
+  border-color: hsl(var(--border-strong) / .72);
+  box-shadow: 0 20px 60px hsl(var(--canvas) / .26), inset 0 1px hsl(var(--ink) / .08);
+  backdrop-filter: blur(22px) saturate(1.25);
+}
+
+div[role="dialog"] {
+  background: linear-gradient(145deg, hsl(var(--surface) / .88), hsl(var(--surface-2) / .68));
+  border-color: hsl(var(--border-strong) / .82);
+  box-shadow: 0 28px 80px hsl(var(--canvas) / .52), inset 0 1px hsl(var(--ink) / .08);
+  backdrop-filter: blur(26px) saturate(1.25);
+}
+
+.reelroom-more-menu button,
+.reelroom-header-menu button,
+button.border-border.bg-surface-2,
+button.border-border.bg-transparent { border-radius: 14px; transition: transform 520ms cubic-bezier(.16, 1.35, .3, 1), box-shadow 320ms ease, background 320ms ease, border-color 320ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(img[src="/black-hole.jpg"]) { background-position: center top; }
+  body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] { transform: none; }
+}
