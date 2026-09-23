@@ -436,7 +436,7 @@ function MoreAccessMenu({
   if (!open) return null;
   const items = nav.filter(([id]) => {
     if (id === currentPage) return false;
-    if (mobile && (id === "updates" || id === "home")) return false;
+    if (mobile && id === "updates") return false;
     return true;
   });
   return (
