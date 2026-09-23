@@ -379,6 +379,47 @@ function PosterCard({
   );
 }
 
+function FeaturedScreening({ onOpen }: { onOpen: (item: Movie) => void }) {
+  const item = movies[2];
+
+  return (
+    <article className="group reelroom-featured-screening w-full max-w-sm overflow-hidden rounded-2xl border border-border">
+      <div className="relative aspect-[16/10] overflow-hidden">
+        <img
+          src={item.backdrop}
+          alt=""
+          className="size-full object-cover transition duration-700 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/20 to-transparent" />
+        <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
+          Featured event
+        </span>
+      </div>
+      <div className="p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
+          <span className="flex items-center gap-1.5 text-amber">
+            <Clock3 className="size-3" /> Oct 18 · 7:30 PM
+          </span>
+          <span>The Meridian</span>
+        </div>
+        <h2 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
+          {item.title}
+        </h2>
+        <p className="mt-2 text-xs leading-5 text-ink-2">
+          A one-night premiere with a live score and a post-screening Q&amp;A.
+        </p>
+        <button
+          type="button"
+          onClick={() => onOpen(item)}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber/60 bg-ink/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber hover:bg-ink/20"
+        >
+          See event details <ArrowRight className="size-3.5" />
+        </button>
+      </div>
+    </article>
+  );
+}
+
 function MoreAccessMenu({
   open,
   mobile = false,
@@ -641,8 +682,8 @@ export function ReelroomApp() {
             </button>
           }
         />
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
-          {movies.slice(0, 5).map((item) => (
+        <div className="reelroom-movie-grid">
+          {movies.map((item) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -739,7 +780,7 @@ export function ReelroomApp() {
 
   const blackHoleHero = (
     <BlackHoleHeroSection
-      className="relative min-h-[30rem] rounded-2xl border border-border shadow-cinematic md:min-h-[34rem]"
+      className="relative min-h-[44rem] rounded-2xl border border-border shadow-cinematic sm:min-h-[42rem] md:min-h-[38rem] lg:min-h-[34rem]"
       distance={8}
       elevation={7}
       focus={[0.7, 0.48]}
@@ -749,35 +790,38 @@ export function ReelroomApp() {
       starBrightness={0.55}
       spinSpeed={0.36}
     >
-      <div className="relative z-10 flex min-h-[30rem] flex-col justify-end p-7 md:min-h-[34rem] md:p-10">
-        <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-          Reelscape / event horizon
-        </div>
-        <h1 className="mt-4 max-w-2xl font-display text-5xl font-semibold leading-[.91] tracking-[-.08em] text-ink">
-          Find your next <span className="text-amber">screening.</span>
-        </h1>
-        <div className="mt-5 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
-          <span>Curated daily</span>
-          <span className="text-amber">•</span>
-          <span>{movies.length * 12} titles in rotation</span>
-          <span className="text-amber">•</span>
-          <span>NYC · 7:42 PM</span>
-        </div>
-        <p className="mt-5 max-w-md text-sm leading-6 text-ink-2">
-          For the nights when a movie is more than a movie. Browse new releases,
-          follow the songs, and book a seat before the lights go down.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Button
-            variant="primary"
-            className="reelroom-arrow-glass"
-            onClick={() => setPage("movies")}
-          >
-            Explore the lineup <ArrowRight className="size-4" />
-          </Button>
-          <Button variant="ghost" onClick={() => setPage("tickets")}>
-            Book a ticket
-          </Button>
+      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-end gap-8 p-6 sm:min-h-[42rem] sm:p-8 md:min-h-[38rem] md:p-10 lg:min-h-[34rem] lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)]">
+        <FeaturedScreening onOpen={setSelected} />
+        <div className="max-w-2xl lg:pb-1">
+          <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
+            Reelscape / event horizon
+          </div>
+          <h1 className="mt-4 max-w-2xl font-display text-5xl font-semibold leading-[.91] tracking-[-.08em] text-ink sm:text-6xl md:text-7xl">
+            Find your next <span className="text-amber">screening.</span>
+          </h1>
+          <div className="mt-5 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+            <span>Curated daily</span>
+            <span className="text-amber">•</span>
+            <span>{movies.length * 12} titles in rotation</span>
+            <span className="text-amber">•</span>
+            <span>NYC · 7:42 PM</span>
+          </div>
+          <p className="mt-5 max-w-md text-sm leading-6 text-ink-2">
+            For the nights when a movie is more than a movie. Browse new releases,
+            follow the songs, and book a seat before the lights go down.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              className="reelroom-arrow-glass"
+              onClick={() => setPage("movies")}
+            >
+              Explore the lineup <ArrowRight className="size-4" />
+            </Button>
+            <Button variant="ghost" onClick={() => setPage("tickets")}>
+              Book a ticket
+            </Button>
+          </div>
         </div>
       </div>
     </BlackHoleHeroSection>
@@ -798,8 +842,8 @@ export function ReelroomApp() {
             </button>
           }
         />
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
-          {movies.slice(0, 5).map((item) => (
+        <div className="reelroom-movie-grid">
+          {movies.map((item) => (
             <PosterCard
               key={item.id}
               item={item}
