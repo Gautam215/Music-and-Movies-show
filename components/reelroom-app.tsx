@@ -1731,85 +1731,59 @@ export function ReelroomApp() {
 
   return (
     <div className={cn("min-h-screen bg-canvas text-ink", page === "home" && "home-page")}>
-      <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-canvas/90 p-5 backdrop-blur-xl lg:flex">
-          <div className="mb-10 flex items-center gap-3 px-2">
-            <span className="grid size-8 rotate-45 place-items-center border border-border-strong text-amber">
-              <Film className="size-4 -rotate-45" />
-            </span>
-            <strong className="font-display text-lg tracking-[-.05em]">
-              reel<span className="text-amber">scape</span>
-            </strong>
-          </div>
-          <div className="mb-3 px-2 font-mono text-[10px] uppercase tracking-[.14em] text-muted">
-            Explore
-          </div>
-          <nav className="space-y-1">
-            {nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
-              <button
-                key={id}
-                onClick={() => setPage(id)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-ink-2 transition hover:bg-surface hover:text-ink",
-                  page === id &&
-                    "bg-cobalt/15 text-ink shadow-[inset_2px_0_0_hsl(var(--cobalt))]",
-                )}
-              >
-                <Icon className={cn("size-4", page === id && "text-amber")} />
-                {label}
-              </button>
-            ))}
-          </nav>
-          <div className="relative mt-auto mb-3 px-2">
-            <button
-              type="button"
-              onClick={() => setMoreOpen((open) => !open)}
-              aria-expanded={moreOpen}
-              aria-controls="reelroom-more-menu-desktop"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-xs text-ink-2 transition hover:bg-surface hover:text-ink"
-            >
-              <EllipsisVertical className="size-4" />
-              More
-            </button>
-            <div id="reelroom-more-menu-desktop">
-              <MoreAccessMenu
-                open={moreOpen}
-                currentPage={page}
-                onNavigate={(nextPage) => {
-                  setMoreOpen(false);
-                  setPage(nextPage);
-                }}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-3 border-t border-border px-2 pt-4">
-            <div className="grid size-8 place-items-center rounded-full bg-amber font-display text-xs font-bold text-canvas">
-              AK
-            </div>
-            <div>
-              <strong className="block font-display text-xs text-ink">
-                Alex Kim
-              </strong>
-              <span className="block text-[10px] text-muted">
-                Member · New York
-              </span>
-            </div>
-          </div>
-        </aside>
+      <div className="min-h-screen">
         <main
           className={cn(
-            "min-w-0 flex-1 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
+            "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
             page === "updates" && "!pb-0 lg:!pb-0",
           )}
         >
           <header className="relative flex h-20 items-center justify-between gap-4">
-            <div className="flex items-center gap-3 lg:hidden">
+            <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
                 <Film className="size-3.5 -rotate-45" />
               </span>
               <strong className="font-display text-lg tracking-[-.05em]">
                 reel<span className="text-amber">scape</span>
               </strong>
+              <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+                {nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
+                  <button
+                    key={id}
+                    onClick={() => setPage(id)}
+                    className={cn(
+                      "reelroom-desktop-nav-button flex items-center gap-2 rounded-lg border border-border bg-transparent px-3 py-2 text-[11px] text-ink-2 transition hover:text-ink",
+                      page === id && "text-ink",
+                    )}
+                  >
+                    <Icon className={cn("size-3.5", page === id && "text-amber")} />
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              <div className="relative hidden lg:block">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((open) => !open)}
+                  aria-expanded={moreOpen}
+                  aria-controls="reelroom-desktop-overflow-menu"
+                  aria-label="Open navigation menu"
+                  className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
+                >
+                  <EllipsisVertical className="size-4" />
+                </button>
+                <div id="reelroom-desktop-overflow-menu">
+                  <MoreAccessMenu
+                    open={moreOpen}
+                    header
+                    currentPage={page}
+                    onNavigate={(nextPage) => {
+                      setMoreOpen(false);
+                      setPage(nextPage);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
             {page === "updates" ? (
               <div className="flex-1" aria-hidden="true" />

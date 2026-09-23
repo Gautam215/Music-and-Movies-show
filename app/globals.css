@@ -142,51 +142,6 @@ div[role="dialog"] {
 button.border-border.bg-surface-2,
 button.border-border.bg-transparent { border-radius: 14px; transition: transform 520ms cubic-bezier(.16, 1.35, .3, 1), box-shadow 320ms ease, background 320ms ease, border-color 320ms ease; }
 
-/* Home navigation keeps the desktop shell horizontal and reduces mobile to one overflow control. */
-.min-h-screen > .flex.min-h-screen:has(aside.sticky) { display: block; min-height: 0; }
-.min-h-screen > .flex.min-h-screen > aside.sticky {
-  position: sticky;
-  top: 12px;
-  z-index: 35;
-  display: flex;
-  width: 100%;
-  height: auto;
-  min-height: 64px;
-  margin: 0;
-  padding: 10px 16px;
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
-  border: 0;
-  border-radius: 0;
-  background: transparent !important;
-  box-shadow: none;
-  backdrop-filter: none;
-}
-.min-h-screen > .flex.min-h-screen > aside.sticky > div:first-child { margin: 0; padding: 0; }
-.min-h-screen > .flex.min-h-screen > aside.sticky > .mb-3,
-.min-h-screen > .flex.min-h-screen > aside.sticky > .flex.items-center.gap-3.border-t { display: none; }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav { display: flex; min-width: 0; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 4px; }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav button { width: auto; flex: 0 0 auto; justify-content: center; border-radius: 12px; padding: 10px 12px; font-size: 11px; }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav button:hover { background: hsl(var(--surface-3) / .7); }
-.min-h-screen > .flex.min-h-screen > aside.sticky nav button:focus-visible { outline-offset: -2px; }
-.min-h-screen > .flex.min-h-screen > aside.sticky > .relative { display: flex; margin: 0; padding: 0; align-items: center; }
-.min-h-screen > .flex.min-h-screen > aside.sticky > .relative > button { width: auto; border-radius: 12px; padding: 10px 12px; font-size: 11px; }
-.min-h-screen > .flex.min-h-screen > aside.sticky + main { min-width: 0; padding-top: 8px; }
-body:has(img[src="/black-hole.jpg"]) .min-h-screen > .flex.min-h-screen > aside.sticky nav button {
-  border: 1px solid hsl(var(--border-strong) / .58);
-  background: linear-gradient(145deg, hsl(var(--surface-2) / .52), hsl(var(--surface) / .24));
-  box-shadow: inset 0 1px hsl(var(--ink) / .07);
-  backdrop-filter: blur(16px) saturate(1.2);
-}
-body:has(img[src="/black-hole.jpg"]) .min-h-screen > .flex.min-h-screen > aside.sticky nav button:hover,
-body:has(img[src="/black-hole.jpg"]) .min-h-screen > .flex.min-h-screen > aside.sticky nav button[aria-current="page"] {
-  border-color: hsl(var(--amber) / .58);
-  background: linear-gradient(145deg, hsl(var(--surface-3) / .7), hsl(var(--surface-2) / .42));
-  box-shadow: 0 10px 26px hsl(var(--canvas) / .2), inset 0 1px hsl(var(--ink) / .09);
-}
-nav.fixed.inset-x-3.bottom-3 { display: none !important; }
-
 body:has(img[src="/black-hole.jpg"]) .reelroom-poster-card > div:first-child {
   border-color: hsl(var(--border-strong) / .66);
   background: linear-gradient(145deg, hsl(var(--surface-2) / .48), hsl(var(--surface) / .26));
@@ -243,12 +198,6 @@ body:has(img[src="/black-hole.jpg"]) .reelroom-arrow-glass:hover { border-color:
 body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] h1 { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0; }
 
 @media (max-width: 767px) {
-  .min-h-screen > .flex.min-h-screen > aside.sticky { display: none; }
-  nav.fixed.inset-x-3.bottom-3 { display: flex !important; right: 12px; left: auto; width: 48px; padding: 6px; justify-content: center; border-radius: 14px; }
-  nav.fixed.inset-x-3.bottom-3 > button:not(:last-child) { display: none; }
-  nav.fixed.inset-x-3.bottom-3 > button:last-child { width: 36px; height: 36px; padding: 0; font-size: 0; color: hsl(var(--ink)); border: 1px solid hsl(var(--border-strong) / .72); border-radius: 11px; }
-  .reelroom-header-menu button[aria-current="page"] { display: none; }
-  .min-h-screen > .flex.min-h-screen > aside.sticky + main { padding-top: 0; }
   body:has(img[src="/black-hole.jpg"]) { background-position: center top, center top, center top; background-size: auto, auto, cover; background-repeat: no-repeat; background-attachment: scroll; }
   body:has(img[src="/black-hole.jpg"]) [aria-label="Black hole artwork"] { min-height: 44rem; }
   body:has(img[src="/black-hole.jpg"]) .rounded-2xl.bg-surface { backdrop-filter: blur(18px) saturate(1.2); }
