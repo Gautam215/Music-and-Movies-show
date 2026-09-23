@@ -23,9 +23,8 @@ const DRAG_UNITS = 300;
 const WHEEL_UNITS = 240;
 const SETTLE = 140;
 const EASE = 0.14;
-const AUTO_SPEED = 0.18;
-const IDLE_RESUME = 10_000;
-const ZOOM_HOLD = 18_000;
+const CURSOR_SPEED = 0.62;
+const CENTER_HOLD = 10_000;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const wrap = (value: number, count: number) => ((value % count) + count) % count;
@@ -39,10 +38,10 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
   const turn = React.useRef(0);
   const target = React.useRef(0);
   const drag = React.useRef<number | null>(null);
+  const cursorPosition = React.useRef(0);
   const settling = React.useRef(0);
-  const idleTimer = React.useRef(0);
-  const zoomTimer = React.useRef(0);
-  const autoRotate = React.useRef(true);
+  const centerTimer = React.useRef(0);
+  const restoreTurn = React.useRef(0);
   const visibleItems = React.useMemo(() => items.slice(0, MAX_ITEMS), [items]);
   const count = visibleItems.length;
   const [active, setActive] = React.useState(0);
@@ -50,16 +49,8 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
   const [stage, setStage] = React.useState<Stage>({ w: 0, h: 0 });
   const [reduced, setReduced] = React.useState(false);
 
-  const scheduleResume = React.useCallback(() => {
-    window.clearTimeout(idleTimer.current);
-    idleTimer.current = window.setTimeout(() => {
-      autoRotate.current = true;
-    }, IDLE_RESUME);
-  }, []);
-
   React.useEffect(() => () => {
-    window.clearTimeout(idleTimer.current);
-    window.clearTimeout(zoomTimer.current);
+    window.clearTimeout(centerTimer.current);
   }, []);
 
   React.useEffect(() => {
@@ -102,7 +93,9 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
       const now = performance.now();
       const elapsed = Math.min(now - previousTime, 80);
       previousTime = now;
-      if (autoRotate.current && zoomed === null) target.current -= (elapsed / 1000) * AUTO_SPEED;
+      if (zoomed === null && drag.current === null && !reduced) {
+        target.current += cursorPosition.current * (elapsed / 1000) * CURSOR_SPEED;
+      }
       const gap = target.current - turn.current;
       if (reduced || Math.abs(gap) < 0.0005) turn.current = target.current;
       else turn.current += gap * EASE;
@@ -140,8 +133,6 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
     const element = stageRef.current;
     if (!element) return;
     const onWheel = (event: WheelEvent) => {
-      autoRotate.current = false;
-      scheduleResume();
       event.preventDefault();
       to(target.current + event.deltaY / WHEEL_UNITS);
       window.clearTimeout(settling.current);
@@ -152,7 +143,7 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
       element.removeEventListener("wheel", onWheel);
       window.clearTimeout(settling.current);
     };
-  }, [scheduleResume, to]);
+  }, [to]);
 
   return (
     <section aria-label={label} className={cn("relative h-full min-h-[24rem] w-full overflow-hidden bg-[#070707] text-white select-none", className)} {...props}>
@@ -164,11 +155,18 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
         aria-activedescendant={`works-wheel-${active}`}
         className="absolute inset-0 cursor-grab touch-none outline-none focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
         style={{ perspective: `${metrics.depth}px` }}
-        onPointerDown={(event) => { autoRotate.current = false; scheduleResume(); drag.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
-        onPointerMove={(event) => { if (drag.current === null) return; scheduleResume(); to(target.current + (drag.current - event.clientY) / DRAG_UNITS); drag.current = event.clientY; }}
-        onPointerUp={() => { drag.current = null; scheduleResume(); window.clearTimeout(settling.current); settling.current = window.setTimeout(() => to(Math.round(target.current)), SETTLE); }}
-        onPointerCancel={() => { drag.current = null; }}
-        onKeyDown={(event) => { autoRotate.current = false; scheduleResume(); if (event.key === "ArrowDown" || event.key === "ArrowRight") to(Math.round(target.current) + 1); else if (event.key === "ArrowUp" || event.key === "ArrowLeft") to(Math.round(target.current) - 1); else return; event.preventDefault(); }}
+        onPointerDown={(event) => { drag.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
+        onPointerMove={(event) => {
+          const bounds = event.currentTarget.getBoundingClientRect();
+          cursorPosition.current = clamp(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -1, 1);
+          if (drag.current === null) return;
+          to(target.current + (drag.current - event.clientY) / DRAG_UNITS);
+          drag.current = event.clientY;
+        }}
+        onPointerLeave={() => { cursorPosition.current = 0; }}
+        onPointerUp={() => { drag.current = null; window.clearTimeout(settling.current); settling.current = window.setTimeout(() => to(Math.round(target.current)), SETTLE); }}
+        onPointerCancel={() => { drag.current = null; cursorPosition.current = 0; }}
+        onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowRight") to(Math.round(target.current) + 1); else if (event.key === "ArrowUp" || event.key === "ArrowLeft") to(Math.round(target.current) - 1); else return; event.preventDefault(); }}
       >
         {visibleItems.map((item, index) => {
           const Tag = (item.href ? "a" : "div") as "a";
@@ -180,7 +178,22 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
               aria-selected={index === active}
               href={item.href}
               ref={(node: HTMLElement | null) => { cardRefs.current[index] = node; }}
-              onClick={(event) => { event.preventDefault(); event.stopPropagation(); autoRotate.current = false; target.current = turn.current; window.clearTimeout(idleTimer.current); window.clearTimeout(zoomTimer.current); const element = event.currentTarget as HTMLElement; element.style.transition = "transform 520ms cubic-bezier(.22,.8,.32,1), opacity 240ms ease"; window.setTimeout(() => { element.style.transition = ""; }, 560); setZoomed(index); zoomTimer.current = window.setTimeout(() => { setZoomed(null); target.current = turn.current; autoRotate.current = true; }, ZOOM_HOLD); }}
+               onClick={(event) => {
+                 event.preventDefault();
+                 event.stopPropagation();
+                 if (zoomed === null) restoreTurn.current = target.current;
+                 const centered = -index + Math.round((target.current + index) / count) * count;
+                 target.current = centered;
+                 window.clearTimeout(centerTimer.current);
+                 const element = event.currentTarget as HTMLElement;
+                 element.style.transition = "transform 520ms cubic-bezier(.22,.8,.32,1), opacity 240ms ease";
+                 window.setTimeout(() => { element.style.transition = ""; }, 560);
+                 setZoomed(index);
+                 centerTimer.current = window.setTimeout(() => {
+                   setZoomed(null);
+                   target.current = restoreTurn.current;
+                 }, CENTER_HOLD);
+               }}
               className="group absolute left-1/2 top-1/2 block overflow-hidden rounded-xl border border-white/10 bg-[#111] shadow-[0_24px_60px_rgba(0,0,0,.55)] [backface-visibility:hidden]"
               style={{ width: metrics.cardW, height: metrics.cardH, marginLeft: -metrics.cardW / 2, marginTop: -metrics.cardH / 2 }}
             >
@@ -196,7 +209,7 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
           );
         })}
       </div>
-      <div className="pointer-events-none absolute left-4 top-4 z-20 font-mono text-[9px] uppercase tracking-[.14em] text-white/55">Auto-rotate anti-clockwise · click to hold center for 18s</div>
+       <div className="pointer-events-none absolute left-4 top-4 z-20 font-mono text-[9px] uppercase tracking-[.14em] text-white/55">Move cursor left / right to rotate · click to center for 10s</div>
       <div className={cn("pointer-events-none absolute inset-0 grid place-items-center text-center font-display text-2xl font-medium tracking-[-.06em] transition-opacity duration-300 sm:text-3xl", zoomed !== null && "opacity-0")}>{label}</div>
     </section>
   );

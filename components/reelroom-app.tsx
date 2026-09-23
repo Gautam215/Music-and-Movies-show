@@ -983,7 +983,7 @@ export function ReelroomApp() {
   );
 
   const updatesWithWheel = (
-    <div className="h-[calc(100vh-5rem)] min-h-[32rem] overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] min-h-[32rem] w-full overflow-hidden">
       <WorksWheel
         items={wheelItems}
         label="Upcoming '26"
@@ -1794,10 +1794,10 @@ export function ReelroomApp() {
         <main
           className={cn(
             "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
-            page === "updates" && "!pb-0 lg:!pb-0",
+            page === "updates" && "!px-0 !pb-0 lg:!pb-0",
           )}
         >
-          <header className="relative flex h-20 items-center justify-between gap-4">
+          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
                 <Film className="size-3.5 -rotate-45" />
@@ -1805,44 +1805,6 @@ export function ReelroomApp() {
               <strong className="font-display text-lg tracking-[-.05em]">
                 reel<span className="text-amber">scape</span>
               </strong>
-              <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
-                {page !== "login" && nav.filter(([id]) => id === "home").map(([id, label, Icon]) => (
-                  <button
-                    key={id}
-                    onClick={() => setPage(id)}
-                    className={cn(
-                      "reelroom-desktop-nav-button flex items-center gap-2 rounded-lg border border-border bg-transparent px-3 py-2 text-[11px] text-ink-2 transition hover:text-ink",
-                      page === id && "text-ink",
-                    )}
-                  >
-                    <Icon className={cn("size-3.5", page === id && "text-amber")} />
-                    {label}
-                  </button>
-                ))}
-              </nav>
-              {page !== "login" ? <div className="relative hidden lg:block">
-                <button
-                  type="button"
-                  onClick={() => setMoreOpen((open) => !open)}
-                  aria-expanded={moreOpen}
-                  aria-controls="reelroom-desktop-overflow-menu"
-                  aria-label="Open navigation menu"
-                  className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
-                >
-                  <EllipsisVertical className="size-4" />
-                </button>
-                <div id="reelroom-desktop-overflow-menu">
-                  <MoreAccessMenu
-                    open={moreOpen}
-                    header
-                    currentPage={page}
-                    onNavigate={(nextPage) => {
-                      setMoreOpen(false);
-                      setPage(nextPage);
-                    }}
-                  />
-                </div>
-              </div> : null}
             </div>
             {page === "updates" || page === "login" ? (
               <div className="flex-1" aria-hidden="true" />
@@ -1870,31 +1832,29 @@ export function ReelroomApp() {
               >
                 <Bell className="size-4" />
               </button>
-              {page === "login" ? (
-                <div className="relative hidden lg:block">
-                  <button
-                    type="button"
-                    onClick={() => setMoreOpen((open) => !open)}
-                    aria-expanded={moreOpen}
-                    aria-controls="reelroom-login-overflow-menu"
-                    aria-label="Open navigation menu"
-                    className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
-                  >
-                    <EllipsisVertical className="size-4" />
-                  </button>
-                  <div id="reelroom-login-overflow-menu">
-                    <MoreAccessMenu
-                      open={moreOpen}
-                      header
-                      currentPage={page}
-                      onNavigate={(nextPage) => {
-                        setMoreOpen(false);
-                        setPage(nextPage);
-                      }}
-                    />
-                  </div>
+              <div className="relative hidden lg:block">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((open) => !open)}
+                  aria-expanded={moreOpen}
+                  aria-controls="reelroom-desktop-overflow-menu"
+                  aria-label="Open navigation menu"
+                  className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
+                >
+                  <EllipsisVertical className="size-4" />
+                </button>
+                <div id="reelroom-desktop-overflow-menu">
+                  <MoreAccessMenu
+                    open={moreOpen}
+                    header
+                    currentPage={page}
+                    onNavigate={(nextPage) => {
+                      setMoreOpen(false);
+                      setPage(nextPage);
+                    }}
+                  />
                 </div>
-              ) : null}
+              </div>
               <div className="relative reelroom-header-overflow lg:hidden">
                 <button
                   type="button"
