@@ -994,7 +994,7 @@ export function ReelroomApp() {
   );
   const loginPage = (
     <div className="reelroom-login-page mx-auto grid min-h-[calc(100vh-7rem)] max-w-6xl items-center gap-5 lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)]">
-      <section className="mx-auto w-full max-w-md">
+      <section className="mx-auto w-full max-w-md lg:translate-x-6 lg:-translate-y-6">
         <div className="mb-4">
           <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
             Account / public access
@@ -1049,7 +1049,7 @@ export function ReelroomApp() {
         <img
           src="/astronaut.png"
           alt="Astronaut floating through a violet star field"
-          className="absolute inset-0 size-full object-cover object-center mix-blend-screen"
+          className="reelroom-login-astronaut absolute inset-0 size-full object-cover object-[58%_center] mix-blend-screen"
         />
         <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[calc(100vh-7rem)] md:pb-8">
           <div className="relative z-10 text-center">
