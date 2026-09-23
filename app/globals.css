@@ -29,10 +29,7 @@ body:has(.auth-page[data-background="astronaut"]) {
 }
 body:has(.reelroom-app[data-background="astronaut"]) {
   background-color: #08070d;
-  background-image: linear-gradient(90deg, #08070d 0%, #08070d 42%, rgba(8, 7, 13, .68) 68%, rgba(8, 7, 13, 0) 100%), url("/astronaut.png");
-  background-position: center, right 8% center;
-  background-size: auto, min(48vw, 620px) auto;
-  background-repeat: no-repeat;
+  background-image: none;
   background-attachment: scroll;
 }
 body:has(.reelroom-app[data-background="black-hole"]) {
@@ -47,12 +44,14 @@ body:has(.reelroom-app[data-background="astronaut"]) .reelroom-app { background-
 body:has(.reelroom-app[data-background="astronaut"]) .reelroom-login-astronaut {
   transform: perspective(1200px) translate3d(3%, 0, 0) rotateY(-7deg) rotateX(2deg) scale(1.06);
   transform-origin: 58% 50%;
-  filter: drop-shadow(26px 30px 30px rgba(0, 0, 0, .46)) drop-shadow(-8px -8px 18px rgba(185, 156, 255, .16));
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+  filter: drop-shadow(2px 0 0 rgba(217, 200, 255, .5)) drop-shadow(-2px 0 0 rgba(116, 92, 220, .38)) drop-shadow(26px 30px 30px rgba(0, 0, 0, .46)) drop-shadow(-8px -8px 18px rgba(185, 156, 255, .16));
   transition: transform 700ms cubic-bezier(.16, 1.2, .3, 1), filter 500ms ease;
 }
 body:has(.reelroom-app[data-background="astronaut"]) .reelroom-login-astronaut:hover {
   transform: perspective(1200px) translate3d(4%, -1%, 0) rotateY(-5deg) rotateX(2deg) scale(1.08);
-  filter: drop-shadow(30px 38px 34px rgba(0, 0, 0, .5)) drop-shadow(-10px -10px 22px rgba(185, 156, 255, .2));
+  filter: drop-shadow(2px 0 0 rgba(237, 229, 255, .62)) drop-shadow(-2px 0 0 rgba(116, 92, 220, .48)) drop-shadow(30px 38px 34px rgba(0, 0, 0, .5)) drop-shadow(-10px -10px 22px rgba(185, 156, 255, .2));
 }
 body:has(.reelroom-app[data-background="black-hole"]) header .relative:has(> input) { display: none; }
 body:has(.reelroom-app[data-background="black-hole"]) img[src="/black-hole.jpg"] { display: none; }
