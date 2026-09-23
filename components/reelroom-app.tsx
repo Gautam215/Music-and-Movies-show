@@ -1822,7 +1822,7 @@ export function ReelroomApp() {
                 </div>
               </div>
             </div>
-            {page === "updates" ? (
+            {page === "updates" || page === "login" ? (
               <div className="flex-1" aria-hidden="true" />
             ) : (
               <div className="relative hidden max-w-md flex-1 sm:block">
