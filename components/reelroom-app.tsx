@@ -993,46 +993,77 @@ export function ReelroomApp() {
     </div>
   );
   const loginPage = (
-    <div className="mx-auto max-w-xl space-y-7">
-      <SectionTitle
-        eyebrow="Account / public access"
-        title="Welcome back"
-        copy="Log in to keep your saved films, ticket history, and release alerts together."
-      />
-      <form
-        className="space-y-5 rounded-2xl border border-border bg-surface p-5 md:p-6"
-        onSubmit={(event) => {
-          event.preventDefault();
-          announce("Login is open to all users in this demo.");
-        }}
-      >
-        <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-            Email
-          </span>
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
-          />
-        </label>
-        <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-            Password
-          </span>
-          <input
-            type="password"
-            required
-            placeholder="Enter your password"
-            className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
-          />
-        </label>
-        <Button type="submit" variant="primary" className="w-full">
-          <LogIn className="size-4" />
-          Log in
-        </Button>
-      </form>
+    <div className="reelroom-login-page mx-auto grid min-h-[calc(100vh-7rem)] max-w-6xl items-center gap-5 lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)]">
+      <section className="mx-auto w-full max-w-md">
+        <div className="mb-4">
+          <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+            Account / public access
+          </div>
+          <h1 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.06em] text-ink">
+            Welcome back
+          </h1>
+          <p className="mt-2 max-w-sm text-xs leading-5 text-ink-2">
+            Log in to keep your saved films, ticket history, and release alerts together.
+          </p>
+        </div>
+        <form
+          className="space-y-3 rounded-2xl border border-border bg-surface p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            announce("Login is open to all users in this demo.");
+          }}
+        >
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+              Email
+            </span>
+            <input
+              type="email"
+              required
+              placeholder="you@example.com"
+              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+            />
+          </label>
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+              Password
+            </span>
+            <input
+              type="password"
+              required
+              placeholder="Enter your password"
+              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+            />
+          </label>
+          <Button type="submit" variant="primary" className="h-10 w-full min-h-0">
+            <LogIn className="size-4" />
+            Log in
+          </Button>
+        </form>
+      </section>
+      <section className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border bg-surface md:min-h-[29rem]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,hsl(var(--cobalt)/.22),transparent_45%),linear-gradient(145deg,hsl(var(--surface-2)/.8),hsl(var(--canvas)/.76))]" />
+        <div className="absolute left-5 top-5 font-mono text-[10px] uppercase tracking-[.18em] text-muted">
+          01 / return to orbit
+        </div>
+        <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[29rem] md:pb-8">
+          <div className="relative min-h-0 w-full max-w-lg flex-1 overflow-hidden">
+            <img
+              src="/astronaut.png"
+              alt="Astronaut floating through a violet star field"
+              className="absolute inset-0 size-full object-contain object-center mix-blend-screen"
+            />
+          </div>
+          <div className="relative z-10 text-center">
+            <p className="text-xl font-medium tracking-[-.04em] text-ink md:text-2xl">
+              Keep exploring.
+            </p>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[.2em] text-muted">
+              — Gautam
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 
