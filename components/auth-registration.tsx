@@ -60,7 +60,7 @@ export function AuthRegistration() {
   };
 
   return (
-    <main className="auth-page min-h-screen overflow-hidden bg-[#08070d] text-white selection:bg-[#b99cff]/30">
+    <main className="auth-page min-h-screen overflow-hidden bg-[#08070d] text-white selection:bg-[#b99cff]/30" data-background="astronaut">
       <div className="grid min-h-screen md:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
         <section className="flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-24">
           <div className="w-full max-w-[430px]">
