@@ -1823,15 +1823,17 @@ export function ReelroomApp() {
               </div>
             )}
             <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={() =>
-                  announce("You have 2 release notes and 1 ticket reminder.")
-                }
-                className="grid size-9 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4" />
-              </button>
+              {page === "home" ? (
+                <button
+                  onClick={() =>
+                    announce("You have 2 release notes and 1 ticket reminder.")
+                  }
+                  className="grid size-9 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-4" />
+                </button>
+              ) : null}
               <div className="relative hidden lg:block">
                 <button
                   type="button"
