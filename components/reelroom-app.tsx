@@ -1045,7 +1045,7 @@ export function ReelroomApp() {
         <img
           src="/astronaut.png"
           alt="Astronaut floating through a violet star field"
-          className="reelroom-login-astronaut absolute inset-0 size-full object-cover object-[58%_center] mix-blend-screen"
+          className="reelroom-login-astronaut absolute inset-0 size-full object-contain object-[58%_center] mix-blend-screen"
         />
         <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[calc(100vh-7rem)] md:pb-8">
           <div className="relative z-10 text-center">
