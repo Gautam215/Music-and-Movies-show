@@ -27,6 +27,14 @@ body:has(.auth-page[data-background="astronaut"]) {
   background-image: none;
   background-attachment: scroll;
 }
+body:has(.reelroom-app[data-background="astronaut"]) {
+  background-color: #08070d;
+  background-image: linear-gradient(90deg, #08070d 0%, #08070d 42%, rgba(8, 7, 13, .68) 68%, rgba(8, 7, 13, 0) 100%), url("/astronaut.png");
+  background-position: center, right 8% center;
+  background-size: auto, min(48vw, 620px) auto;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
 body:has(.reelroom-app[data-background="black-hole"]) {
   background-color: hsl(var(--canvas));
   background-image: linear-gradient(90deg, hsl(var(--canvas)) 0%, hsl(var(--canvas)) 54%, hsl(var(--canvas) / .72) 70%, hsl(var(--canvas) / .14) 90%, hsl(var(--canvas) / 0) 100%), linear-gradient(0deg, hsl(var(--canvas) / .9), hsl(var(--canvas) / .16) 62%, hsl(var(--canvas) / .36)), url("/black-hole.jpg");
@@ -35,6 +43,7 @@ body:has(.reelroom-app[data-background="black-hole"]) {
   background-size: cover;
 }
 body:has(.reelroom-app[data-background="black-hole"]) .min-h-screen.bg-canvas { background-color: transparent; }
+body:has(.reelroom-app[data-background="astronaut"]) .reelroom-app { background-color: transparent; }
 body:has(.reelroom-app[data-background="black-hole"]) header .relative:has(> input) { display: none; }
 body:has(.reelroom-app[data-background="black-hole"]) img[src="/black-hole.jpg"] { display: none; }
 body:has(.reelroom-app[data-background="black-hole"]) .bg-black { background-color: transparent; }

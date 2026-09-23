@@ -1755,7 +1755,11 @@ export function ReelroomApp() {
   ) : null;
 
   return (
-    <div className={cn("reelroom-app min-h-screen bg-canvas text-ink", page === "home" && "home-page")} data-background="black-hole" data-page={page}>
+    <div
+      className={cn("reelroom-app min-h-screen bg-canvas text-ink", page === "home" && "home-page")}
+      data-background={page === "home" ? "black-hole" : page === "login" ? "astronaut" : "plain"}
+      data-page={page}
+    >
       <div className="min-h-screen">
         <main
           className={cn(
