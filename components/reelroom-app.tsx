@@ -29,20 +29,8 @@ import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
+import type { Movie } from "@/lib/movie-types";
 
-type Movie = {
-  id: string;
-  title: string;
-  meta: string;
-  status: "NOW PLAYING" | "UPCOMING";
-  rating: string;
-  poster: string;
-  backdrop: string;
-  synopsis: string;
-  showtimes: string[];
-  genres: string[];
-  release: string;
-};
 type Song = {
   title: string;
   artist: string;
@@ -81,6 +69,7 @@ const movies: Movie[] = [
     showtimes: ["10:15 AM", "1:40 PM", "4:25 PM", "8:10 PM"],
     genres: ["Drama", "Mystery"],
     release: "Now playing",
+    price: 16,
   },
   {
     id: "m2",
@@ -95,6 +84,7 @@ const movies: Movie[] = [
     showtimes: ["11:20 AM", "3:05 PM", "7:30 PM"],
     genres: ["Sci-Fi", "Thriller"],
     release: "Now playing",
+    price: 16,
   },
   {
     id: "m3",
@@ -109,6 +99,7 @@ const movies: Movie[] = [
     showtimes: ["12:10 PM", "5:00 PM", "9:20 PM"],
     genres: ["Romance", "Indie"],
     release: "Oct 18, 2026",
+    price: 18,
   },
   {
     id: "m4",
@@ -123,6 +114,7 @@ const movies: Movie[] = [
     showtimes: ["2:20 PM", "6:45 PM"],
     genres: ["Documentary"],
     release: "Oct 24, 2026",
+    price: 18,
   },
   {
     id: "m5",
@@ -137,6 +129,7 @@ const movies: Movie[] = [
     showtimes: ["9:45 AM", "12:55 PM", "6:15 PM"],
     genres: ["Adventure", "Drama"],
     release: "Oct 31, 2026",
+    price: 20,
   },
   {
     id: "m6",
@@ -151,6 +144,7 @@ const movies: Movie[] = [
     showtimes: ["4:00 PM", "9:05 PM"],
     genres: ["Thriller", "Mystery"],
     release: "Nov 07, 2026",
+    price: 20,
   },
 ];
 
@@ -395,9 +389,7 @@ function PosterCard({
   );
 }
 
-function FeaturedScreening({ onOpen }: { onOpen: (item: Movie) => void }) {
-  const item = movies[2];
-
+function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie) => void }) {
   return (
     <article className="group reelroom-featured-screening w-full overflow-hidden rounded-2xl border border-border">
       <div className="relative aspect-[16/10] overflow-hidden">
@@ -414,15 +406,15 @@ function FeaturedScreening({ onOpen }: { onOpen: (item: Movie) => void }) {
       <div className="p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
           <span className="flex items-center gap-1.5 text-amber">
-            <Clock3 className="size-3" /> Oct 18 · 7:30 PM
+            <Clock3 className="size-3" /> {item.release}
           </span>
-          <span>The Meridian</span>
+          <span>From ₹{item.price}</span>
         </div>
         <h2 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
           {item.title}
         </h2>
         <p className="mt-2 text-xs leading-5 text-ink-2">
-          A one-night premiere with a live score and a post-screening Q&amp;A.
+          {item.synopsis}
         </p>
         <button
           type="button"
@@ -488,11 +480,13 @@ function pageFromLocation(): NavId {
   return nav.some(([id]) => id === candidate) ? (candidate as NavId) : "home";
 }
 
-export function ReelroomApp() {
+export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
+  const catalog = initialMovies?.length ? initialMovies : movies;
+  const heroMovie = catalog[0] ?? movies[0];
   const [page, setPageState] = useState<NavId>("home");
   const [routeReady, setRouteReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
-  const [favorites, setFavorites] = useState<string[]>(["m1"]);
+  const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -723,7 +717,7 @@ export function ReelroomApp() {
         <div className="mt-5 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
           <span>Curated daily</span>
           <span className="text-amber">•</span>
-          <span>{movies.length * 12} titles in rotation</span>
+          <span>{catalog.length * 12} titles in rotation</span>
           <span className="text-amber">•</span>
           <span>NYC · 7:42 PM</span>
         </div>
@@ -760,7 +754,7 @@ export function ReelroomApp() {
           }
         />
         <div className="reelroom-movie-grid">
-          {movies.map((item) => (
+          {catalog.slice(1).map((item) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -786,8 +780,8 @@ export function ReelroomApp() {
             Three late screenings, one last train, and a soundtrack worth
             staying for.
           </p>
-          <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(movies[0])}>
-            Open The Last Light <ArrowRight className="size-4" />
+          <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(heroMovie)}>
+            Open {heroMovie.title} <ArrowRight className="size-4" />
           </Button>
         </div>
         <div className="overflow-hidden rounded-2xl border border-border bg-surface p-4">
@@ -868,7 +862,7 @@ export function ReelroomApp() {
       spinSpeed={0.36}
     >
       <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-end gap-8 p-6 sm:min-h-[42rem] sm:p-8 md:min-h-[38rem] md:grid-cols-2 md:gap-10 md:p-10 lg:min-h-[34rem]">
-        <FeaturedScreening onOpen={setSelected} />
+      <FeaturedScreening item={heroMovie} onOpen={setSelected} />
         <div className="max-w-2xl lg:pb-1">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
             Reelscape / event horizon
@@ -879,7 +873,7 @@ export function ReelroomApp() {
           <div className="mt-5 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
             <span>Curated daily</span>
             <span className="text-amber">•</span>
-            <span>{movies.length * 12} titles in rotation</span>
+            <span>{catalog.length * 12} titles in rotation</span>
             <span className="text-amber">•</span>
             <span>NYC · 7:42 PM</span>
           </div>
@@ -920,7 +914,7 @@ export function ReelroomApp() {
           }
         />
         <div className="reelroom-movie-grid">
-          {movies.map((item) => (
+          {catalog.slice(1).map((item) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -943,8 +937,8 @@ export function ReelroomApp() {
             Three late screenings, one last train, and a soundtrack worth
             staying for.
           </p>
-          <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(movies[0])}>
-            Open The Last Light <ArrowRight className="size-4" />
+          <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(heroMovie)}>
+            Open {heroMovie.title} <ArrowRight className="size-4" />
           </Button>
         </div>
         <div className="overflow-hidden rounded-2xl border border-border bg-surface p-4">
@@ -993,7 +987,7 @@ export function ReelroomApp() {
   const moviesPage = (
     <div className="reelroom-movies-page -mx-4 min-h-[calc(100vh-5rem)] sm:-mx-6 lg:-mx-10">
       <ImageStreamHero
-        images={movies.map((item) => ({
+        images={catalog.map((item) => ({
           src: item.poster,
           alt: `${item.title} poster`,
           label: item.title,
@@ -1004,7 +998,7 @@ export function ReelroomApp() {
         axis={70}
         selectedSrc={selectedMovie?.poster}
         onCardSelect={(image) => {
-          const movie = movies.find((item) => item.title === image.label);
+          const movie = catalog.find((item) => item.title === image.label);
           if (movie) {
             setDroppedMovie(null);
             setDetailsShownAt(null);
@@ -1012,7 +1006,7 @@ export function ReelroomApp() {
           }
         }}
         onCardDrop={(image) => {
-          const movie = movies.find((item) => item.title === image.label);
+          const movie = catalog.find((item) => item.title === image.label);
           if (movie) {
             setSelectedMovie(null);
             setDroppedMovie(movie);
@@ -1341,7 +1335,7 @@ export function ReelroomApp() {
     </div>
   );
 
-  const ticketMovie = selected ?? movies[0];
+  const ticketMovie = selected ?? heroMovie;
   const seats = [
     "A1",
     "A2",
@@ -1437,7 +1431,7 @@ export function ReelroomApp() {
                     {time}
                   </strong>
                   <span className="mt-1 block text-[10px] text-muted">
-                    Dolby · from ₹16
+                    Dolby · from ₹{ticketMovie.price}
                   </span>
                 </button>
               ))}
@@ -1591,7 +1585,7 @@ export function ReelroomApp() {
             <div className="flex justify-between">
               <span>Tickets × {selectedSeats.length}</span>
               <strong className="text-ink">
-                ₹{(selectedSeats.length * 16).toFixed(2)}
+                ₹{(selectedSeats.length * ticketMovie.price).toFixed(2)}
               </strong>
             </div>
             <div className="flex justify-between">
@@ -1613,7 +1607,7 @@ export function ReelroomApp() {
             <span>Total</span>
             <strong className="text-amber">
               ₹{(
-                selectedSeats.length * 16 +
+                 selectedSeats.length * ticketMovie.price +
                 (selectedSeats.length ? 4.8 : 0)
               ).toFixed(2)}
             </strong>
@@ -1681,7 +1675,7 @@ export function ReelroomApp() {
                 </span>
               }
             />
-            {movies
+            {catalog
               .filter((item) => favorites.includes(item.id))
               .map((item) => (
                 <div
@@ -2047,7 +2041,7 @@ export function ReelroomApp() {
           <div className="flex justify-between py-4 text-xs">
             <span className="text-muted">Total</span>
             <strong className="text-ink">
-              ₹{(selectedSeats.length * 16 + 4.8).toFixed(2)}
+              ₹{(selectedSeats.length * ticketMovie.price + 4.8).toFixed(2)}
             </strong>
           </div>
         </div>
