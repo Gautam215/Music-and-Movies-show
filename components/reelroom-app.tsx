@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
+import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import { cn } from "@/lib/utils";
 
 type Movie = {
@@ -925,6 +926,41 @@ export function ReelroomApp() {
 
   const moviesPage = (
     <div className="space-y-7">
+      <ImageStreamHero
+        images={movies.map((item) => ({
+          src: item.poster,
+          alt: `${item.title} poster`,
+        }))}
+        cards={8}
+        speed={20}
+        axis={57}
+        className="reelroom-movie-stream h-[30rem] rounded-2xl border border-border sm:h-[34rem] lg:h-[38rem]"
+      >
+        <div className="relative z-10 flex h-full flex-col items-center justify-between px-6 py-8 text-center sm:px-10 sm:py-10">
+          <div className="max-w-2xl">
+            <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+              Movie section / depth preview
+            </div>
+            <h1 className="mt-4 text-balance font-display text-4xl font-semibold leading-[.94] tracking-[-.08em] text-ink sm:text-6xl">
+              Find the film beyond the <span className="text-amber">frame.</span>
+            </h1>
+          </div>
+          <div className="max-w-md">
+            <p className="text-sm leading-6 text-ink-2">
+              Move through the lineup as a living corridor of posters. Every title
+              is one click away from its story, soundtrack, and next screening.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-ink-2">
+              <span className="rounded-full border border-amber/40 bg-canvas/50 px-3 py-1.5 text-amber backdrop-blur">
+                3D image stream
+              </span>
+              <span className="rounded-full border border-border bg-canvas/45 px-3 py-1.5 backdrop-blur">
+                {movies.length} titles in rotation
+              </span>
+            </div>
+          </div>
+        </div>
+      </ImageStreamHero>
       <SectionTitle
         eyebrow="Catalog / 06 films"
         title="The lineup"
