@@ -57,6 +57,8 @@ function keyframes(dir: 1 | -1, name: string, p: Required<CorridorPath>) {
 export type StreamImage = {
   src: string;
   alt?: string;
+  label?: string;
+  meta?: string;
 };
 
 export type ImageStreamHeroProps = {
@@ -114,7 +116,7 @@ export function ImageStreamHero({
               return (
                 <div
                   key={`${name}-${i}`}
-                  className={cn(card, "absolute overflow-hidden")}
+                  className={cn(card, "absolute flex flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl")}
                   style={{
                     left: "50%",
                     top: `${axis}%`,
@@ -129,14 +131,26 @@ export function ImageStreamHero({
                   }}
                 >
                   {img ? (
-                    <img
-                      src={img.src}
-                      alt={img.alt ?? ""}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                      draggable={false}
-                    />
+                    <>
+                      <div className="min-h-0 flex-1">
+                        <img
+                          src={img.src}
+                          alt={img.alt ?? ""}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                          draggable={false}
+                        />
+                      </div>
+                      <div className="shrink-0 border-t border-white/10 bg-surface/95 px-[1.2cqw] py-[1cqw] text-left">
+                        <strong className="block truncate font-display text-[clamp(7px,1.15cqw,12px)] font-semibold leading-tight text-ink">
+                          {img.label}
+                        </strong>
+                        <span className="mt-0.5 block truncate font-mono text-[clamp(6px,.9cqw,9px)] uppercase tracking-[.08em] text-amber">
+                          {img.meta}
+                        </span>
+                      </div>
+                    </>
                   ) : null}
                 </div>
               );
