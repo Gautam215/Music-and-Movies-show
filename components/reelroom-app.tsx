@@ -1464,15 +1464,15 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate min-h-[calc(100vh-5rem)] overflow-hidden rounded-2xl border border-border py-6 sm:py-8">
+    <div className="reelroom-profile-page relative isolate min-h-[calc(100vh-5rem)] overflow-hidden border-y border-border">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
-      <div className="relative z-10 space-y-7">
+      <div className="relative z-10 space-y-7 px-4 py-5 sm:px-6 sm:py-7 lg:px-10">
         <SectionTitle
           eyebrow="Profile / your signal"
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
         />
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-6 backdrop-blur-md">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-surface/75 px-4 py-3 backdrop-blur-md sm:px-5">
           <div className="flex items-center gap-4">
             <div className="grid size-14 place-items-center rounded-full bg-amber font-display text-xl font-bold text-canvas">
               AG
@@ -1481,17 +1481,20 @@ export function ReelroomApp() {
               <h2 className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
                 Abhishek Kumar Gautam
               </h2>
-              <p className="mt-1 text-xs text-muted">
-                Greater Noida · Member since 2021
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p className="text-xs text-muted">
+                  Greater Noida · Member since 2021
+                </p>
+                <Button
+                  variant="ghost"
+                  className="min-h-8 px-3 py-1 text-[10px]"
+                  onClick={() => announce("Preferences are ready to manage.")}
+                >
+                  Manage preferences
+                </Button>
+              </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => announce("Preferences are ready to manage.")}
-          >
-            Manage preferences
-          </Button>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-3 backdrop-blur-md">
@@ -1534,8 +1537,8 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
-            <SectionTitle eyebrow="Preferences" title="Your signal" />
+          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-3 backdrop-blur-md">
+            <SectionTitle compact eyebrow="Preferences" title="Your signal" />
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-border pb-4">
                 <div>
@@ -1892,6 +1895,7 @@ export function ReelroomApp() {
           className={cn(
             "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
             page === "updates" && "!px-0 !pb-0 lg:!pb-0",
+            page === "profile" && "!px-0",
           )}
         >
           <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
