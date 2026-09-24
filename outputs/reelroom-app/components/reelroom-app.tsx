@@ -307,8 +307,8 @@ function SectionTitle({
   compact?: boolean;
 }) {
   return (
-    <div className={cn(compact ? "mb-2" : "mb-5", "flex items-end justify-between gap-4")}>
-      <div>
+    <div className={cn(compact ? "mb-2" : "mb-5", "flex min-w-0 max-w-full items-end justify-between gap-4")}>
+      <div className="min-w-0">
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
         </div>
@@ -1158,7 +1158,7 @@ export function ReelroomApp() {
               alt=""
               className="size-16 rounded-lg object-cover"
             />
-            <div>
+            <div className="min-w-0">
               <div className="font-mono text-[10px] uppercase text-amber">
                 Tonight / New York
               </div>
@@ -1390,7 +1390,7 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate m-0 h-screen min-h-screen w-full max-w-full overflow-hidden border-y border-border p-0">
+    <div className="reelroom-profile-page relative isolate m-0 h-screen min-h-screen w-full min-w-0 max-w-full overflow-hidden border-y border-border p-0">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
       <div className="relative z-10 min-w-0 max-w-full space-y-5">
         <SectionTitle
@@ -1398,12 +1398,12 @@ export function ReelroomApp() {
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
         />
-        <div className="flex w-fit max-w-full flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-2 py-1 backdrop-blur-md">
+        <div className="flex w-full max-w-full flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-2 py-1 backdrop-blur-md">
           <div className="flex min-w-0 max-w-full items-center gap-3">
             <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
               AG
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
                 Abhishek Kumar Gautam
               </h2>
