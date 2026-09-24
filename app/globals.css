@@ -231,10 +231,15 @@ body:has(.reelroom-app[data-background="black-hole"]) .reelroom-featured-screeni
   box-shadow: 0 28px 70px hsl(var(--canvas) / .42), inset 0 1px hsl(var(--ink) / .14);
 }
 .reelroom-movie-stream {
+  min-width: 0;
   background-color: hsl(222 18% 7%);
   background-image: radial-gradient(circle at 50% 18%, hsl(222 22% 16% / .85) 0%, transparent 54%), linear-gradient(180deg, hsl(222 18% 10%) 0%, hsl(222 18% 7%) 62%, hsl(220 18% 4%) 100%);
   box-shadow: 0 24px 70px hsl(220 20% 2% / .58), inset 0 1px hsl(var(--ink) / .1);
 }
+.reelroom-movies-page { width: 100%; min-width: 0; }
+.reelroom-stream-top { box-sizing: border-box; max-width: none; }
+.reelroom-stream-details { max-height: 100%; overflow: auto; }
+.reelroom-stream-dropzone { box-sizing: border-box; border-left: 0; border-right: 0; }
 .reelroom-movie-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -269,6 +274,9 @@ body:has(.reelroom-app[data-background="black-hole"]) .reelroom-arrow-glass:hove
 body:has(.reelroom-app[data-background="black-hole"]) [aria-label="Black hole artwork"] h1 { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0; }
 
 @media (max-width: 767px) {
+  .reelroom-stream-top { height: 38%; padding-inline: .75rem; }
+  .reelroom-stream-details { width: 100%; max-width: none; }
+  .reelroom-stream-dropzone { bottom: .75rem; padding-inline: 1rem; }
   body:has(.reelroom-app[data-background="black-hole"]) { background-position: center top, center top, center top; background-size: auto, auto, cover; background-repeat: no-repeat; background-attachment: scroll; }
   body:has(.reelroom-app[data-background="black-hole"]) [aria-label="Black hole artwork"] { min-height: 44rem; }
   body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface { backdrop-filter: blur(18px) saturate(1.2); }

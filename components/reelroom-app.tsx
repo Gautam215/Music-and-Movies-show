@@ -956,9 +956,9 @@ export function ReelroomApp() {
         }}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[34%] justify-center overflow-auto px-4 pt-4 sm:px-8 sm:pt-6">
+        <div className="reelroom-stream-top pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[34%] w-full justify-center overflow-auto px-4 pt-4 sm:px-8 sm:pt-6">
           {droppedMovie ? (
-            <div className="h-fit w-[min(50vw,42rem)] min-w-0 rounded-2xl border border-white/15 bg-[#111318]/92 p-4 text-center shadow-[0_20px_70px_rgba(0,0,0,.48)] backdrop-blur-md sm:p-5">
+            <div className="reelroom-stream-details h-fit w-[min(50vw,42rem)] max-w-full min-w-0 rounded-2xl border border-white/15 bg-[#111318]/92 p-4 text-center shadow-[0_20px_70px_rgba(0,0,0,.48)] backdrop-blur-md sm:p-5">
               <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
                 Dropped movie / full details
               </div>

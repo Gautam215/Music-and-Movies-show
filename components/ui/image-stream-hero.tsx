@@ -205,7 +205,7 @@ export function ImageStreamHero({
       {onCardDrop ? (
         <div
           className={cn(
-            "pointer-events-auto absolute inset-x-4 bottom-4 z-30 mx-auto flex max-w-xl items-center justify-center rounded-2xl border border-dashed border-amber/45 bg-canvas/75 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[.14em] text-ink-2 backdrop-blur-md transition",
+            "reelroom-stream-dropzone pointer-events-auto absolute inset-x-0 bottom-4 z-30 mx-auto flex w-full max-w-none items-center justify-center rounded-2xl border border-dashed border-amber/45 bg-canvas/75 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[.14em] text-ink-2 backdrop-blur-md transition",
             draggingSrc && "border-amber bg-amber/10 text-amber shadow-[0_0_28px_rgba(251,191,36,.22)]",
           )}
           onDragOver={(event) => {
