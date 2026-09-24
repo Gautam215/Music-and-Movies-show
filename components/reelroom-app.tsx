@@ -553,7 +553,7 @@ export function ReelroomApp() {
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<Movie>(movies[0]);
+  const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
   const [showtime, setShowtime] = useState("1:40 PM");
   const [booking, setBooking] = useState(false);
@@ -935,46 +935,43 @@ export function ReelroomApp() {
         }))}
         cards={10}
         speed={18}
-        axis={56}
-        selectedSrc={selectedMovie.poster}
-        onCardSelect={(image) => {
-          const movie = movies.find((item) => item.title === image.label);
-          if (movie) setSelectedMovie(movie);
-        }}
+        axis={70}
         onCardDrop={(image) => {
           const movie = movies.find((item) => item.title === image.label);
-          if (movie) setSelectedMovie(movie);
+          if (movie) setDroppedMovie(movie);
         }}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
       >
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex w-[min(30rem,34vw)] items-center px-4 sm:px-8 max-md:inset-x-0 max-md:bottom-16 max-md:top-auto max-md:h-auto max-md:w-auto max-md:justify-center max-md:px-4">
-          <div className="w-full rounded-2xl border border-cobalt/45 bg-[#07183f]/88 p-4 text-left shadow-[0_20px_70px_rgba(4,13,42,.55)] backdrop-blur-md sm:p-5">
-            <div className="font-mono text-[9px] uppercase tracking-[.18em] text-cobalt">
-              Selected from the left rail
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[34%] justify-center overflow-auto px-4 pt-4 sm:px-8 sm:pt-6">
+          {droppedMovie ? (
+            <div className="h-fit w-[min(50vw,42rem)] min-w-0 rounded-2xl border border-white/15 bg-[#111318]/92 p-4 text-center shadow-[0_20px_70px_rgba(0,0,0,.48)] backdrop-blur-md sm:p-5">
+              <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
+                Dropped movie / full details
+              </div>
+              <h1 className="mt-2 truncate font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-5xl">
+                {droppedMovie.title}
+              </h1>
+              <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+                <span>{droppedMovie.release}</span>
+                <span className="text-amber">•</span>
+                <span>{droppedMovie.meta}</span>
+                <span className="text-amber">•</span>
+                <span>{droppedMovie.genres.join(" · ")}</span>
+                {droppedMovie.rating !== "—" ? (
+                  <>
+                    <span className="text-amber">•</span>
+                    <span>★ {droppedMovie.rating}</span>
+                  </>
+                ) : null}
+              </div>
+              <p className="mx-auto mt-3 max-w-2xl text-xs leading-5 text-ink-2 sm:text-sm">
+                {droppedMovie.synopsis}
+              </p>
+              <div className="mt-3 font-mono text-[10px] text-amber">
+                Showtimes / {droppedMovie.showtimes.join(" · ")}
+              </div>
             </div>
-            <h1 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-5xl">
-              {selectedMovie.title}
-            </h1>
-            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
-              <span>{selectedMovie.release}</span>
-              <span className="text-cobalt">•</span>
-              <span>{selectedMovie.meta}</span>
-              <span className="text-cobalt">•</span>
-              <span>{selectedMovie.genres.join(" · ")}</span>
-              {selectedMovie.rating !== "—" ? (
-                <>
-                  <span className="text-cobalt">•</span>
-                  <span>★ {selectedMovie.rating}</span>
-                </>
-              ) : null}
-            </div>
-            <p className="mt-4 max-w-2xl text-xs leading-5 text-ink-2 sm:text-sm">
-              {selectedMovie.synopsis}
-            </p>
-            <div className="mt-4 border-t border-cobalt/25 pt-3 font-mono text-[10px] text-cobalt">
-              Showtimes / {selectedMovie.showtimes.join(" · ")}
-            </div>
-          </div>
+          ) : null}
         </div>
       </ImageStreamHero>
     </div>
