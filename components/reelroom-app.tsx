@@ -1135,22 +1135,22 @@ export function ReelroomApp() {
 
   const songsPage = (
     <div className="reelroom-soundtrack-page space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-7 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-9">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
         <div
           className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
           style={{ backgroundImage: `url("${songs[0].art}")` }}
           aria-hidden="true"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-white/[.06] via-transparent to-canvas/60" />
-        <div className="relative flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+            <span className="reelroom-soundtrack-eyebrow font-mono text-[10px] uppercase tracking-[.2em] text-muted">
               Songs / original motion
             </span>
-            <h1 className="mt-3 max-w-xl font-display text-5xl font-semibold leading-[.9] tracking-[-.08em] text-ink sm:text-7xl">
-              The soundtrack.
+            <h1 className="reelroom-soundtrack-title mt-4 max-w-xl text-5xl leading-[.88] text-ink sm:text-7xl">
+              The soundtrack
             </h1>
-            <p className="mt-5 max-w-lg text-sm leading-6 text-ink-2">
+            <p className="mt-6 max-w-lg text-sm leading-6 text-ink-2">
               Music for the scenes that stay with you. Preview the original
               score attached to every film in the reel.
             </p>
