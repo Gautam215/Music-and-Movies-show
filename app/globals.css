@@ -198,7 +198,7 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-profile-page {
   height: 100vh;
   min-height: 100vh;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
