@@ -553,6 +553,7 @@ export function ReelroomApp() {
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
   const [detailsShownAt, setDetailsShownAt] = useState<number | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
@@ -947,15 +948,56 @@ export function ReelroomApp() {
         cards={10}
         speed={18}
         axis={70}
+        selectedSrc={selectedMovie?.poster}
+        onCardSelect={(image) => {
+          const movie = movies.find((item) => item.title === image.label);
+          if (movie) {
+            setDroppedMovie(null);
+            setDetailsShownAt(null);
+            setSelectedMovie(movie);
+          }
+        }}
         onCardDrop={(image) => {
           const movie = movies.find((item) => item.title === image.label);
           if (movie) {
+            setSelectedMovie(null);
             setDroppedMovie(movie);
             setDetailsShownAt(Date.now());
           }
         }}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
       >
+        {selectedMovie ? (
+          <div className="reelroom-movie-selection pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center px-4 sm:px-8">
+            <div className="reelroom-movie-selection-card w-full rounded-2xl border border-amber/35 bg-[#111318]/92 p-4 text-left shadow-[0_20px_70px_rgba(0,0,0,.48)] backdrop-blur-md sm:p-5">
+              <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
+                Selected left card
+              </div>
+              <h1 className="mt-2 truncate font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-4xl">
+                {selectedMovie.title}
+              </h1>
+              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+                <span>{selectedMovie.release}</span>
+                <span className="text-amber">•</span>
+                <span>{selectedMovie.meta}</span>
+                <span className="text-amber">•</span>
+                <span>{selectedMovie.genres.join(" · ")}</span>
+                {selectedMovie.rating !== "—" ? (
+                  <>
+                    <span className="text-amber">•</span>
+                    <span>★ {selectedMovie.rating}</span>
+                  </>
+                ) : null}
+              </div>
+              <p className="mt-4 text-xs leading-5 text-ink-2">
+                {selectedMovie.synopsis}
+              </p>
+              <div className="mt-4 border-t border-amber/25 pt-3 font-mono text-[10px] text-amber">
+                Showtimes / {selectedMovie.showtimes.join(" · ")}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="reelroom-stream-top pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[34%] w-full justify-center overflow-auto px-4 pt-4 sm:px-8 sm:pt-6">
           {droppedMovie ? (
             <div className="reelroom-stream-details h-fit w-[min(50vw,42rem)] max-w-full min-w-0 rounded-2xl border border-white/15 bg-[#111318]/92 p-4 text-center shadow-[0_20px_70px_rgba(0,0,0,.48)] backdrop-blur-md sm:p-5">
