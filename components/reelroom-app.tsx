@@ -628,6 +628,18 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   }, [page]);
 
   useEffect(() => {
+    if (!moreOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(".reelroom-desktop-overflow, .reelroom-header-overflow")) return;
+      setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [moreOpen]);
+
+  useEffect(() => {
     let frame = 0;
     let targetBackground = 0;
     let targetHero = 0;
@@ -2031,7 +2043,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                   <Bell className="size-4" />
                 </button>
               ) : null}
-              <div className="relative hidden lg:block">
+              <div className="reelroom-desktop-overflow relative hidden lg:block">
                 <button
                   type="button"
                   onClick={() => setMoreOpen((open) => !open)}
