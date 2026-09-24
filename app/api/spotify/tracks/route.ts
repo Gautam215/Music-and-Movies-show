@@ -59,7 +59,7 @@ export async function GET() {
     const searchUrl = new URL("https://api.spotify.com/v1/search");
     searchUrl.searchParams.set("q", "movie soundtrack");
     searchUrl.searchParams.set("type", "track");
-    searchUrl.searchParams.set("limit", "12");
+    searchUrl.searchParams.set("limit", "10");
     searchUrl.searchParams.set("market", "US");
 
     const tracksResponse = await fetch(searchUrl, {
