@@ -196,9 +196,12 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   backdrop-filter: blur(22px) saturate(1.25);
 }
 .reelroom-profile-page {
+  height: 100vh;
+  min-height: 100vh;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 div[role="dialog"] {
