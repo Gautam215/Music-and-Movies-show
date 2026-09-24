@@ -1540,7 +1540,7 @@ export function ReelroomApp() {
           <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle compact eyebrow="Preferences" title="Your signal" />
             <div className="space-y-2">
-              <div className="flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Release alerts
@@ -1553,7 +1553,7 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-border pb-2">
+              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Booking updates
@@ -1566,7 +1566,7 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-8">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Preferred city

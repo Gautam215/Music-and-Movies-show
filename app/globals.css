@@ -195,6 +195,11 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   box-shadow: 0 20px 60px hsl(var(--canvas) / .26), inset 0 1px hsl(var(--ink) / .08);
   backdrop-filter: blur(22px) saturate(1.25);
 }
+.reelroom-profile-page {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 div[role="dialog"] {
   background: linear-gradient(145deg, hsl(var(--surface) / .88), hsl(var(--surface-2) / .68));
