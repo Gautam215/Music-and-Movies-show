@@ -807,7 +807,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             WHEEL / 06
           </span>
         </div>
-        <div className="h-[30rem] md:h-[36rem]">
+        <div className="h-auto min-h-[42rem] lg:h-[36rem]">
           <WorksWheel items={wheelItems} label="Films '26" action="Open" />
         </div>
       </section>
@@ -1008,7 +1008,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   );
 
   const updatesWithWheel = (
-    <div className="h-[calc(100vh-5rem)] min-h-[32rem] w-full overflow-hidden">
+    <div className="h-auto min-h-[42rem] w-full overflow-hidden lg:h-[calc(100vh-5rem)] lg:min-h-[32rem]">
       <WorksWheel
         items={wheelItems}
         label="Upcoming '26"

@@ -48,6 +48,7 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
   const [zoomed, setZoomed] = React.useState<number | null>(null);
   const [stage, setStage] = React.useState<Stage>({ w: 0, h: 0 });
   const [reduced, setReduced] = React.useState(false);
+  const activeItem = visibleItems[active] ?? visibleItems[0];
 
   React.useEffect(() => () => {
     window.clearTimeout(centerTimer.current);
@@ -146,14 +147,14 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
   }, [to]);
 
   return (
-    <section aria-label={label} className={cn("relative h-full min-h-[24rem] w-full overflow-hidden bg-[#070707] text-white select-none", className)} {...props}>
+    <section aria-label={label} className={cn("relative grid h-full min-h-[24rem] w-full grid-cols-1 overflow-hidden bg-[#070707] text-white lg:grid-cols-[minmax(0,1fr)_22rem]", className)} {...props}>
       <div
         ref={stageRef}
         tabIndex={0}
         role="listbox"
         aria-label={`${label}, ${count} movie visuals`}
         aria-activedescendant={`works-wheel-${active}`}
-        className="absolute inset-0 cursor-grab touch-none outline-none focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
+        className="relative min-h-[24rem] cursor-grab touch-none select-none outline-none focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
         style={{ perspective: `${metrics.depth}px` }}
         onPointerDown={(event) => { drag.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
         onPointerMove={(event) => {
@@ -208,9 +209,43 @@ export function WorksWheel({ items, label = "Works '26", action = "View", classN
             </Tag>
           );
         })}
+        <div className="pointer-events-none absolute left-4 top-4 z-20 font-mono text-[9px] uppercase tracking-[.14em] text-white/55">Move cursor left / right to rotate · click to center for 10s</div>
+        <div className={cn("pointer-events-none absolute inset-0 grid place-items-center text-center font-display text-2xl font-medium tracking-[-.06em] transition-opacity duration-300 sm:text-3xl", zoomed !== null && "opacity-0")}>{label}</div>
       </div>
-       <div className="pointer-events-none absolute left-4 top-4 z-20 font-mono text-[9px] uppercase tracking-[.14em] text-white/55">Move cursor left / right to rotate · click to center for 10s</div>
-      <div className={cn("pointer-events-none absolute inset-0 grid place-items-center text-center font-display text-2xl font-medium tracking-[-.06em] transition-opacity duration-300 sm:text-3xl", zoomed !== null && "opacity-0")}>{label}</div>
+      {activeItem ? (
+        <aside className="relative z-20 flex min-h-[13rem] flex-col justify-end border-t border-white/10 bg-black/45 p-5 backdrop-blur-xl lg:min-h-0 lg:border-l lg:border-t-0 lg:bg-black/35">
+          <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
+            Active screening
+          </div>
+          <div className="mt-4 flex items-start gap-3">
+            <img
+              src={activeItem.image}
+              alt=""
+              className="size-16 shrink-0 rounded-lg object-cover"
+            />
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl font-semibold leading-none tracking-[-.06em] text-white">
+                {activeItem.title}
+              </h2>
+              {activeItem.meta ? (
+                <p className="mt-2 font-mono text-[10px] text-white/60">
+                  {activeItem.meta}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          {activeItem.details ? (
+            <p className="mt-4 text-xs leading-5 text-white/70">
+              {activeItem.details}
+            </p>
+          ) : null}
+          {action ? (
+            <div className="mt-5 font-mono text-[9px] uppercase tracking-[.14em] text-amber">
+              {action} this screening ↗
+            </div>
+          ) : null}
+        </aside>
+      ) : null}
     </section>
   );
 }
