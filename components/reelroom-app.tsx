@@ -861,8 +861,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       starBrightness={0.55}
       spinSpeed={0.36}
     >
-      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-end gap-8 p-6 sm:min-h-[42rem] sm:p-8 md:min-h-[38rem] md:grid-cols-2 md:gap-10 md:p-10 lg:min-h-[34rem]">
-      <FeaturedScreening item={heroMovie} onOpen={setSelected} />
+      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-start gap-5 p-4 sm:min-h-[42rem] sm:gap-6 sm:p-6 md:min-h-[38rem] md:grid-cols-2 md:gap-8 md:p-8 lg:min-h-[34rem] lg:p-8">
+        <FeaturedScreening item={heroMovie} onOpen={setSelected} />
         <div className="max-w-2xl lg:pb-1">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
             Reelscape / event horizon
