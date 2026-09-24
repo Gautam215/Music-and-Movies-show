@@ -1324,7 +1324,7 @@ export function ReelroomApp() {
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface/70 px-3.5 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2 transition duration-300 hover:-translate-y-px hover:border-amber/60 hover:text-ink"
               >
                 <Music2 className="size-3.5 text-amber" />
-                {spotifyConnected ? "Spotify connected" : "Connect Spotify"}
+                {spotifyConnected ? "Spotify connected" : "Connect FM"}
                 {spotifyDisplayName ? <span className="sr-only">as {spotifyDisplayName}</span> : null}
               </button>
               <div
