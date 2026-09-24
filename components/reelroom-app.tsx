@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   MapPin,
   Music2,
   Play,
+  Search,
   Share2,
   Ticket,
   UserRound,
@@ -536,11 +537,14 @@ export function ReelroomApp() {
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [songSearchOpen, setSongSearchOpen] = useState(false);
+  const [songSearch, setSongSearch] = useState("");
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
   const [preferencesReady, setPreferencesReady] = useState(false);
   const preferencesRef = useRef<HTMLElement>(null);
+  const songSearchRef = useRef<HTMLInputElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -651,7 +655,14 @@ export function ReelroomApp() {
     };
   }, []);
 
-  const filteredSongs = songs;
+  const deferredSongSearch = useDeferredValue(songSearch);
+  const filteredSongs = songs.filter((song) => {
+    const query = deferredSongSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [song.title, song.artist, song.movie, song.genre].some((value) =>
+      value.toLowerCase().includes(query),
+    );
+  });
   const toggleFavorite = (id: string) =>
     setFavorites((current) =>
       current.includes(id)
@@ -1123,56 +1134,130 @@ export function ReelroomApp() {
   );
 
   const songsPage = (
-    <div className="space-y-7">
-      <SectionTitle
-        eyebrow="Songs / original motion"
-        title="The soundtrack"
-        copy="Browse the music attached to the films, with preview-ready interactions and no unlicensed audio hosting."
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="ml-auto font-mono text-[10px] text-muted">
-          {filteredSongs.length} tracks
-        </span>
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {filteredSongs.map((song) => (
-          <div
-            key={song.title}
-            className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3"
-          >
-            <img
-              src={song.art}
-              alt=""
-              className="size-14 rounded-lg object-cover"
-            />
-            <div className="min-w-0 flex-1">
-              <strong className="block truncate font-display text-sm text-ink">
-                {song.title}
-              </strong>
-              <span className="mt-1 block truncate text-xs text-muted">
-                {song.artist} · {song.movie}
-              </span>
-            </div>
-            <span className="font-mono text-[10px] text-muted">
-              {song.duration}
+    <div className="reelroom-soundtrack-page space-y-8">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-7 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-9">
+        <div
+          className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
+          style={{ backgroundImage: `url("${songs[0].art}")` }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[.06] via-transparent to-canvas/60" />
+        <div className="relative flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+              Songs / original motion
             </span>
-            <button
-              type="button"
-              onClick={() =>
-                setPlaying(playing === song.title ? null : song.title)
-              }
-              className="grid size-9 place-items-center rounded-full bg-amber text-canvas"
-              aria-label={`${playing === song.title ? "Pause" : "Play"} ${song.title}`}
-            >
-              {playing === song.title ? (
-                <span className="text-xs">Ⅱ</span>
-              ) : (
-                <Play className="size-3.5 fill-current" />
-              )}
-            </button>
+            <h1 className="mt-3 max-w-xl font-display text-5xl font-semibold leading-[.9] tracking-[-.08em] text-ink sm:text-7xl">
+              The soundtrack.
+            </h1>
+            <p className="mt-5 max-w-lg text-sm leading-6 text-ink-2">
+              Music for the scenes that stay with you. Preview the original
+              score attached to every film in the reel.
+            </p>
           </div>
-        ))}
-      </div>
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+            <span className="font-mono text-[10px] uppercase tracking-[.14em] text-muted">
+              {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
+            </span>
+            <div
+              className="reelroom-song-search"
+              data-open={songSearchOpen}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  const nextOpen = !songSearchOpen;
+                  setSongSearchOpen(nextOpen);
+                  if (nextOpen) {
+                    window.requestAnimationFrame(() => songSearchRef.current?.focus());
+                  }
+                }}
+                className="reelroom-song-search-button"
+                aria-label={songSearchOpen ? "Close song search" : "Search songs"}
+                aria-expanded={songSearchOpen}
+              >
+                <Search className="size-4" />
+              </button>
+              <input
+                ref={songSearchRef}
+                value={songSearch}
+                onChange={(event) => setSongSearch(event.target.value)}
+                tabIndex={songSearchOpen ? 0 : -1}
+                aria-label="Search songs"
+                placeholder="Search songs"
+                className="reelroom-song-search-input"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {filteredSongs.length ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filteredSongs.map((song, index) => (
+            <article
+              key={song.title}
+              className="reelroom-track-card group relative isolate min-h-56 overflow-hidden rounded-[2rem] border border-white/[.12] p-5 shadow-cinematic sm:p-6"
+            >
+              <div
+                className="reelroom-track-card-art"
+                style={{ backgroundImage: `url("${song.art}")` }}
+                aria-hidden="true"
+              />
+              <div className="reelroom-track-card-wash" aria-hidden="true" />
+              <div className="relative flex h-full flex-col justify-between gap-10">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <img
+                      src={song.art}
+                      alt=""
+                      className="size-20 shrink-0 rounded-2xl border border-white/20 object-cover shadow-lg transition duration-500 group-hover:scale-[1.03] sm:size-24"
+                    />
+                    <div className="min-w-0">
+                      <span className="font-mono text-[10px] uppercase tracking-[.16em] text-ink-2">
+                        0{index + 1} · {song.genre}
+                      </span>
+                      <h2 className="mt-2 truncate font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
+                        {song.title}
+                      </h2>
+                      <p className="mt-2 truncate text-xs text-ink-2">
+                        {song.artist} · {song.movie}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] text-ink-2">
+                    {song.duration}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs text-ink-2">Original motion picture score</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPlaying(playing === song.title ? null : song.title)
+                    }
+                    className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/70 bg-amber text-canvas shadow-[0_8px_24px_rgba(0,0,0,.2)] transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:text-canvas"
+                    aria-label={`${playing === song.title ? "Pause" : "Play"} ${song.title}`}
+                  >
+                    {playing === song.title ? (
+                      <span className="text-sm">Ⅱ</span>
+                    ) : (
+                      <Play className="size-4 fill-current" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-[2rem] border border-white/[.1] bg-surface/60 p-10 text-center backdrop-blur-xl">
+          <p className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
+            No tracks found.
+          </p>
+          <p className="mt-2 text-sm text-ink-2">Try another title, artist, or genre.</p>
+        </div>
+      )}
     </div>
   );
 
