@@ -554,6 +554,8 @@ export function ReelroomApp() {
   const [spotifySongs, setSpotifySongs] = useState<Song[]>([]);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
   const [spotifyError, setSpotifyError] = useState<string | null>(null);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyDisplayName, setSpotifyDisplayName] = useState<string | null>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -646,6 +648,37 @@ export function ReelroomApp() {
       cancelled = true;
     };
   }, [page, spotifySongs.length]);
+
+  useEffect(() => {
+    if (page !== "songs") return;
+    let cancelled = false;
+    const authStatus = new URLSearchParams(window.location.search).get("spotify");
+    if (authStatus) {
+      setNotice(
+        authStatus === "connected"
+          ? "Spotify connected securely."
+          : "Spotify connection could not be completed.",
+      );
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("spotify");
+      window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+    }
+
+    fetch("/api/spotify/session", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ connected?: boolean; displayName?: string }>)
+      .then((session) => {
+        if (cancelled) return;
+        setSpotifyConnected(session.connected === true);
+        setSpotifyDisplayName(session.displayName ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSpotifyConnected(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1267,7 +1300,7 @@ export function ReelroomApp() {
               score attached to every film in the reel.
             </p>
           </div>
-          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
             <div className="text-right">
               <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-muted">
                 {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
@@ -1282,34 +1315,47 @@ export function ReelroomApp() {
                       : "Curated selection"}
               </span>
             </div>
-            <div
-              className="reelroom-song-search"
-              data-open={songSearchOpen}
-            >
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  const nextOpen = !songSearchOpen;
-                  setSongSearchOpen(nextOpen);
-                  if (nextOpen) {
-                    window.requestAnimationFrame(() => songSearchRef.current?.focus());
-                  }
+                  window.location.href = "/api/spotify/login";
                 }}
-                className="reelroom-song-search-button"
-                aria-label={songSearchOpen ? "Close song search" : "Search songs"}
-                aria-expanded={songSearchOpen}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface/70 px-3.5 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2 transition duration-300 hover:-translate-y-px hover:border-amber/60 hover:text-ink"
               >
-                <Search className="size-4" />
+                <Music2 className="size-3.5 text-amber" />
+                {spotifyConnected ? "Spotify connected" : "Connect Spotify"}
+                {spotifyDisplayName ? <span className="sr-only">as {spotifyDisplayName}</span> : null}
               </button>
-              <input
-                ref={songSearchRef}
-                value={songSearch}
-                onChange={(event) => setSongSearch(event.target.value)}
-                tabIndex={songSearchOpen ? 0 : -1}
-                aria-label="Search songs"
-                placeholder="Search songs"
-                className="reelroom-song-search-input"
-              />
+              <div
+                className="reelroom-song-search"
+                data-open={songSearchOpen}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextOpen = !songSearchOpen;
+                    setSongSearchOpen(nextOpen);
+                    if (nextOpen) {
+                      window.requestAnimationFrame(() => songSearchRef.current?.focus());
+                    }
+                  }}
+                  className="reelroom-song-search-button"
+                  aria-label={songSearchOpen ? "Close song search" : "Search songs"}
+                  aria-expanded={songSearchOpen}
+                >
+                  <Search className="size-4" />
+                </button>
+                <input
+                  ref={songSearchRef}
+                  value={songSearch}
+                  onChange={(event) => setSongSearch(event.target.value)}
+                  tabIndex={songSearchOpen ? 0 : -1}
+                  aria-label="Search songs"
+                  placeholder="Search songs"
+                  className="reelroom-song-search-input"
+                />
+              </div>
             </div>
           </div>
         </div>
