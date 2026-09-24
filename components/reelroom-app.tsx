@@ -935,14 +935,14 @@ export function ReelroomApp() {
         }))}
         cards={10}
         speed={18}
-        axis={56}
+        axis={70}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
         onCardDrop={(image) => {
           const movie = movies.find((item) => item.title === image.label);
           if (movie) setDroppedMovie(movie);
         }}
       >
-        <div className="pointer-events-none relative z-10 h-full px-5 pt-5 sm:px-8 sm:pt-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[32%] overflow-auto px-5 pt-5 sm:px-8 sm:pt-8">
           {droppedMovie ? (
             <div className="mx-auto max-w-3xl rounded-2xl border border-amber/35 bg-canvas/72 p-4 text-center shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-md sm:p-5">
               <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
