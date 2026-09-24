@@ -552,6 +552,7 @@ export function ReelroomApp() {
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [seatZoom, setSeatZoom] = useState(1);
   const [showtime, setShowtime] = useState("1:40 PM");
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -1180,14 +1181,14 @@ export function ReelroomApp() {
                     {time}
                   </strong>
                   <span className="mt-1 block text-[10px] text-muted">
-                    Dolby · from $16
+                    Dolby · from ₹16
                   </span>
                 </button>
               ))}
             </div>
           </div>
           <div className="mt-8">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
                   Seat map
@@ -1196,59 +1197,99 @@ export function ReelroomApp() {
                   Choose your view
                 </h3>
               </div>
-              <div className="hidden gap-3 font-mono text-[9px] text-muted sm:flex">
-                <span>□ open</span>
-                <span className="text-amber">■ yours</span>
-                <span>▪ taken</span>
+              <div className="flex flex-wrap items-center gap-3 font-mono text-[9px] text-muted">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2.5 rounded-sm border border-emerald-300 bg-emerald-400/30" />
+                  Available
+                </span>
+                <span className="flex items-center gap-1.5 text-amber">
+                  <span className="size-2.5 rounded-sm border border-amber-200 bg-amber-300" />
+                  Selected
+                </span>
+                <span className="flex items-center gap-1.5 text-rose-200">
+                  <span className="size-2.5 rounded-sm border border-rose-400 bg-rose-500/50" />
+                  Taken
+                </span>
               </div>
             </div>
             <div className="mx-auto mb-6 mt-7 max-w-sm border-t-2 border-border-strong pt-2 text-center font-mono text-[9px] tracking-[.2em] text-muted">
               SCREEN
             </div>
-            <div className="mx-auto grid max-w-md gap-2">
-              {["A", "B", "C", "D", "E"].map((row) => (
-                <div
-                  key={row}
-                  className="grid grid-cols-[16px_repeat(8,minmax(0,1fr))_16px] items-center gap-1.5"
-                >
-                  <span className="text-center font-mono text-[9px] text-muted">
-                    {row}
-                  </span>
-                  {Array.from({ length: 8 }, (_, index) => {
-                    const seat = `${row}${index + 1}`;
-                    const isOccupied = occupied.has(seat);
-                    const isSelected = selectedSeats.includes(seat);
-                    return (
-                      <button
-                        key={seat}
-                        disabled={isOccupied}
-                        onClick={() =>
-                          setSelectedSeats((current) =>
-                            isSelected
-                              ? current.filter((item) => item !== seat)
-                              : [...current, seat],
-                          )
-                        }
-                        className={cn(
-                          "aspect-square rounded border border-border-strong text-[9px] text-ink-2 transition hover:border-amber",
-                          isOccupied &&
-                            "cursor-not-allowed border-surface-3 bg-surface-3 text-muted",
-                          isSelected && "border-amber bg-amber text-canvas",
-                          index > 5 &&
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <span className="font-mono text-[9px] uppercase tracking-[.14em] text-muted">
+                Zoom
+              </span>
+              <button
+                type="button"
+                onClick={() => setSeatZoom((current) => Math.max(0.85, current - 0.15))}
+                disabled={seatZoom <= 0.85}
+                className="grid size-7 place-items-center rounded-md border border-border bg-surface-2 text-sm text-ink transition hover:border-amber disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Zoom out seat map"
+              >
+                −
+              </button>
+              <span className="w-10 text-center font-mono text-[10px] text-amber">
+                {Math.round(seatZoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setSeatZoom((current) => Math.min(1.6, current + 0.15))}
+                disabled={seatZoom >= 1.6}
+                className="grid size-7 place-items-center rounded-md border border-border bg-surface-2 text-sm text-ink transition hover:border-amber disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Zoom in seat map"
+              >
+                +
+              </button>
+            </div>
+            <div className="reelroom-seat-map-viewport mx-auto w-full max-w-xl overflow-x-auto rounded-xl border border-border bg-canvas/25 p-3 sm:p-4">
+              <div
+                className="reelroom-seat-map mx-auto grid gap-2"
+                style={{ width: `${seatZoom * 100}%` }}
+              >
+                {["A", "B", "C", "D", "E"].map((row) => (
+                  <div
+                    key={row}
+                    className="grid grid-cols-[16px_repeat(8,minmax(0,1fr))_16px] items-center gap-1.5"
+                  >
+                    <span className="text-center font-mono text-[9px] text-muted">
+                      {row}
+                    </span>
+                    {Array.from({ length: 8 }, (_, index) => {
+                      const seat = `${row}${index + 1}`;
+                      const isOccupied = occupied.has(seat);
+                      const isSelected = selectedSeats.includes(seat);
+                      return (
+                        <button
+                          key={seat}
+                          disabled={isOccupied}
+                          onClick={() =>
+                            setSelectedSeats((current) =>
+                              isSelected
+                                ? current.filter((item) => item !== seat)
+                                : [...current, seat],
+                            )
+                          }
+                          className={cn(
+                            "aspect-square rounded-md border text-[9px] font-semibold transition hover:-translate-y-px",
+                            isOccupied &&
+                              "cursor-not-allowed border-rose-400/70 bg-rose-500/50 text-rose-100 opacity-80",
+                            isSelected &&
+                              "border-amber-200 bg-amber-300 text-canvas shadow-[0_0_14px_rgba(251,191,36,.45)]",
                             !isOccupied &&
-                            !isSelected &&
-                            "border-cobalt",
-                        )}
-                      >
-                        {index + 1}
-                      </button>
-                    );
-                  })}
-                  <span className="text-center font-mono text-[9px] text-muted">
-                    {row}
-                  </span>
-                </div>
-              ))}
+                              !isSelected &&
+                              "border-emerald-300/80 bg-emerald-400/25 text-emerald-100 hover:border-emerald-200 hover:bg-emerald-400/45",
+                          )}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                    <span className="text-center font-mono text-[9px] text-muted">
+                      {row}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="mx-auto mt-6 flex max-w-md items-center gap-2 rounded-lg border border-amber/20 bg-amber/10 p-3 font-mono text-[10px] text-amber">
               <Clock3 className="size-3.5" /> Seats are held for 08:42 after
@@ -1285,13 +1326,13 @@ export function ReelroomApp() {
             <div className="flex justify-between">
               <span>Tickets × {selectedSeats.length}</span>
               <strong className="text-ink">
-                ${(selectedSeats.length * 16).toFixed(2)}
+                ₹{(selectedSeats.length * 16).toFixed(2)}
               </strong>
             </div>
             <div className="flex justify-between">
               <span>Booking fee</span>
               <strong className="text-ink">
-                {selectedSeats.length ? "$4.80" : "$0.00"}
+                {selectedSeats.length ? "₹4.80" : "₹0.00"}
               </strong>
             </div>
             <div className="flex justify-between">
@@ -1306,8 +1347,7 @@ export function ReelroomApp() {
           <div className="mt-5 flex justify-between border-t border-border pt-4 font-display text-base font-semibold">
             <span>Total</span>
             <strong className="text-amber">
-              $
-              {(
+              ₹{(
                 selectedSeats.length * 16 +
                 (selectedSeats.length ? 4.8 : 0)
               ).toFixed(2)}
@@ -1456,7 +1496,7 @@ export function ReelroomApp() {
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          ["Gross bookings", "$24.8k", "↑ 18.4%"],
+          ["Gross bookings", "₹24.8k", "↑ 18.4%"],
           ["Tickets sold", "1,482", "↑ 12.1%"],
           ["New reviews", "86", "14 awaiting"],
           ["System health", "99.98%", "All nominal"],
@@ -1723,7 +1763,7 @@ export function ReelroomApp() {
           <div className="flex justify-between py-4 text-xs">
             <span className="text-muted">Total</span>
             <strong className="text-ink">
-              ${(selectedSeats.length * 16 + 4.8).toFixed(2)}
+              ₹{(selectedSeats.length * 16 + 4.8).toFixed(2)}
             </strong>
           </div>
         </div>
