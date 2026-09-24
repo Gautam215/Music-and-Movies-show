@@ -239,13 +239,13 @@ function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition duration-300 hover:-translate-y-px focus-visible:outline-none",
+        "reelroom-action-button inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition duration-500 ease-out hover:-translate-y-px focus-visible:outline-none",
         variant === "primary" &&
-          "border-amber bg-amber text-canvas hover:bg-amber/90",
+          "border-amber bg-amber text-canvas",
         variant === "surface" &&
-          "border-border bg-surface-2 text-ink hover:border-cobalt/70",
+          "border-border bg-surface-2 text-ink",
         variant === "ghost" &&
-          "border-border bg-transparent text-ink-2 hover:bg-surface",
+          "border-border bg-transparent text-ink-2",
         className,
       )}
       {...props}
@@ -419,7 +419,7 @@ function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie
         <button
           type="button"
           onClick={() => onOpen(item)}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber/60 bg-ink/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber hover:bg-ink/20"
+          className="reelroom-action-button mt-4 inline-flex items-center gap-2 rounded-full border border-amber/60 bg-ink/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition"
         >
           See event details <ArrowRight className="size-3.5" />
         </button>
@@ -482,7 +482,11 @@ function pageFromLocation(): NavId {
 
 export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const catalog = initialMovies?.length ? initialMovies : movies;
-  const heroMovie = catalog[0] ?? movies[0];
+  const heroMovie =
+    [...catalog].sort(
+      (a, b) =>
+        (Number.parseFloat(b.rating) || 0) - (Number.parseFloat(a.rating) || 0),
+    )[0] ?? movies[0];
   const [page, setPageState] = useState<NavId>("home");
   const [routeReady, setRouteReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
@@ -742,8 +746,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       {hero}
       <section>
         <SectionTitle
-          eyebrow="Selected for you"
-           title="Top upcoming releases"
+           eyebrow="TMDB mix / 10 films"
+            title="The current reel"
           action={
             <button
               onClick={() => setPage("movies")}
@@ -754,7 +758,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           }
         />
         <div className="reelroom-movie-grid">
-          {catalog.slice(1).map((item) => (
+          {catalog.slice(0, 10).map((item) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -783,45 +787,6 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(heroMovie)}>
             Open {heroMovie.title} <ArrowRight className="size-4" />
           </Button>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface p-4">
-          <SectionTitle
-            eyebrow="Now spinning"
-            title="Songs from the reel"
-            action={
-              <button
-                onClick={() => setPage("songs")}
-                className="font-mono text-[10px] text-amber"
-              >
-                All songs
-              </button>
-            }
-          />
-          <div className="space-y-2">
-            {soundtrackSongs.slice(0, 3).map((song) => (
-              <div
-                key={song.title}
-                className="flex items-center gap-2 border-b border-border pb-2 last:border-0"
-              >
-                <img
-                  src={song.art}
-                  alt=""
-                  className="size-9 rounded-md object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <strong className="block truncate font-display text-xs text-ink">
-                    {song.title}
-                  </strong>
-                  <span className="mt-1 block truncate text-[10px] text-muted">
-                    {song.artist} · {song.movie}
-                  </span>
-                </div>
-                <span className="font-mono text-[10px] text-amber">
-                  {song.duration}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
       <section className="overflow-hidden rounded-2xl border border-border bg-surface">
@@ -861,8 +826,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       starBrightness={0.55}
       spinSpeed={0.36}
     >
-      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-start gap-5 p-4 sm:min-h-[42rem] sm:gap-6 sm:p-6 md:min-h-[38rem] md:grid-cols-2 md:gap-8 md:p-8 lg:min-h-[34rem] lg:p-8">
-        <FeaturedScreening item={heroMovie} onOpen={setSelected} />
+      <div className="relative z-10 grid min-h-[44rem] grid-cols-1 items-start gap-5 p-4 sm:min-h-[42rem] sm:gap-6 sm:p-6 md:min-h-[38rem] md:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] md:gap-8 md:p-8 lg:min-h-[34rem] lg:p-8">
         <div className="max-w-2xl lg:pb-1">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
             Reelscape / event horizon
@@ -894,6 +858,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             </Button>
           </div>
         </div>
+        <FeaturedScreening item={heroMovie} onOpen={setSelected} />
       </div>
     </BlackHoleHeroSection>
   );
@@ -902,8 +867,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       {blackHoleHero}
       <section>
         <SectionTitle
-           eyebrow="Upcoming / TMDB"
-           title="Top upcoming releases"
+            eyebrow="TMDB mix / 10 films"
+            title="The current reel"
           action={
             <button
               onClick={() => setPage("movies")}
@@ -914,7 +879,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           }
         />
         <div className="reelroom-movie-grid">
-          {catalog.slice(1).map((item) => (
+          {catalog.slice(0, 10).map((item) => (
             <PosterCard
               key={item.id}
               item={item}
@@ -940,45 +905,6 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           <Button className="reelroom-arrow-glass mt-4" onClick={() => setSelected(heroMovie)}>
             Open {heroMovie.title} <ArrowRight className="size-4" />
           </Button>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface p-4">
-          <SectionTitle
-            eyebrow="Now spinning"
-            title="Songs from the reel"
-            action={
-              <button
-                onClick={() => setPage("songs")}
-                className="font-mono text-[10px] text-amber"
-              >
-                All songs
-              </button>
-            }
-          />
-          <div className="space-y-2">
-            {soundtrackSongs.slice(0, 3).map((song) => (
-              <div
-                key={song.title}
-                className="flex items-center gap-2 border-b border-border pb-2 last:border-0"
-              >
-                <img
-                  src={song.art}
-                  alt=""
-                  className="size-9 rounded-md object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <strong className="block truncate font-display text-xs text-ink">
-                    {song.title}
-                  </strong>
-                  <span className="mt-1 block truncate text-[10px] text-muted">
-                    {song.artist} · {song.movie}
-                  </span>
-                </div>
-                <span className="font-mono text-[10px] text-amber">
-                  {song.duration}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
     </div>

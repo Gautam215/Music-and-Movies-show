@@ -171,6 +171,13 @@ button.border-border.bg-transparent:hover {
   border-color: hsl(var(--cobalt) / .72);
 }
 
+.reelroom-action-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: hsl(var(--amber) / .72) !important;
+  box-shadow: 0 0 24px hsl(var(--amber) / .2), inset 0 1px rgba(255, 255, 255, .2);
+  color: hsl(var(--ink)) !important;
+}
+
 .reelroom-more-menu,
 .reelroom-header-menu {
   background: linear-gradient(145deg, hsl(var(--surface-2) / .88), hsl(var(--surface) / .68));
