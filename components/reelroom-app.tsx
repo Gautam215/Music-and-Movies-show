@@ -312,7 +312,7 @@ function SectionTitle({
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
         </div>
-        <h2 className="mt-2 font-display text-2xl font-semibold leading-none tracking-[-.05em] text-ink md:text-3xl">
+        <h2 className={cn(compact ? "mt-1 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl", "font-display font-semibold leading-none tracking-[-.05em] text-ink")}>
           {title}
         </h2>
         {copy ? (
@@ -1472,13 +1472,13 @@ export function ReelroomApp() {
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
         />
-        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-surface/75 px-4 py-3 backdrop-blur-md sm:px-5">
-          <div className="flex items-center gap-4">
-            <div className="grid size-14 place-items-center rounded-full bg-amber font-display text-xl font-bold text-canvas">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-3 py-2 backdrop-blur-md sm:px-4">
+          <div className="flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
               AG
             </div>
             <div>
-              <h2 className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
+              <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
                 Abhishek Kumar Gautam
               </h2>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -1497,7 +1497,7 @@ export function ReelroomApp() {
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-3 backdrop-blur-md">
+          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-2.5 backdrop-blur-md">
             <SectionTitle
               compact
               eyebrow="Saved for later"
@@ -1537,10 +1537,10 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-3 backdrop-blur-md">
+          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-2.5 backdrop-blur-md">
             <SectionTitle compact eyebrow="Preferences" title="Your signal" />
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Release alerts
@@ -1553,7 +1553,7 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Booking updates
@@ -1895,7 +1895,7 @@ export function ReelroomApp() {
           className={cn(
             "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
             page === "updates" && "!px-0 !pb-0 lg:!pb-0",
-            page === "profile" && "!px-0",
+            page === "profile" && "!px-0 !pb-0",
           )}
         >
           <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
