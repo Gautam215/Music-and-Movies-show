@@ -1215,31 +1215,38 @@ export function ReelroomApp() {
             <div className="mx-auto mb-6 mt-7 max-w-sm border-t-2 border-border-strong pt-2 text-center font-mono text-[9px] tracking-[.2em] text-muted">
               SCREEN
             </div>
-            <div className="mb-3 flex items-center justify-center gap-2">
-              <span className="font-mono text-[9px] uppercase tracking-[.14em] text-muted">
-                Zoom
-              </span>
-              <button
-                type="button"
-                onClick={() => setSeatZoom((current) => Math.max(0.85, current - 0.15))}
-                disabled={seatZoom <= 0.85}
-                className="grid size-7 place-items-center rounded-md border border-border bg-surface-2 text-sm text-ink transition hover:border-amber disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Zoom out seat map"
-              >
-                −
-              </button>
-              <span className="w-10 text-center font-mono text-[10px] text-amber">
-                {Math.round(seatZoom * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={() => setSeatZoom((current) => Math.min(1.6, current + 0.15))}
-                disabled={seatZoom >= 1.6}
-                className="grid size-7 place-items-center rounded-md border border-border bg-surface-2 text-sm text-ink transition hover:border-amber disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Zoom in seat map"
-              >
-                +
-              </button>
+            <div className="mx-auto mb-3 flex w-full max-w-xl items-center justify-between gap-3 rounded-xl border border-cobalt/50 bg-cobalt/10 p-3 shadow-[0_0_24px_rgba(76,111,255,.16)]">
+              <div>
+                <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-cobalt">
+                  Map zoom
+                </span>
+                <span className="mt-1 block text-[11px] text-ink-2">
+                  Adjust your view on smaller screens
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSeatZoom((current) => Math.max(0.85, current - 0.15))}
+                  disabled={seatZoom <= 0.85}
+                  className="grid size-9 place-items-center rounded-lg border border-cobalt/60 bg-surface-2 text-lg font-semibold text-ink transition hover:border-cobalt hover:bg-cobalt/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Zoom out seat map"
+                >
+                  −
+                </button>
+                <span className="w-12 text-center font-mono text-xs font-semibold text-amber">
+                  {Math.round(seatZoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSeatZoom((current) => Math.min(1.6, current + 0.15))}
+                  disabled={seatZoom >= 1.6}
+                  className="grid size-9 place-items-center rounded-lg border border-cobalt/60 bg-surface-2 text-lg font-semibold text-ink transition hover:border-cobalt hover:bg-cobalt/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Zoom in seat map"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <div className="reelroom-seat-map-viewport mx-auto w-full max-w-xl overflow-x-auto rounded-xl border border-border bg-canvas/25 p-3 sm:p-4">
               <div
@@ -1274,10 +1281,10 @@ export function ReelroomApp() {
                             isOccupied &&
                               "cursor-not-allowed border-rose-400/70 bg-rose-500/50 text-rose-100 opacity-80",
                             isSelected &&
-                              "border-amber-200 bg-amber-300 text-canvas shadow-[0_0_14px_rgba(251,191,36,.45)]",
+                              "border-amber-200 bg-amber-300 text-canvas shadow-[0_0_14px_rgba(251,191,36,.45)] hover:shadow-[0_0_24px_rgba(251,191,36,.9)]",
                             !isOccupied &&
                               !isSelected &&
-                              "border-emerald-300/80 bg-emerald-400/25 text-emerald-100 hover:border-emerald-200 hover:bg-emerald-400/45",
+                              "border-emerald-300/80 bg-emerald-400/25 text-emerald-100 hover:border-emerald-200 hover:bg-emerald-400/45 hover:shadow-[0_0_22px_rgba(52,211,153,.75)]",
                           )}
                         >
                           {index + 1}
@@ -1369,6 +1376,32 @@ export function ReelroomApp() {
             PCI-compliant provider.
           </p>
         </aside>
+      </div>
+      <div className="fixed inset-x-3 bottom-3 z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-amber/40 bg-surface/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,.55)] backdrop-blur-xl sm:inset-x-6 sm:p-4">
+        <div className="min-w-0" aria-live="polite">
+          <span className="block font-mono text-[9px] uppercase tracking-[.14em] text-amber">
+            Confirmation
+          </span>
+          <strong className="mt-1 block truncate font-display text-sm text-ink sm:text-base">
+            {selectedSeats.length
+              ? `${selectedSeats.length} seat${selectedSeats.length === 1 ? "" : "s"} selected`
+              : "Choose your seats"}
+          </strong>
+          <span className="mt-0.5 block truncate font-mono text-[10px] text-muted">
+            {selectedSeats.length
+              ? `${selectedSeats.join(", ")} · ₹${(selectedSeats.length * 16 + 4.8).toFixed(2)}`
+              : "Your selection will appear here"}
+          </span>
+        </div>
+        <Button
+          variant="primary"
+          disabled={!selectedSeats.length}
+          onClick={() => setBooking(true)}
+          className="shrink-0 px-3 sm:px-5"
+        >
+          {selectedSeats.length ? "Continue" : "Select seats"}
+          <ArrowRight className="size-4" />
+        </Button>
       </div>
     </div>
   );
