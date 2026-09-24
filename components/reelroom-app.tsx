@@ -554,11 +554,22 @@ export function ReelroomApp() {
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
+  const [detailsShownAt, setDetailsShownAt] = useState<number | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
   const [showtime, setShowtime] = useState("1:40 PM");
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
+
+  useEffect(() => {
+    if (!droppedMovie || detailsShownAt === null) return;
+    const timeout = window.setTimeout(() => {
+      setDroppedMovie(null);
+      setDetailsShownAt(null);
+    }, 20_000);
+    return () => window.clearTimeout(timeout);
+  }, [droppedMovie, detailsShownAt]);
 
   const setPage = (nextPage: NavId) => {
     setPageState(nextPage);
@@ -938,7 +949,10 @@ export function ReelroomApp() {
         axis={70}
         onCardDrop={(image) => {
           const movie = movies.find((item) => item.title === image.label);
-          if (movie) setDroppedMovie(movie);
+          if (movie) {
+            setDroppedMovie(movie);
+            setDetailsShownAt(Date.now());
+          }
         }}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
       >
@@ -1326,7 +1340,8 @@ export function ReelroomApp() {
             </div>
           </div>
         </div>
-        <aside className="h-fit rounded-2xl border border-border bg-surface-2 p-5 lg:sticky lg:top-5">
+        {!isLastLightDetailsVisible ? (
+          <aside className="h-fit rounded-2xl border border-border bg-surface-2 p-5 lg:sticky lg:top-5">
           <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
             Order summary
           </div>
@@ -1397,7 +1412,8 @@ export function ReelroomApp() {
             Demo mode: no payment is processed. Production will hand off to a
             PCI-compliant provider.
           </p>
-        </aside>
+          </aside>
+        ) : null}
       </div>
       <div className="fixed inset-x-3 bottom-3 z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-amber/40 bg-surface/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,.55)] backdrop-blur-xl sm:inset-x-6 sm:p-4">
         <div className="min-w-0" aria-live="polite">
