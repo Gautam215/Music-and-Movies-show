@@ -63,6 +63,12 @@ const art = [
   "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=700&q=85",
 ];
 
+const spotifyPlaylists = [
+  "https://open.spotify.com/embed/playlist/0KRdp3sXbFN99A12uhNCDS9?utm_source=generator",
+  "https://open.spotify.com/embed/playlist/0r3TxbYIVZvuwpLE8ZwNO?utm_source=generator",
+  "https://open.spotify.com/embed/playlist/1KjJvqCCXE18hxDiv4Yf-?utm_source=generator",
+];
+
 const movies: Movie[] = [
   {
     id: "m1",
@@ -1264,6 +1270,42 @@ export function ReelroomApp() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/[.1] bg-surface/55 p-3 shadow-cinematic backdrop-blur-xl sm:p-5">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1 sm:px-2">
+          <div>
+            <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
+              Spotify / curated sets
+            </span>
+            <h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em] text-ink sm:text-3xl">
+              Playlists for the long way home.
+            </h2>
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+            {spotifyPlaylists.length} playlists
+          </span>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-3">
+          {spotifyPlaylists.map((playlist, index) => (
+            <div
+              key={playlist}
+              className="overflow-hidden rounded-2xl border border-white/[.1] bg-canvas/40"
+            >
+              <iframe
+                src={playlist}
+                title={`Spotify playlist ${index + 1}`}
+                width="100%"
+                height="352"
+                frameBorder={0}
+                allowFullScreen
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="block w-full"
+              />
+            </div>
+          ))}
         </div>
       </section>
 
