@@ -1392,7 +1392,7 @@ export function ReelroomApp() {
   const profilePage = (
     <div className="reelroom-profile-page relative isolate m-0 h-screen min-h-screen w-full max-w-full overflow-hidden border-y border-border p-0">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
-      <div className="relative z-10 space-y-5">
+      <div className="relative z-10 min-w-0 max-w-full space-y-5">
         <SectionTitle
           eyebrow="Profile / your signal"
           title="Keep your place"
@@ -1422,8 +1422,8 @@ export function ReelroomApp() {
             </div>
           </div>
         </div>
-        <div className="grid gap-4 lg:grid-cols-[fit-content(28rem)_fit-content(28rem)] lg:justify-start">
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
+        <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,28rem)_minmax(0,28rem)] lg:justify-start">
+          <section className="h-fit w-full min-w-0 max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle
               compact
               eyebrow="Saved for later"
@@ -1463,11 +1463,11 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
+          <section className="h-fit w-full min-w-0 max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle compact eyebrow="Preferences" title="Your signal" />
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
-                <div>
+              <div className="flex min-w-0 items-center justify-between gap-8 border-b border-border pb-2">
+                <div className="min-w-0">
                   <strong className="block font-display text-xs text-ink">
                     Release alerts
                   </strong>
@@ -1479,8 +1479,8 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
-                <div>
+              <div className="flex min-w-0 items-center justify-between gap-8 border-b border-border pb-2">
+                <div className="min-w-0">
                   <strong className="block font-display text-xs text-ink">
                     Booking updates
                   </strong>
@@ -1492,8 +1492,8 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-8">
-                <div>
+              <div className="flex min-w-0 items-center justify-between gap-8">
+                <div className="min-w-0">
                   <strong className="block font-display text-xs text-ink">
                     Preferred city
                   </strong>
