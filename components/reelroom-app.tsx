@@ -1871,7 +1871,7 @@ export function ReelroomApp() {
             page === "updates" && "!px-0 !pb-0 lg:!pb-0",
           )}
         >
-          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
+          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
                 <Film className="size-3.5 -rotate-45" />
