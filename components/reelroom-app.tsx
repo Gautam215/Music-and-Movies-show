@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import {
   ArrowRight,
   Armchair,
@@ -204,6 +204,15 @@ const songs: Song[] = [
     art: art[5],
     genre: "Synth",
   },
+];
+
+const fallbackSoundtrackColors = [
+  "rgba(116, 74, 104, .42)",
+  "rgba(46, 86, 112, .38)",
+  "rgba(104, 83, 54, .36)",
+  "rgba(72, 91, 105, .34)",
+  "rgba(104, 68, 55, .36)",
+  "rgba(63, 77, 105, .38)",
 ];
 
 const wheelItems: WorksWheelItem[] = [
@@ -543,6 +552,7 @@ export function ReelroomApp() {
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
   const [preferencesReady, setPreferencesReady] = useState(false);
+  const [soundtrackColors, setSoundtrackColors] = useState(fallbackSoundtrackColors);
   const preferencesRef = useRef<HTMLElement>(null);
   const songSearchRef = useRef<HTMLInputElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
@@ -600,6 +610,61 @@ export function ReelroomApp() {
       // Preferences remain usable when storage is blocked.
     }
   }, [bookingUpdates, preferencesReady, releaseAlerts]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const extractColor = (source: string, fallback: string) =>
+      new Promise<string>((resolve) => {
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 24;
+          canvas.height = 24;
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (!context) {
+            resolve(fallback);
+            return;
+          }
+          try {
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            let red = 0;
+            let green = 0;
+            let blue = 0;
+            let samples = 0;
+            for (let index = 0; index < pixels.length; index += 16) {
+              const brightness = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+              if (pixels[index + 3] < 120 || brightness < 18 || brightness > 245) continue;
+              red += pixels[index];
+              green += pixels[index + 1];
+              blue += pixels[index + 2];
+              samples += 1;
+            }
+            if (!samples) {
+              resolve(fallback);
+              return;
+            }
+            resolve(
+              `rgba(${Math.round(red / samples)}, ${Math.round(green / samples)}, ${Math.round(blue / samples)}, .42)`,
+            );
+          } catch {
+            resolve(fallback);
+          }
+        };
+        image.onerror = () => resolve(fallback);
+        image.src = source;
+      });
+
+    Promise.all(
+      songs.map((song, index) => extractColor(song.art, fallbackSoundtrackColors[index])),
+    ).then((colors) => {
+      if (!cancelled) setSoundtrackColors(colors);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
@@ -679,6 +744,12 @@ export function ReelroomApp() {
     section.scrollIntoView({ behavior: "smooth", block: "center" });
     window.setTimeout(() => section.focus({ preventScroll: true }), 350);
   };
+
+  const soundtrackAtmosphereStyle = {
+    "--soundtrack-glow-one": soundtrackColors[0],
+    "--soundtrack-glow-two": soundtrackColors[1],
+    "--soundtrack-glow-three": soundtrackColors[2],
+  } as CSSProperties;
 
   const hero = (
     <section className="relative min-h-[30rem] overflow-hidden rounded-2xl border border-border bg-[linear-gradient(90deg,rgba(8,11,18,.98),rgba(8,11,18,.64),rgba(8,11,18,.1)),url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85')] bg-cover bg-center p-7 shadow-cinematic md:min-h-[34rem] md:p-10">
@@ -1134,7 +1205,10 @@ export function ReelroomApp() {
   );
 
   const songsPage = (
-    <div className="reelroom-soundtrack-page space-y-8">
+    <div
+      className="reelroom-soundtrack-page space-y-8"
+      style={soundtrackAtmosphereStyle}
+    >
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
         <div
           className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
