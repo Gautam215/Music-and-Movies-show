@@ -553,6 +553,7 @@ export function ReelroomApp() {
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
   const [showtime, setShowtime] = useState("1:40 PM");
   const [booking, setBooking] = useState(false);
@@ -936,7 +937,43 @@ export function ReelroomApp() {
         speed={18}
         axis={56}
         className="reelroom-movie-stream h-[calc(100vh-5rem)] min-h-[38rem] w-full border-y border-border"
-      />
+        onCardDrop={(image) => {
+          const movie = movies.find((item) => item.title === image.label);
+          if (movie) setDroppedMovie(movie);
+        }}
+      >
+        <div className="pointer-events-none relative z-10 h-full px-5 pt-5 sm:px-8 sm:pt-8">
+          {droppedMovie ? (
+            <div className="mx-auto max-w-3xl rounded-2xl border border-amber/35 bg-canvas/72 p-4 text-center shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-md sm:p-5">
+              <div className="font-mono text-[9px] uppercase tracking-[.18em] text-amber">
+                Dropped movie / full details
+              </div>
+              <h1 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-5xl">
+                {droppedMovie.title}
+              </h1>
+              <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+                <span>{droppedMovie.release}</span>
+                <span className="text-amber">•</span>
+                <span>{droppedMovie.meta}</span>
+                <span className="text-amber">•</span>
+                <span>{droppedMovie.genres.join(" · ")}</span>
+                {droppedMovie.rating !== "—" ? (
+                  <>
+                    <span className="text-amber">•</span>
+                    <span>★ {droppedMovie.rating}</span>
+                  </>
+                ) : null}
+              </div>
+              <p className="mx-auto mt-3 max-w-2xl text-xs leading-5 text-ink-2 sm:text-sm">
+                {droppedMovie.synopsis}
+              </p>
+              <div className="mt-3 font-mono text-[10px] text-amber">
+                Showtimes / {droppedMovie.showtimes.join(" · ")}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </ImageStreamHero>
     </div>
   );
 
