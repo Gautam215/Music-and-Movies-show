@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
   ArrowRight,
@@ -17,7 +17,6 @@ import {
   MapPin,
   Music2,
   Play,
-  Search,
   Share2,
   Ticket,
   UserRound,
@@ -551,8 +550,6 @@ export function ReelroomApp() {
   const [routeReady, setRouteReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>(["m1"]);
-  const [query, setQuery] = useState("");
-  const [songQuery, setSongQuery] = useState("");
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [showtime, setShowtime] = useState("1:40 PM");
@@ -632,24 +629,8 @@ export function ReelroomApp() {
     };
   }, []);
 
-  const filteredMovies = useMemo(
-    () =>
-      movies.filter((item) =>
-        `${item.title} ${item.meta} ${item.genres.join(" ")}`
-          .toLowerCase()
-          .includes(query.toLowerCase()),
-      ),
-    [query],
-  );
-  const filteredSongs = useMemo(
-    () =>
-      songs.filter((item) =>
-        `${item.title} ${item.artist} ${item.movie}`
-          .toLowerCase()
-          .includes(songQuery.toLowerCase()),
-      ),
-    [songQuery],
-  );
+  const filteredMovies = movies;
+  const filteredSongs = songs;
   const toggleFavorite = (id: string) =>
     setFavorites((current) =>
       current.includes(id)
@@ -949,15 +930,6 @@ export function ReelroomApp() {
         copy="A concise rotation of new worlds, familiar faces, and the occasional reason to miss your stop."
       />
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            aria-label="Search the lineup"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="h-10 w-64 rounded-lg border border-border bg-surface pl-9 pr-3 text-xs text-ink focus-visible:outline-none"
-          />
-        </div>
         <select className="h-10 rounded-lg border border-border bg-surface px-3 text-xs text-ink">
           <option>All genres</option>
           <option>Drama</option>
@@ -1066,15 +1038,6 @@ export function ReelroomApp() {
         copy="Browse the music attached to the films, with preview-ready interactions and no unlicensed audio hosting."
       />
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            aria-label="Search the soundtrack"
-            value={songQuery}
-            onChange={(event) => setSongQuery(event.target.value)}
-            className="h-10 w-72 rounded-lg border border-border bg-surface pl-9 pr-3 text-xs text-ink focus-visible:outline-none"
-          />
-        </div>
         <span className="ml-auto font-mono text-[10px] text-muted">
           {filteredSongs.length} tracks
         </span>
@@ -1806,22 +1769,6 @@ export function ReelroomApp() {
                 reel<span className="text-amber">scape</span>
               </strong>
             </div>
-            {page === "updates" || page === "login" ? (
-              <div className="flex-1" aria-hidden="true" />
-            ) : (
-              <div className="relative hidden max-w-md flex-1 sm:block">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-                <input
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    if (event.target.value) setPage("movies");
-                  }}
-                  placeholder="Search films, songs, theaters..."
-                  className="h-10 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-xs text-ink placeholder:text-muted focus-visible:outline-none"
-                />
-              </div>
-            )}
             <div className="ml-auto flex items-center gap-2">
               {page === "home" ? (
                 <button
