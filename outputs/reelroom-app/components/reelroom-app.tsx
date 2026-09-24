@@ -1390,7 +1390,7 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate m-0 h-screen min-h-screen w-full min-w-0 max-w-full overflow-hidden border-y border-border p-0">
+    <div className="reelroom-profile-page relative isolate mx-auto h-screen min-h-screen w-full min-w-0 max-w-[1180px] overflow-hidden border-y border-border p-0">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
       <div className="relative z-10 min-w-0 max-w-full space-y-5">
         <SectionTitle
@@ -1821,7 +1821,6 @@ export function ReelroomApp() {
           className={cn(
             "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
             page === "updates" && "!px-0 !pb-0 lg:!pb-0",
-            page === "profile" && "!m-0 !w-full !max-w-full !px-0 !py-0 !pb-0",
           )}
         >
           <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
