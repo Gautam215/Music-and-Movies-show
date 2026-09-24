@@ -15,12 +15,17 @@ export async function GET(request: Request) {
     );
   }
 
+  const redirectUri = getSpotifyRedirectUri(request);
+  if (new URL(request.url).origin !== new URL(redirectUri).origin) {
+    return NextResponse.redirect(new URL("/api/spotify/login", redirectUri));
+  }
+
   const state = createSpotifyState();
   const authorizeUrl = new URL("https://accounts.spotify.com/authorize");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("state", state);
-  authorizeUrl.searchParams.set("redirect_uri", getSpotifyRedirectUri(request));
+  authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set(
     "scope",
     [
