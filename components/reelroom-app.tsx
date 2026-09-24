@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
   ArrowRight,
@@ -299,28 +299,73 @@ function SectionTitle({
   copy,
   action,
   compact = false,
+  headingLevel = "h2",
+  titleId,
 }: {
   eyebrow: string;
   title: string;
   copy?: string;
   action?: ReactNode;
   compact?: boolean;
+  headingLevel?: "h1" | "h2";
+  titleId?: string;
 }) {
+  const Heading = headingLevel;
+
   return (
-    <div className={cn(compact ? "mb-2" : "mb-5", "flex items-end justify-between gap-4")}>
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
+    <div className={cn(compact ? "mb-2" : "mb-5", "flex min-w-0 max-w-full items-end justify-between gap-4")}>
+      <div className="min-w-0">
+        <span className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
-        </div>
-        <h2 className={cn(compact ? "mt-1 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl", "font-display font-semibold leading-none tracking-[-.05em] text-ink")}>
+        </span>
+        <Heading
+          id={titleId}
+          className={cn(compact ? "mt-1 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl", "font-display font-semibold leading-none tracking-[-.05em] text-ink")}
+        >
           {title}
-        </h2>
+        </Heading>
         {copy ? (
           <p className="mt-3 max-w-xl text-xs leading-6 text-ink-2">{copy}</p>
         ) : null}
       </div>
       {action}
     </div>
+  );
+}
+
+function PreferenceSwitch({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className="flex w-full min-w-0 items-center justify-between gap-4 border-b border-border pb-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+    >
+      <span className="min-w-0">
+        <strong className="block font-display text-xs text-ink">{label}</strong>
+        <span className="mt-1 block text-[10px] text-ink-2">{description}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "shrink-0 rounded-full px-2 py-1 font-mono text-[9px] transition-colors",
+          checked ? "bg-cobalt text-ink" : "bg-surface-3 text-ink-2",
+        )}
+      >
+        {checked ? "ON" : "OFF"}
+      </span>
+    </button>
   );
 }
 
@@ -490,6 +535,11 @@ export function ReelroomApp() {
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [releaseAlerts, setReleaseAlerts] = useState(true);
+  const [bookingUpdates, setBookingUpdates] = useState(true);
+  const [preferredCity, setPreferredCity] = useState("Greater Noida");
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const preferencesRef = useRef<HTMLElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -522,6 +572,33 @@ export function ReelroomApp() {
       window.removeEventListener("hashchange", syncPage);
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      const savedReleaseAlerts = window.localStorage.getItem("reelroom.releaseAlerts");
+      const savedBookingUpdates = window.localStorage.getItem("reelroom.bookingUpdates");
+      if (savedReleaseAlerts !== null) setReleaseAlerts(savedReleaseAlerts === "true");
+      if (savedBookingUpdates !== null) setBookingUpdates(savedBookingUpdates === "true");
+    } catch {
+      // Defaults remain available when storage is blocked.
+    } finally {
+      setPreferencesReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
+    try {
+      window.localStorage.setItem("reelroom.releaseAlerts", String(releaseAlerts));
+      window.localStorage.setItem("reelroom.bookingUpdates", String(bookingUpdates));
+    } catch {
+      // Preferences remain usable when storage is blocked.
+    }
+  }, [bookingUpdates, preferencesReady, releaseAlerts]);
+
+  useEffect(() => {
+    document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
+  }, [page]);
 
   useEffect(() => {
     let frame = 0;
@@ -583,6 +660,12 @@ export function ReelroomApp() {
   const announce = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
+  };
+  const focusPreferences = () => {
+    const section = preferencesRef.current;
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => section.focus({ preventScroll: true }), 350);
   };
 
   const hero = (
@@ -1158,7 +1241,7 @@ export function ReelroomApp() {
               alt=""
               className="size-16 rounded-lg object-cover"
             />
-            <div>
+            <div className="min-w-0">
               <div className="font-mono text-[10px] uppercase text-amber">
                 Tonight / New York
               </div>
@@ -1390,40 +1473,37 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate m-0 h-screen min-h-screen w-screen overflow-hidden border-y border-border p-0">
+    <div className="reelroom-profile-page relative isolate w-full max-w-full border-y border-border">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
-      <div className="relative z-10 space-y-5">
+      <div className="relative z-10 min-w-0 max-w-full space-y-5">
         <SectionTitle
           eyebrow="Profile / your signal"
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
+          headingLevel="h1"
         />
-        <div className="flex w-fit max-w-full flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-2 py-1 backdrop-blur-md">
-          <div className="flex items-center gap-3">
+        <div className="flex w-full max-w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
+          <div className="flex min-w-0 max-w-full items-center gap-3">
             <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
               AG
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
                 Abhishek Kumar Gautam
               </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <p className="text-xs text-muted">
-                  Greater Noida · Member since 2021
-                </p>
-                <Button
-                  variant="ghost"
-                  className="min-h-8 shrink-0 px-3 py-1 text-[10px]"
-                  onClick={() => announce("Preferences are ready to manage.")}
-                >
-                  Manage preferences
-                </Button>
-              </div>
+              <p className="mt-1 text-xs text-ink-2">Greater Noida · Member since 2021</p>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            className="min-h-8 shrink-0 px-3 py-1 text-[10px]"
+            onClick={focusPreferences}
+          >
+            Manage preferences
+          </Button>
         </div>
-        <div className="grid gap-4 lg:grid-cols-[fit-content(28rem)_fit-content(28rem)] lg:justify-start">
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
+        <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,28rem)_minmax(0,28rem)] lg:justify-start">
+          <section className="h-fit w-full min-w-0 max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle
               compact
               eyebrow="Saved for later"
@@ -1443,7 +1523,7 @@ export function ReelroomApp() {
                 >
                   <img
                     src={item.poster}
-                    alt=""
+                    alt={`${item.title} movie poster`}
                     className="size-10 rounded-md object-cover"
                   />
                   <div className="min-w-0 flex-1">
@@ -1455,7 +1535,9 @@ export function ReelroomApp() {
                     </span>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setSelected(item)}
+                    aria-label={`Open ${item.title} movie details`}
                     className="font-mono text-[10px] text-amber"
                   >
                     Open
@@ -1463,43 +1545,50 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
-            <SectionTitle compact eyebrow="Preferences" title="Your signal" />
+          <section
+            ref={preferencesRef}
+            tabIndex={-1}
+            aria-labelledby="profile-preferences-heading"
+            className="h-fit w-full min-w-0 max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+          >
+            <SectionTitle
+              compact
+              eyebrow="Preferences"
+              title="Your signal"
+              titleId="profile-preferences-heading"
+            />
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
-                <div>
-                  <strong className="block font-display text-xs text-ink">
-                    Release alerts
-                  </strong>
-                  <span className="mt-1 block text-[10px] text-muted">
-                    Upcoming films you saved
-                  </span>
-                </div>
-                <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
-                  ON
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-8 border-b border-border pb-2">
-                <div>
-                  <strong className="block font-display text-xs text-ink">
-                    Booking updates
-                  </strong>
-                  <span className="mt-1 block text-[10px] text-muted">
-                    Changes, reminders, and tickets
-                  </span>
-                </div>
-                <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
-                  ON
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-8">
-                <div>
+              <PreferenceSwitch
+                label="Release alerts"
+                description="Upcoming films you saved"
+                checked={releaseAlerts}
+                onChange={() => setReleaseAlerts((current) => !current)}
+              />
+              <PreferenceSwitch
+                label="Booking updates"
+                description="Changes, reminders, and tickets"
+                checked={bookingUpdates}
+                onChange={() => setBookingUpdates((current) => !current)}
+              />
+              <div className="flex min-w-0 items-center justify-between gap-8">
+                <div className="min-w-0">
                   <strong className="block font-display text-xs text-ink">
                     Preferred city
                   </strong>
-                  <span className="mt-1 block text-[10px] text-muted">
-                    Greater Noida
-                  </span>
+                  <label htmlFor="preferred-city" className="sr-only">
+                    Preferred city
+                  </label>
+                  <select
+                    id="preferred-city"
+                    aria-label="Preferred city"
+                    value={preferredCity}
+                    onChange={(event) => setPreferredCity(event.target.value)}
+                    className="mt-1 max-w-full rounded-md border border-border bg-surface-2 px-2 py-1 text-[10px] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+                  >
+                    <option>Greater Noida</option>
+                    <option>Noida</option>
+                    <option>New Delhi</option>
+                  </select>
                 </div>
                 <MapPin className="size-4 text-amber" />
               </div>
@@ -1764,8 +1853,10 @@ export function ReelroomApp() {
             </h2>
           </div>
           <button
+            type="button"
             onClick={() => setBooking(false)}
             className="grid size-9 place-items-center rounded-full border border-border text-ink-2"
+            aria-label="Close checkout"
           >
             <X className="size-4" />
           </button>
@@ -1816,15 +1907,17 @@ export function ReelroomApp() {
       data-background={page === "home" ? "black-hole" : page === "login" ? "astronaut" : "plain"}
       data-page={page}
     >
+      <a className="reelroom-skip-link" href="#main">
+        Skip to content
+      </a>
       <div className="min-h-screen">
         <main
+          id="main"
           className={cn(
-            "min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
-            page === "updates" && "!px-0 !pb-0 lg:!pb-0",
-            page === "profile" && "!m-0 !w-screen !max-w-none !px-0 !py-0 !pb-0",
+            "w-full max-w-full min-w-0 px-4 pb-24 sm:px-6 lg:px-10 lg:pb-14",
           )}
         >
-          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "px-4 sm:px-6 lg:px-10")}>
+          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40")}>
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
                 <Film className="size-3.5 -rotate-45" />
@@ -1897,6 +1990,9 @@ export function ReelroomApp() {
           <div className="animate-[page-in_.35s_ease_both]">{pageContent}</div>
         </main>
       </div>
+      <footer className="w-full border-t border-border px-4 py-4 text-center font-mono text-[10px] text-ink-2 sm:px-6 lg:px-10">
+        Reelscape · Find your next screening
+      </footer>
       {detailModal}
       {checkoutModal}
       {notice ? (

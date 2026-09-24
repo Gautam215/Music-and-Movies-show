@@ -13,15 +13,16 @@
   --border-strong: 219 28% 36%;
   --ink: 220 33% 97%;
   --ink-2: 217 21% 69%;
-  --muted: 217 15% 48%;
+  --muted: 217 15% 61%;
   --cobalt: 229 100% 65%;
   --amber: 40 25% 92%;
   --mint: 169 59% 58%;
 }
 
 * { box-sizing: border-box; }
-html { background: hsl(var(--canvas)); scroll-behavior: smooth; }
+html { background: hsl(var(--canvas)); scroll-behavior: smooth; overflow-x: clip; }
 body { margin: 0; background: hsl(var(--canvas)); color: hsl(var(--ink)); font-family: Inter, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+body { max-width: 100%; overflow-x: clip; }
 body:has(.auth-page[data-background="astronaut"]) {
   background-color: #08070d;
   background-image: none;
@@ -196,13 +197,31 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   backdrop-filter: blur(22px) saturate(1.25);
 }
 .reelroom-profile-page {
-  height: 100vh;
+  height: auto;
   min-height: 100vh;
+  overflow: visible;
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
+
+.reelroom-skip-link {
+  position: fixed;
+  top: .75rem;
+  left: .75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  border: 1px solid hsl(var(--amber) / .8);
+  border-radius: .5rem;
+  background: hsl(var(--surface-3));
+  color: hsl(var(--ink));
+  padding: .6rem .8rem;
+  font-size: .75rem;
+  font-weight: 600;
+  transition: transform 180ms ease;
+}
+.reelroom-skip-link:focus { transform: translateY(0); outline: 2px solid hsl(var(--amber)); outline-offset: 3px; }
 
 div[role="dialog"] {
   background: linear-gradient(145deg, hsl(var(--surface) / .88), hsl(var(--surface-2) / .68));
