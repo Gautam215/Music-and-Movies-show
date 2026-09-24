@@ -45,12 +45,15 @@ type Movie = {
   release: string;
 };
 type Song = {
+  id?: string;
   title: string;
   artist: string;
   movie: string;
   duration: string;
   art: string;
   genre: string;
+  spotifyUrl?: string;
+  previewUrl?: string | null;
 };
 
 const art = [
@@ -548,6 +551,9 @@ export function ReelroomApp() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [songSearchOpen, setSongSearchOpen] = useState(false);
   const [songSearch, setSongSearch] = useState("");
+  const [spotifySongs, setSpotifySongs] = useState<Song[]>([]);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -556,6 +562,7 @@ export function ReelroomApp() {
   const preferencesRef = useRef<HTMLElement>(null);
   const songSearchRef = useRef<HTMLInputElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
+  const soundtrackSongs = spotifySongs.length ? spotifySongs : songs;
 
   useEffect(() => {
     if (!droppedMovie || detailsShownAt === null) return;
@@ -612,6 +619,35 @@ export function ReelroomApp() {
   }, [bookingUpdates, preferencesReady, releaseAlerts]);
 
   useEffect(() => {
+    if (page !== "songs" || spotifySongs.length) return;
+    let cancelled = false;
+    setSpotifyLoading(true);
+    setSpotifyError(null);
+
+    fetch("/api/spotify/tracks")
+      .then(async (response) => {
+        const payload = (await response.json()) as { songs?: Song[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "Spotify request failed.");
+        return payload.songs ?? [];
+      })
+      .then((remoteSongs) => {
+        if (!cancelled) setSpotifySongs(remoteSongs);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSpotifyError(error instanceof Error ? error.message : "Spotify is unavailable.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSpotifyLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page, spotifySongs.length]);
+
+  useEffect(() => {
     let cancelled = false;
     const extractColor = (source: string, fallback: string) =>
       new Promise<string>((resolve) => {
@@ -657,14 +693,16 @@ export function ReelroomApp() {
       });
 
     Promise.all(
-      songs.map((song, index) => extractColor(song.art, fallbackSoundtrackColors[index])),
+      soundtrackSongs.map((song, index) =>
+        extractColor(song.art, fallbackSoundtrackColors[index % fallbackSoundtrackColors.length]),
+      ),
     ).then((colors) => {
       if (!cancelled) setSoundtrackColors(colors);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [spotifySongs]);
 
   useEffect(() => {
     document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
@@ -721,7 +759,7 @@ export function ReelroomApp() {
   }, []);
 
   const deferredSongSearch = useDeferredValue(songSearch);
-  const filteredSongs = songs.filter((song) => {
+  const filteredSongs = soundtrackSongs.filter((song) => {
     const query = deferredSongSearch.trim().toLowerCase();
     if (!query) return true;
     return [song.title, song.artist, song.movie, song.genre].some((value) =>
@@ -1212,7 +1250,7 @@ export function ReelroomApp() {
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
         <div
           className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
-          style={{ backgroundImage: `url("${songs[0].art}")` }}
+          style={{ backgroundImage: `url("${soundtrackSongs[0].art}")` }}
           aria-hidden="true"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-white/[.06] via-transparent to-canvas/60" />
@@ -1230,9 +1268,20 @@ export function ReelroomApp() {
             </p>
           </div>
           <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
-            <span className="font-mono text-[10px] uppercase tracking-[.14em] text-muted">
-              {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
-            </span>
+            <div className="text-right">
+              <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-muted">
+                {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
+              </span>
+              <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
+                {spotifyLoading
+                  ? "Syncing Spotify"
+                  : spotifyError
+                    ? "Curated fallback"
+                    : spotifySongs.length
+                      ? "Live Spotify catalog"
+                      : "Curated selection"}
+              </span>
+            </div>
             <div
               className="reelroom-song-search"
               data-open={songSearchOpen}
@@ -1270,7 +1319,7 @@ export function ReelroomApp() {
         <div className="grid gap-4 lg:grid-cols-2">
           {filteredSongs.map((song, index) => (
             <article
-              key={song.title}
+              key={song.id ?? song.title}
               className="reelroom-track-card group relative isolate min-h-56 overflow-hidden rounded-[2rem] border border-white/[.12] p-5 shadow-cinematic sm:p-6"
             >
               <div
@@ -1307,11 +1356,16 @@ export function ReelroomApp() {
                   <span className="text-xs text-ink-2">Original motion picture score</span>
                   <button
                     type="button"
-                    onClick={() =>
-                      setPlaying(playing === song.title ? null : song.title)
-                    }
+                    onClick={() => {
+                      if (song.spotifyUrl) {
+                        window.open(song.spotifyUrl, "_blank", "noopener,noreferrer");
+                        announce(`Opening ${song.title} in Spotify.`);
+                        return;
+                      }
+                      setPlaying(playing === song.title ? null : song.title);
+                    }}
                     className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/70 bg-amber text-canvas shadow-[0_8px_24px_rgba(0,0,0,.2)] transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:text-canvas"
-                    aria-label={`${playing === song.title ? "Pause" : "Play"} ${song.title}`}
+                    aria-label={song.spotifyUrl ? `Open ${song.title} in Spotify` : `${playing === song.title ? "Pause" : "Play"} ${song.title}`}
                   >
                     {playing === song.title ? (
                       <span className="text-sm">Ⅱ</span>
