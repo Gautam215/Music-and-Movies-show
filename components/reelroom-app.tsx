@@ -307,7 +307,7 @@ function SectionTitle({
   compact?: boolean;
 }) {
   return (
-    <div className={cn(compact ? "mb-3" : "mb-5", "flex items-end justify-between gap-4")}>
+    <div className={cn(compact ? "mb-2" : "mb-5", "flex items-end justify-between gap-4")}>
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
@@ -1472,7 +1472,7 @@ export function ReelroomApp() {
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
         />
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-3 py-1.5 backdrop-blur-md sm:px-4">
+        <div className="flex w-fit max-w-full flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface/75 px-2 py-1 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
               AG
@@ -1496,8 +1496,8 @@ export function ReelroomApp() {
             </div>
           </div>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-2 backdrop-blur-md">
+        <div className="grid gap-4 lg:grid-cols-[fit-content(28rem)_fit-content(28rem)] lg:justify-start">
+          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-0 backdrop-blur-md">
             <SectionTitle
               compact
               eyebrow="Saved for later"
@@ -1537,10 +1537,10 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-2 backdrop-blur-md">
+          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-0 backdrop-blur-md">
             <SectionTitle compact eyebrow="Preferences" title="Your signal" />
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between border-b border-border pb-2.5">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Release alerts
@@ -1553,7 +1553,7 @@ export function ReelroomApp() {
                   ON
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-border pb-2.5">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <div>
                   <strong className="block font-display text-xs text-ink">
                     Booking updates
