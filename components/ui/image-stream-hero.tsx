@@ -67,6 +67,7 @@ export type ImageStreamHeroProps = {
   speed?: number;
   axis?: number;
   path?: CorridorPath;
+  onCardDrop?: (image: StreamImage) => void;
   children?: React.ReactNode;
   className?: string;
 };
@@ -77,6 +78,7 @@ export function ImageStreamHero({
   speed = 18,
   axis = 55,
   path,
+  onCardDrop,
   children,
   className,
   ...props
@@ -86,6 +88,7 @@ export function ImageStreamHero({
   const left = `ish-l-${id}`;
   const card = `ish-c-${id}`;
   const p = React.useMemo(() => ({ ...PATH, ...path }), [path]);
+  const [draggingSrc, setDraggingSrc] = React.useState<string | null>(null);
 
   const css = React.useMemo(
     () =>
@@ -102,7 +105,7 @@ export function ImageStreamHero({
     >
       <style>{css}</style>
       <div
-        aria-hidden
+        aria-hidden={onCardDrop ? undefined : true}
         className="pointer-events-none absolute inset-0"
         style={{
           perspective: `${p.perspective}cqw`,
@@ -116,7 +119,20 @@ export function ImageStreamHero({
               return (
                 <div
                   key={`${name}-${i}`}
-                  className={cn(card, "absolute flex flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl")}
+                  className={cn(
+                    card,
+                    "pointer-events-auto absolute flex cursor-grab flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl active:cursor-grabbing",
+                    draggingSrc === img?.src && "ring-2 ring-amber ring-offset-2 ring-offset-canvas",
+                  )}
+                  draggable={Boolean(onCardDrop)}
+                  aria-label={img?.label ? `Drag ${img.label} to inspect` : undefined}
+                  onDragStart={(event) => {
+                    if (!onCardDrop || !img) return;
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", img.src);
+                    setDraggingSrc(img.src);
+                  }}
+                  onDragEnd={() => setDraggingSrc(null)}
                   style={{
                     left: "50%",
                     top: `${axis}%`,
@@ -158,6 +174,27 @@ export function ImageStreamHero({
           )}
         </div>
       </div>
+      {onCardDrop ? (
+        <div
+          className={cn(
+            "pointer-events-auto absolute inset-x-4 bottom-4 z-30 mx-auto flex max-w-xl items-center justify-center rounded-2xl border border-dashed border-amber/45 bg-canvas/75 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[.14em] text-ink-2 backdrop-blur-md transition",
+            draggingSrc && "border-amber bg-amber/10 text-amber shadow-[0_0_28px_rgba(251,191,36,.22)]",
+          )}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            const src = event.dataTransfer.getData("text/plain");
+            const image = images.find((item) => item.src === src);
+            if (image) onCardDrop(image);
+            setDraggingSrc(null);
+          }}
+        >
+          {draggingSrc ? "Release to inspect this movie" : "Drag any movie card here for details"}
+        </div>
+      ) : null}
       {children}
     </div>
   );
