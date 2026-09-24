@@ -298,14 +298,16 @@ function SectionTitle({
   title,
   copy,
   action,
+  compact = false,
 }: {
   eyebrow: string;
   title: string;
   copy?: string;
   action?: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="mb-5 flex items-end justify-between gap-4">
+    <div className={cn(compact ? "mb-3" : "mb-5", "flex items-end justify-between gap-4")}>
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
@@ -1492,8 +1494,9 @@ export function ReelroomApp() {
           </Button>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <section className="rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
+          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-3 backdrop-blur-md">
             <SectionTitle
+              compact
               eyebrow="Saved for later"
               title="Favorites"
               action={
@@ -1507,12 +1510,12 @@ export function ReelroomApp() {
               .map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 border-b border-border py-3 last:border-0"
+                  className="flex items-center gap-3 border-b border-border py-2 last:border-0"
                 >
                   <img
                     src={item.poster}
                     alt=""
-                    className="size-11 rounded-md object-cover"
+                    className="size-10 rounded-md object-cover"
                   />
                   <div className="min-w-0 flex-1">
                     <strong className="block truncate font-display text-xs text-ink">
