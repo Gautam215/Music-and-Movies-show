@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 type SpotifyTrack = {
   id: string;
+  uri: string;
   name: string;
   duration_ms: number;
   preview_url: string | null;
@@ -84,6 +85,7 @@ export async function GET() {
       .filter((track) => track.external_urls?.spotify)
       .map((track) => ({
         id: track.id,
+        spotifyUri: track.uri,
         title: track.name,
         artist: track.artists.map((artist) => artist.name).join(", "),
         movie: track.album.name,

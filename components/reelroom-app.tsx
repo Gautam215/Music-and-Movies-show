@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import {
   ArrowRight,
@@ -18,7 +18,6 @@ import {
   MapPin,
   Music2,
   Play,
-  Search,
   Share2,
   Ticket,
   UserRound,
@@ -38,7 +37,40 @@ type Song = {
   duration: string;
   art: string;
   genre: string;
+  spotifyUri?: string;
 };
+
+type SpotifyPlayerState = {
+  paused: boolean;
+  track_window: {
+    current_track: {
+      uri?: string;
+      name?: string;
+    } | null;
+  };
+};
+
+type SpotifyPlayer = {
+  addListener: (event: string, callback: (data: any) => void) => boolean;
+  activateElement: () => Promise<void>;
+  connect: () => Promise<boolean>;
+  disconnect: () => void;
+  pause: () => Promise<void>;
+  resume: () => Promise<void>;
+};
+
+declare global {
+  interface Window {
+    onSpotifyWebPlaybackSDKReady?: () => void;
+    Spotify?: {
+      Player: new (options: {
+        name: string;
+        volume: number;
+        getOAuthToken: (callback: (token: string) => void) => void;
+      }) => SpotifyPlayer;
+    };
+  }
+}
 
 const art = [
   "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85",
@@ -47,12 +79,6 @@ const art = [
   "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=700&q=85",
   "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=700&q=85",
   "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=700&q=85",
-];
-
-const spotifyPlaylists = [
-  "https://open.spotify.com/embed/playlist/1kjJvVqCCXel8ihxDiVv4y?utm_source=generator&theme=0&si=3ad7c49eb7d64ad5",
-  "https://open.spotify.com/embed/playlist/0r3TxwbYiTVzuwpLE8zwNO?utm_source=generator&si=b214bbe4331d4855",
-  "https://open.spotify.com/embed/playlist/74JccVBpma2koOG0TCbFcf?utm_source=generator&si=51196e94b8964b14",
 ];
 
 const movies: Movie[] = [
@@ -501,15 +527,21 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [songSearchOpen, setSongSearchOpen] = useState(false);
-  const [songSearch, setSongSearch] = useState("");
+  const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>(soundtrackSongs);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyReady, setSpotifyReady] = useState(false);
+  const [spotifyStatus, setSpotifyStatus] = useState("Connect Spotify");
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
+  const [spotifyTrackUri, setSpotifyTrackUri] = useState<string | null>(null);
+  const [spotifyPaused, setSpotifyPaused] = useState(true);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [soundtrackColors, setSoundtrackColors] = useState(fallbackSoundtrackColors);
   const preferencesRef = useRef<HTMLElement>(null);
-  const songSearchRef = useRef<HTMLInputElement>(null);
+  const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
+  const spotifyDeviceIdRef = useRef<string | null>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -520,6 +552,128 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     }, 20_000);
     return () => window.clearTimeout(timeout);
   }, [droppedMovie, detailsShownAt]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/spotify/tracks", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { songs?: Song[] };
+      })
+      .then((payload) => {
+        if (!cancelled && payload?.songs?.length) setSpotifyCatalog(payload.songs);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/spotify/session", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { connected?: boolean };
+      })
+      .then((session) => {
+        if (!cancelled && session?.connected) {
+          setSpotifyConnected(true);
+          setSpotifyStatus("Preparing player");
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!spotifyConnected) return;
+    let cancelled = false;
+    const setupPlayer = () => {
+      if (cancelled || !window.Spotify || spotifyPlayerRef.current) return;
+      const player = new window.Spotify.Player({
+        name: "Reelscape Web Player",
+        volume: 0.72,
+        getOAuthToken: (callback) => {
+          fetch("/api/spotify/token", { cache: "no-store" })
+            .then(async (response) => {
+              const payload = (await response.json()) as { accessToken?: string };
+              if (!response.ok || !payload.accessToken) throw new Error("Spotify session expired");
+              callback(payload.accessToken);
+            })
+            .catch(() => {
+              setSpotifyConnected(false);
+              setSpotifyReady(false);
+              setSpotifyStatus("Reconnect Spotify");
+            });
+        },
+      });
+      player.addListener("ready", ({ device_id }: { device_id: string }) => {
+        spotifyDeviceIdRef.current = device_id;
+        setSpotifyReady(true);
+        setSpotifyStatus("Ready to play");
+        setSpotifyError(null);
+      });
+      player.addListener("not_ready", () => {
+        setSpotifyReady(false);
+        setSpotifyStatus("Player offline");
+      });
+      player.addListener("player_state_changed", (state: SpotifyPlayerState | null) => {
+        const track = state?.track_window.current_track;
+        setSpotifyTrackUri(track?.uri ?? null);
+        setSpotifyPaused(state?.paused ?? true);
+        setPlaying(state?.paused ? null : track?.name ?? null);
+      });
+      player.addListener("initialization_error", ({ message }: { message: string }) => {
+        setSpotifyError(message);
+        setSpotifyStatus("Player unavailable");
+      });
+      player.addListener("authentication_error", ({ message }: { message: string }) => {
+        setSpotifyError(message);
+        setSpotifyStatus("Reconnect Spotify");
+        setSpotifyConnected(false);
+      });
+      player.addListener("account_error", ({ message }: { message: string }) => {
+        setSpotifyError("An active Spotify Premium account is required for playback.");
+        setSpotifyStatus("Premium required");
+      });
+      spotifyPlayerRef.current = player;
+      player.connect().then((connected) => {
+        if (!connected && !cancelled) setSpotifyStatus("Player unavailable");
+      });
+    };
+
+    if (window.Spotify) {
+      setupPlayer();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const existingScript = document.getElementById("spotify-player-sdk");
+    const script = (existingScript ?? document.createElement("script")) as HTMLScriptElement;
+    const onLoad = () => setupPlayer();
+    const previousReady = window.onSpotifyWebPlaybackSDKReady;
+    window.onSpotifyWebPlaybackSDKReady = setupPlayer;
+    script.addEventListener("load", onLoad);
+    if (!existingScript) {
+      script.id = "spotify-player-sdk";
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", onLoad);
+      window.onSpotifyWebPlaybackSDKReady = previousReady;
+      spotifyPlayerRef.current?.disconnect();
+      spotifyPlayerRef.current = null;
+      spotifyDeviceIdRef.current = null;
+      setSpotifyReady(false);
+    };
+  }, [spotifyConnected]);
 
   const setPage = (nextPage: NavId) => {
     setPageState(nextPage);
@@ -612,7 +766,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       });
 
     Promise.all(
-      soundtrackSongs.map((song, index) =>
+      spotifyCatalog.map((song, index) =>
         extractColor(song.art, fallbackSoundtrackColors[index % fallbackSoundtrackColors.length]),
       ),
     ).then((colors) => {
@@ -687,16 +841,9 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       window.removeEventListener("scroll", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [spotifyCatalog]);
 
-  const deferredSongSearch = useDeferredValue(songSearch);
-  const filteredSongs = soundtrackSongs.filter((song) => {
-    const query = deferredSongSearch.trim().toLowerCase();
-    if (!query) return true;
-    return [song.title, song.artist, song.movie, song.genre].some((value) =>
-      value.toLowerCase().includes(query),
-    );
-  });
+  const filteredSongs = spotifyCatalog;
   const toggleFavorite = (id: string) =>
     setFavorites((current) =>
       current.includes(id)
@@ -707,6 +854,46 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
   };
+  const connectSpotify = () => {
+    window.location.assign("/api/spotify/login");
+  };
+  const toggleSpotifySong = async (song: Song) => {
+    if (!spotifyConnected) {
+      connectSpotify();
+      return;
+    }
+    const player = spotifyPlayerRef.current;
+    const deviceId = spotifyDeviceIdRef.current;
+    if (!player || !deviceId || !spotifyReady) {
+      setSpotifyError("The Spotify player is still preparing.");
+      return;
+    }
+    await player.activateElement();
+    if (spotifyTrackUri === song.spotifyUri) {
+      if (spotifyPaused) await player.resume();
+      else await player.pause();
+      return;
+    }
+    if (!song.spotifyUri) {
+      setSpotifyError("This track is not available in the Spotify catalog yet.");
+      return;
+    }
+    const response = await fetch("/api/spotify/player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uri: song.spotifyUri, deviceId }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setSpotifyError(payload?.error ?? "Spotify could not start this track.");
+      return;
+    }
+    setSpotifyError(null);
+    setSpotifyTrackUri(song.spotifyUri);
+    setPlaying(song.title);
+  };
+  const isSongPlaying = (song: Song) =>
+    song.spotifyUri ? spotifyTrackUri === song.spotifyUri && !spotifyPaused : playing === song.title;
   const focusPreferences = () => {
     const section = preferencesRef.current;
     if (!section) return;
@@ -1101,11 +1288,11 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       style={soundtrackAtmosphereStyle}
     >
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
-        <div
-          className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
-          style={{
-            backgroundImage: soundtrackSongs[0]?.art
-              ? `url("${soundtrackSongs[0].art}")`
+          <div
+            className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
+            style={{
+            backgroundImage: spotifyCatalog[0]?.art
+              ? `url("${spotifyCatalog[0].art}")`
               : undefined,
           }}
           aria-hidden="true"
@@ -1130,41 +1317,23 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                 {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
               </span>
               <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
-                Curated Reelscape catalog
+                {spotifyStatus}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div
-                className="reelroom-song-search"
-                data-open={songSearchOpen}
+              <button
+                type="button"
+                onClick={spotifyConnected ? undefined : connectSpotify}
+                disabled={spotifyConnected && !spotifyReady}
+                className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextOpen = !songSearchOpen;
-                    setSongSearchOpen(nextOpen);
-                    if (nextOpen) {
-                      window.requestAnimationFrame(() => songSearchRef.current?.focus());
-                    }
-                  }}
-                  className="reelroom-song-search-button"
-                  aria-label={songSearchOpen ? "Close song search" : "Search songs"}
-                  aria-expanded={songSearchOpen}
-                >
-                  <Search className="size-4" />
-                </button>
-                <input
-                  ref={songSearchRef}
-                  value={songSearch}
-                  onChange={(event) => setSongSearch(event.target.value)}
-                  tabIndex={songSearchOpen ? 0 : -1}
-                  aria-label="Search songs"
-                  placeholder="Search songs"
-                  className="reelroom-song-search-input"
-                />
-              </div>
+                {spotifyConnected ? (spotifyReady ? "Spotify connected" : "Connecting...") : "Connect Spotify"}
+              </button>
             </div>
           </div>
+          {spotifyError ? (
+            <p className="relative mt-4 max-w-xl text-xs text-amber">{spotifyError}</p>
+          ) : null}
         </div>
       </section>
 
@@ -1175,32 +1344,32 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               Spotify / curated sets
             </span>
             <h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em] text-ink sm:text-3xl">
-              Playlists for the long way home.
+              Your live listening room.
             </h2>
           </div>
           <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-            {spotifyPlaylists.length} playlists
+             {filteredSongs.length} tracks
           </span>
         </div>
-        <div className="grid gap-4 xl:grid-cols-3">
-          {spotifyPlaylists.map((playlist, index) => (
-            <div
-              key={playlist}
-              className="overflow-hidden rounded-2xl border border-white/[.1] bg-canvas/40"
-            >
-              <iframe
-                src={playlist}
-                title={`Spotify playlist ${index + 1}`}
-                width="100%"
-                height="352"
-                frameBorder={0}
-                allowFullScreen
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                className="block w-full"
-              />
+        <div className="reelroom-spotify-player rounded-2xl border border-white/[.1] bg-canvas/45 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+                Reelscape player
+              </span>
+              <h3 className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink">
+                {spotifyTrackUri ? "Now playing from Spotify" : "A player for the long way home"}
+              </h3>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-ink-2">
+                {spotifyConnected
+                  ? "Choose a track below to hand playback to your Spotify device."
+                  : "Connect a Spotify Premium account to play the curated soundtrack here."}
+              </p>
             </div>
-          ))}
+            <div className="grid size-14 place-items-center rounded-full border border-amber/50 bg-amber/10 text-amber">
+              {spotifyPaused ? <Play className="size-5 fill-current" /> : <span className="text-sm">Ⅱ</span>}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1245,13 +1414,11 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                   <span className="text-xs text-ink-2">Original motion picture score</span>
                   <button
                     type="button"
-                    onClick={() => {
-                      setPlaying(playing === song.title ? null : song.title);
-                    }}
+                     onClick={() => void toggleSpotifySong(song)}
                     className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/70 bg-amber text-canvas shadow-[0_8px_24px_rgba(0,0,0,.2)] transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:text-canvas"
-                    aria-label={`${playing === song.title ? "Pause" : "Play"} ${song.title}`}
-                  >
-                    {playing === song.title ? (
+                     aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
+                   >
+                     {isSongPlaying(song) ? (
                       <span className="text-sm">Ⅱ</span>
                     ) : (
                       <Play className="size-4 fill-current" />
@@ -1819,7 +1986,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     login: loginPage,
     admin: adminPage,
   }[page];
-  const selectedSoundtrack = selected ? soundtrackSongs.slice(0, 2) : [];
+  const selectedSoundtrack = selected ? spotifyCatalog.slice(0, 2) : [];
   const detailModal = selected ? (
     <div
       className="fixed inset-0 z-40 grid place-items-center bg-canvas/80 p-4 backdrop-blur-md"
@@ -1918,12 +2085,12 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                       </span>
                     </div>
                     <button
-                      onClick={() =>
-                        setPlaying(playing === song.title ? null : song.title)
-                      }
+                      type="button"
+                      onClick={() => void toggleSpotifySong(song)}
                       className="grid size-7 place-items-center rounded-full bg-amber text-canvas"
+                      aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
                     >
-                      {playing === song.title ? (
+                      {isSongPlaying(song) ? (
                         "Ⅱ"
                       ) : (
                         <Play className="size-3 fill-current" />

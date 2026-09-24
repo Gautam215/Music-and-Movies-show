@@ -22,7 +22,15 @@ export async function GET(request: Request) {
   authorizeUrl.searchParams.set("redirect_uri", getSpotifyRedirectUri(request));
   authorizeUrl.searchParams.set(
     "scope",
-    "user-read-private user-read-email user-top-read",
+    [
+      "streaming",
+      "user-modify-playback-state",
+      "user-read-playback-state",
+      "user-read-currently-playing",
+      "user-read-private",
+      "user-read-email",
+      "user-top-read",
+    ].join(" "),
   );
 
   const response = NextResponse.redirect(authorizeUrl);
