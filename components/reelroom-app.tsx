@@ -408,7 +408,7 @@ function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie
           <span className="flex items-center gap-1.5 text-amber">
             <Clock3 className="size-3" /> {item.release}
           </span>
-          <span>From ₹{item.price}</span>
+           <span>Approx. ₹{item.price}</span>
         </div>
         <h2 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
           {item.title}
@@ -1431,7 +1431,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                     {time}
                   </strong>
                   <span className="mt-1 block text-[10px] text-muted">
-                    Dolby · from ₹{ticketMovie.price}
+                     Dolby · approx. ₹{ticketMovie.price}
                   </span>
                 </button>
               ))}
@@ -1560,10 +1560,13 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
             Order summary
           </div>
-          <h3 className="mt-2 font-display text-lg font-semibold tracking-[-.04em] text-ink">
-            Your screening
-          </h3>
-          <div className="my-5 flex gap-3 border-b border-border pb-5">
+           <h3 className="mt-2 font-display text-lg font-semibold tracking-[-.04em] text-ink">
+             Your screening
+           </h3>
+           <p className="mt-2 text-[10px] leading-4 text-muted">
+             Approximate ticket price based on IMDb rating and runtime.
+           </p>
+           <div className="my-5 flex gap-3 border-b border-border pb-5">
             <img
               src={ticketMovie.poster}
               alt=""

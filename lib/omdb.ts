@@ -50,6 +50,15 @@ function formatRuntime(value?: string) {
   return value && value !== "N/A" ? value : "Runtime unavailable";
 }
 
+function estimateTicketPrice(movie: OmdbMovie) {
+  const rating = Number.parseFloat(movie.imdbRating ?? "");
+  const runtime = Number.parseInt(movie.Runtime ?? "", 10);
+  const ratingPremium = Number.isFinite(rating) ? (rating >= 8.5 ? 4 : rating >= 7 ? 2 : 0) : 0;
+  const runtimePremium = Number.isFinite(runtime) ? (runtime >= 150 ? 4 : runtime >= 120 ? 2 : 0) : 0;
+
+  return 12 + ratingPremium + runtimePremium;
+}
+
 function mapMovie(movie: OmdbMovie, index: number): Movie | null {
   if (movie.Response !== "True" || !movie.imdbID || !movie.Title) return null;
 
@@ -73,8 +82,8 @@ function mapMovie(movie: OmdbMovie, index: number): Movie | null {
     showtimes: ["10:30 AM", "1:45 PM", "7:30 PM"],
     genres: genres.length ? genres : ["Film"],
     release: formatRelease(movie),
-    // OMDb does not expose cinema ticket pricing; keep the app's local baseline until a ticket API is connected.
-    price: 14 + Math.min(index, 4) * 2,
+    // OMDb has no ticket-price field, so estimate from its live IMDb rating and runtime metadata.
+    price: estimateTicketPrice(movie),
   };
 }
 
