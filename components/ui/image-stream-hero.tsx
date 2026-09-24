@@ -120,17 +120,21 @@ export function ImageStreamHero({
           {[right, left].map((name) =>
             Array.from({ length: cards }, (_, i) => {
               const img = images[i % Math.max(images.length, 1)];
+              const dragEnabled = Boolean(onCardDrop && img);
               const selectable = name === left && Boolean(onCardSelect);
               return (
                 <div
                   key={`${name}-${i}`}
                   className={cn(
                     card,
-                    "pointer-events-auto absolute flex cursor-grab flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl active:cursor-grabbing",
+                    "pointer-events-auto absolute flex flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl",
+                    dragEnabled && "cursor-grab active:cursor-grabbing",
                     draggingSrc === img?.src && "ring-2 ring-amber ring-offset-2 ring-offset-canvas",
                     selectable && selectedSrc === img?.src && "ring-2 ring-cobalt ring-offset-2 ring-offset-canvas",
                   )}
-                  draggable={Boolean(onCardDrop)}
+                  draggable={dragEnabled}
+                  data-drag-enabled={dragEnabled ? "true" : undefined}
+                  aria-grabbed={draggingSrc === img?.src ? true : undefined}
                   role={selectable ? "button" : undefined}
                   tabIndex={selectable ? 0 : undefined}
                   aria-label={
@@ -151,7 +155,7 @@ export function ImageStreamHero({
                     onCardSelect?.(img);
                   }}
                   onDragStart={(event) => {
-                    if (!onCardDrop || !img) return;
+                    if (!dragEnabled || !onCardDrop || !img) return;
                     event.dataTransfer.effectAllowed = "move";
                     event.dataTransfer.setData("text/plain", img.src);
                     setDraggingSrc(img.src);
