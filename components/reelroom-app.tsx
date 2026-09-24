@@ -44,14 +44,12 @@ type Movie = {
   release: string;
 };
 type Song = {
-  id?: string;
   title: string;
   artist: string;
   movie: string;
   duration: string;
   art: string;
   genre: string;
-  lastFmUrl?: string;
 };
 
 const art = [
@@ -163,6 +161,15 @@ const fallbackSoundtrackColors = [
   "rgba(72, 91, 105, .34)",
   "rgba(104, 68, 55, .36)",
   "rgba(63, 77, 105, .38)",
+];
+
+const soundtrackSongs: Song[] = [
+  { title: "Asteria", artist: "Mina Sol", movie: "The Last Light", duration: "3:42", art: art[0], genre: "Ambient" },
+  { title: "Blue Static", artist: "Kite Theory", movie: "Neon Aftercare", duration: "4:08", art: art[1], genre: "Electronic" },
+  { title: "Weather Report", artist: "June Atlas", movie: "Rooms With Weather", duration: "3:16", art: art[2], genre: "Indie" },
+  { title: "Bloom Signal", artist: "Onda/Null", movie: "Static Bloom", duration: "5:02", art: art[3], genre: "Experimental" },
+  { title: "Salt Lines", artist: "Mara Voss", movie: "Oceans Between Us", duration: "2:58", art: art[4], genre: "Cinematic" },
+  { title: "Carrier Wave", artist: "Nico Vale", movie: "The Quiet Frequency", duration: "3:33", art: art[5], genre: "Synth" },
 ];
 
 const wheelItems: WorksWheelItem[] = [
@@ -498,9 +505,6 @@ export function ReelroomApp() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [songSearchOpen, setSongSearchOpen] = useState(false);
   const [songSearch, setSongSearch] = useState("");
-  const [lastFmSongs, setLastFmSongs] = useState<Song[]>([]);
-  const [lastFmLoading, setLastFmLoading] = useState(false);
-  const [lastFmError, setLastFmError] = useState<string | null>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -509,7 +513,6 @@ export function ReelroomApp() {
   const preferencesRef = useRef<HTMLElement>(null);
   const songSearchRef = useRef<HTMLInputElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
-  const soundtrackSongs = lastFmSongs;
 
   useEffect(() => {
     if (!droppedMovie || detailsShownAt === null) return;
@@ -564,32 +567,6 @@ export function ReelroomApp() {
       // Preferences remain usable when storage is blocked.
     }
   }, [bookingUpdates, preferencesReady, releaseAlerts]);
-
-  const loadLastFmSongs = () => {
-    setLastFmLoading(true);
-    setLastFmError(null);
-
-    return fetch("/api/lastfm/tracks", { cache: "no-store" })
-      .then(async (response) => {
-        const payload = (await response.json()) as { songs?: Song[]; error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "Last.fm request failed.");
-        return payload.songs ?? [];
-      })
-      .then((remoteSongs) => {
-        setLastFmSongs(remoteSongs);
-        return remoteSongs;
-      })
-      .catch((error: unknown) => {
-        setLastFmSongs([]);
-        setLastFmError(error instanceof Error ? error.message : "Last.fm is unavailable.");
-        return [];
-      })
-      .finally(() => setLastFmLoading(false));
-  };
-
-  useEffect(() => {
-    void loadLastFmSongs();
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -646,7 +623,7 @@ export function ReelroomApp() {
     return () => {
       cancelled = true;
     };
-  }, [lastFmSongs]);
+  }, []);
 
   useEffect(() => {
     document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
@@ -1221,24 +1198,10 @@ export function ReelroomApp() {
                 {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
               </span>
               <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
-                {lastFmLoading
-                  ? "Syncing Last.fm"
-                  : lastFmError
-                    ? "Last.fm unavailable"
-                    : lastFmSongs.length
-                      ? "Live Last.fm catalog"
-                      : "Waiting for Last.fm"}
+                Curated Reelscape catalog
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void loadLastFmSongs()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface/70 px-3.5 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2 transition duration-300 hover:-translate-y-px hover:border-amber/60 hover:text-ink"
-              >
-                <Music2 className="size-3.5 text-amber" />
-                {lastFmLoading ? "Syncing FM" : lastFmSongs.length ? "FM connected" : "Connect FM"}
-              </button>
               <div
                 className="reelroom-song-search"
                 data-open={songSearchOpen}
@@ -1313,7 +1276,7 @@ export function ReelroomApp() {
         <div className="grid gap-4 lg:grid-cols-2">
           {filteredSongs.map((song, index) => (
             <article
-              key={song.id ?? song.title}
+              key={song.title}
               className="reelroom-track-card group relative isolate min-h-56 overflow-hidden rounded-[2rem] border border-white/[.12] p-5 shadow-cinematic sm:p-6"
             >
               <div
@@ -1351,15 +1314,10 @@ export function ReelroomApp() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (song.lastFmUrl) {
-                        window.open(song.lastFmUrl, "_blank", "noopener,noreferrer");
-                        announce(`Opening ${song.title} on Last.fm.`);
-                        return;
-                      }
                       setPlaying(playing === song.title ? null : song.title);
                     }}
                     className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/70 bg-amber text-canvas shadow-[0_8px_24px_rgba(0,0,0,.2)] transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:text-canvas"
-                    aria-label={song.lastFmUrl ? `Open ${song.title} on Last.fm` : `${playing === song.title ? "Pause" : "Play"} ${song.title}`}
+                    aria-label={`${playing === song.title ? "Pause" : "Play"} ${song.title}`}
                   >
                     {playing === song.title ? (
                       <span className="text-sm">Ⅱ</span>
@@ -2039,7 +1997,7 @@ export function ReelroomApp() {
                   </div>
                 )) : (
                 <p className="text-xs leading-5 text-muted">
-                  Live Last.fm tracks will appear here when available.
+            No tracks match this filter.
                 </p>
               )}
             </div>
