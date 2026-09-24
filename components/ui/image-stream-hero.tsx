@@ -68,6 +68,8 @@ export type ImageStreamHeroProps = {
   axis?: number;
   path?: CorridorPath;
   onCardDrop?: (image: StreamImage) => void;
+  onCardSelect?: (image: StreamImage) => void;
+  selectedSrc?: string;
   children?: React.ReactNode;
   className?: string;
 };
@@ -79,6 +81,8 @@ export function ImageStreamHero({
   axis = 55,
   path,
   onCardDrop,
+  onCardSelect,
+  selectedSrc,
   children,
   className,
   ...props
@@ -116,6 +120,7 @@ export function ImageStreamHero({
           {[right, left].map((name) =>
             Array.from({ length: cards }, (_, i) => {
               const img = images[i % Math.max(images.length, 1)];
+              const selectable = name === left && Boolean(onCardSelect);
               return (
                 <div
                   key={`${name}-${i}`}
@@ -123,9 +128,28 @@ export function ImageStreamHero({
                     card,
                     "pointer-events-auto absolute flex cursor-grab flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl active:cursor-grabbing",
                     draggingSrc === img?.src && "ring-2 ring-amber ring-offset-2 ring-offset-canvas",
+                    selectable && selectedSrc === img?.src && "ring-2 ring-cobalt ring-offset-2 ring-offset-canvas",
                   )}
                   draggable={Boolean(onCardDrop)}
-                  aria-label={img?.label ? `Drag ${img.label} to inspect` : undefined}
+                  role={selectable ? "button" : undefined}
+                  tabIndex={selectable ? 0 : undefined}
+                  aria-label={
+                    img?.label
+                      ? selectable
+                        ? `Select ${img.label}`
+                        : onCardDrop
+                          ? `Drag ${img.label} to inspect`
+                          : undefined
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (selectable && img) onCardSelect?.(img);
+                  }}
+                  onKeyDown={(event) => {
+                    if (!selectable || !img || (event.key !== "Enter" && event.key !== " ")) return;
+                    event.preventDefault();
+                    onCardSelect?.(img);
+                  }}
                   onDragStart={(event) => {
                     if (!onCardDrop || !img) return;
                     event.dataTransfer.effectAllowed = "move";
