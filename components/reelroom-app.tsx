@@ -25,6 +25,7 @@ import {
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
+import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
 
 type Movie = {
@@ -1461,115 +1462,118 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="space-y-7">
-      <SectionTitle
-        eyebrow="Profile / your signal"
-        title="Keep your place"
-        copy="Your saved films, tickets, and notification rhythm in one quiet corner."
-      />
-      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-surface p-6 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-4">
-          <div className="grid size-14 place-items-center rounded-full bg-amber font-display text-xl font-bold text-canvas">
-            AK
+    <div className="reelroom-profile-page relative isolate min-h-[calc(100vh-5rem)] overflow-hidden rounded-2xl border border-border px-4 py-6 sm:px-8 sm:py-8">
+      <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
+      <div className="relative z-10 space-y-7">
+        <SectionTitle
+          eyebrow="Profile / your signal"
+          title="Keep your place"
+          copy="Your saved films, tickets, and notification rhythm in one quiet corner."
+        />
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-6 backdrop-blur-md sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <div className="grid size-14 place-items-center rounded-full bg-amber font-display text-xl font-bold text-canvas">
+              AK
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
+                Alex Kim
+              </h2>
+              <p className="mt-1 text-xs text-muted">
+                New York · Member since 2024
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
-              Alex Kim
-            </h2>
-            <p className="mt-1 text-xs text-muted">
-              New York · Member since 2024
-            </p>
-          </div>
+          <Button
+            variant="ghost"
+            onClick={() => announce("Preferences are ready to manage.")}
+          >
+            Manage preferences
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          onClick={() => announce("Preferences are ready to manage.")}
-        >
-          Manage preferences
-        </Button>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-border bg-surface p-5">
-          <SectionTitle
-            eyebrow="Saved for later"
-            title="Favorites"
-            action={
-              <span className="font-mono text-[10px] text-muted">
-                {favorites.length} total
-              </span>
-            }
-          />
-          {movies
-            .filter((item) => favorites.includes(item.id))
-            .map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 border-b border-border py-3 last:border-0"
-              >
-                <img
-                  src={item.poster}
-                  alt=""
-                  className="size-11 rounded-md object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <strong className="block truncate font-display text-xs text-ink">
-                    {item.title}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
+            <SectionTitle
+              eyebrow="Saved for later"
+              title="Favorites"
+              action={
+                <span className="font-mono text-[10px] text-muted">
+                  {favorites.length} total
+                </span>
+              }
+            />
+            {movies
+              .filter((item) => favorites.includes(item.id))
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 border-b border-border py-3 last:border-0"
+                >
+                  <img
+                    src={item.poster}
+                    alt=""
+                    className="size-11 rounded-md object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate font-display text-xs text-ink">
+                      {item.title}
+                    </strong>
+                    <span className="mt-1 block truncate text-[10px] text-muted">
+                      {item.meta}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSelected(item)}
+                    className="font-mono text-[10px] text-amber"
+                  >
+                    Open
+                  </button>
+                </div>
+              ))}
+          </section>
+          <section className="rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
+            <SectionTitle eyebrow="Preferences" title="Your signal" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <div>
+                  <strong className="block font-display text-xs text-ink">
+                    Release alerts
                   </strong>
-                  <span className="mt-1 block truncate text-[10px] text-muted">
-                    {item.meta}
+                  <span className="mt-1 block text-[10px] text-muted">
+                    Upcoming films you saved
                   </span>
                 </div>
-                <button
-                  onClick={() => setSelected(item)}
-                  className="font-mono text-[10px] text-amber"
-                >
-                  Open
-                </button>
-              </div>
-            ))}
-        </section>
-        <section className="rounded-2xl border border-border bg-surface p-5">
-          <SectionTitle eyebrow="Preferences" title="Your signal" />
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div>
-                <strong className="block font-display text-xs text-ink">
-                  Release alerts
-                </strong>
-                <span className="mt-1 block text-[10px] text-muted">
-                  Upcoming films you saved
+                <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
+                  ON
                 </span>
               </div>
-              <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
-                ON
-              </span>
-            </div>
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div>
-                <strong className="block font-display text-xs text-ink">
-                  Booking updates
-                </strong>
-                <span className="mt-1 block text-[10px] text-muted">
-                  Changes, reminders, and tickets
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <div>
+                  <strong className="block font-display text-xs text-ink">
+                    Booking updates
+                  </strong>
+                  <span className="mt-1 block text-[10px] text-muted">
+                    Changes, reminders, and tickets
+                  </span>
+                </div>
+                <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
+                  ON
                 </span>
               </div>
-              <span className="rounded-full bg-cobalt px-2 py-1 font-mono text-[9px] text-ink">
-                ON
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <strong className="block font-display text-xs text-ink">
-                  Preferred city
-                </strong>
-                <span className="mt-1 block text-[10px] text-muted">
-                  New York
-                </span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <strong className="block font-display text-xs text-ink">
+                    Preferred city
+                  </strong>
+                  <span className="mt-1 block text-[10px] text-muted">
+                    New York
+                  </span>
+                </div>
+                <MapPin className="size-4 text-amber" />
               </div>
-              <MapPin className="size-4 text-amber" />
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );
