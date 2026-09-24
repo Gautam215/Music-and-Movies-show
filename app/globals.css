@@ -220,6 +220,34 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-seat-map-viewport::-webkit-scrollbar-track { background: transparent; }
 .reelroom-seat-map-viewport::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--border-strong)); }
 
+.reelroom-soundtrack-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.reelroom-soundtrack-page::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -10rem -8rem;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 2%, var(--soundtrack-glow-one), transparent 34%),
+    radial-gradient(circle at 92% 16%, var(--soundtrack-glow-two), transparent 32%),
+    radial-gradient(circle at 52% 64%, var(--soundtrack-glow-three), transparent 38%);
+  filter: blur(56px) saturate(1.08);
+  opacity: .9;
+}
+
+.reelroom-soundtrack-page::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -2rem 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, hsl(var(--canvas) / .28), hsl(var(--canvas) / .82) 56%, hsl(var(--canvas)) 100%);
+}
+
 .reelroom-screen {
   position: relative;
   padding-top: .7rem;
