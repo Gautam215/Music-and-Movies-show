@@ -237,6 +237,13 @@ body:has(.reelroom-app[data-background="black-hole"]) .reelroom-featured-screeni
   box-shadow: 0 24px 70px hsl(220 20% 2% / .58), inset 0 1px hsl(var(--ink) / .1);
 }
 .reelroom-movies-page { width: 100%; min-width: 0; }
+.reelroom-stream-top,
+.reelroom-stream-details {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.reelroom-stream-top::-webkit-scrollbar,
+.reelroom-stream-details::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .reelroom-stream-top { box-sizing: border-box; max-width: none; }
 .reelroom-stream-details { max-height: 100%; overflow: auto; }
 .reelroom-stream-dropzone { box-sizing: border-box; border-left: 0; border-right: 0; }
