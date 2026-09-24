@@ -1466,7 +1466,7 @@ export function ReelroomApp() {
   const profilePage = (
     <div className="reelroom-profile-page relative isolate m-0 min-h-screen w-screen overflow-hidden border-y border-border p-0">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
-      <div className="relative z-10 space-y-7 px-4 py-5 sm:px-6 sm:py-7 lg:px-10">
+      <div className="relative z-10">
         <SectionTitle
           eyebrow="Profile / your signal"
           title="Keep your place"
