@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
   ArrowRight,
+  Armchair,
   Bell,
   Bookmark,
   Check,
@@ -1277,41 +1278,44 @@ export function ReelroomApp() {
               ))}
             </div>
           </div>
-          <div className="mt-8">
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div className="reelroom-seat-map-section mt-8 rounded-2xl border border-border bg-surface-2/45 p-4 sm:p-5">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-                  Seat map
-                </div>
-                <h3 className="mt-1 font-display text-lg font-semibold tracking-[-.04em] text-ink">
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-ink-2">
+                  Seat map · Screen 04
+                </span>
+                <h3 className="mt-1 font-display text-xl font-semibold tracking-[-.04em] text-ink">
                   Choose your view
                 </h3>
+                <p className="mt-1 text-xs text-ink-2">
+                  Pick an open seat. You can change it before checkout.
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3 font-mono text-[9px] text-muted">
+              <div className="flex flex-wrap items-center gap-3 rounded-full border border-border bg-surface/70 px-3 py-2 font-mono text-[9px] text-ink-2">
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-sm border border-emerald-300 bg-emerald-400/30" />
+                  <span className="size-2 rounded-full border border-white/30 bg-white/10" />
                   Available
                 </span>
                 <span className="flex items-center gap-1.5 text-amber">
-                  <span className="size-2.5 rounded-sm border border-amber-200 bg-amber-300" />
+                  <span className="size-2 rounded-full border border-amber/70 bg-amber/50" />
                   Selected
                 </span>
-                <span className="flex items-center gap-1.5 text-rose-200">
-                  <span className="size-2.5 rounded-sm border border-rose-400 bg-rose-500/50" />
+                <span className="flex items-center gap-1.5 text-muted">
+                  <span className="size-2 rounded-full border border-white/10 bg-white/5" />
                   Taken
                 </span>
               </div>
             </div>
-            <div className="mx-auto mb-6 mt-7 max-w-sm border-t-2 border-border-strong pt-2 text-center font-mono text-[9px] tracking-[.2em] text-muted">
+            <div className="reelroom-screen mx-auto mb-5 mt-6 max-w-sm text-center font-mono text-[9px] tracking-[.24em] text-ink-2">
               SCREEN
             </div>
-            <div className="mx-auto mb-3 flex w-full max-w-xl items-center justify-between gap-3 rounded-xl border border-cobalt/50 bg-cobalt/10 p-3 shadow-[0_0_24px_rgba(76,111,255,.16)]">
+            <div className="mx-auto mb-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-xl border border-border bg-surface/65 p-3">
               <div>
-                <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-cobalt">
+                <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-ink-2">
                   Map zoom
                 </span>
-                <span className="mt-1 block text-[11px] text-ink-2">
-                  Adjust your view on smaller screens
+                <span className="mt-1 block text-[11px] text-muted">
+                  Adjust the map view
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -1319,38 +1323,36 @@ export function ReelroomApp() {
                   type="button"
                   onClick={() => setSeatZoom((current) => Math.max(0.85, current - 0.15))}
                   disabled={seatZoom <= 0.85}
-                  className="grid size-9 place-items-center rounded-lg border border-cobalt/60 bg-surface-2 text-lg font-semibold text-ink transition hover:border-cobalt hover:bg-cobalt/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="grid size-8 place-items-center rounded-full border border-border bg-surface-2 text-sm text-ink transition duration-300 hover:-translate-y-px hover:border-ink-2 hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
                   aria-label="Zoom out seat map"
                 >
                   −
                 </button>
-                <span className="w-12 text-center font-mono text-xs font-semibold text-amber">
+                <span className="w-12 text-center font-mono text-[10px] text-ink-2">
                   {Math.round(seatZoom * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setSeatZoom((current) => Math.min(1.6, current + 0.15))}
                   disabled={seatZoom >= 1.6}
-                  className="grid size-9 place-items-center rounded-lg border border-cobalt/60 bg-surface-2 text-lg font-semibold text-ink transition hover:border-cobalt hover:bg-cobalt/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="grid size-8 place-items-center rounded-full border border-border bg-surface-2 text-sm text-ink transition duration-300 hover:-translate-y-px hover:border-ink-2 hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
                   aria-label="Zoom in seat map"
                 >
                   +
                 </button>
               </div>
             </div>
-            <div className="reelroom-seat-map-viewport mx-auto w-full max-w-xl overflow-x-auto rounded-xl border border-border bg-canvas/25 p-3 sm:p-4">
+            <div className="reelroom-seat-map-viewport mx-auto w-full max-w-xl overflow-x-auto rounded-2xl border border-border bg-canvas/45 p-3 sm:p-5">
               <div
-                className="reelroom-seat-map mx-auto grid gap-2"
+                className="reelroom-seat-map mx-auto grid min-w-[19rem] gap-2.5"
                 style={{ width: `${seatZoom * 100}%` }}
               >
                 {["A", "B", "C", "D", "E"].map((row) => (
                   <div
                     key={row}
-                    className="grid grid-cols-[16px_repeat(8,minmax(0,1fr))_16px] items-center gap-1.5"
+                    className="reelroom-seat-row grid grid-cols-[18px_repeat(8,minmax(0,1fr))_18px] items-center gap-1.5"
                   >
-                    <span className="text-center font-mono text-[9px] text-muted">
-                      {row}
-                    </span>
+                    <span className="text-center font-mono text-[9px] text-muted">{row}</span>
                     {Array.from({ length: 8 }, (_, index) => {
                       const seat = `${row}${index + 1}`;
                       const isOccupied = occupied.has(seat);
@@ -1358,7 +1360,9 @@ export function ReelroomApp() {
                       return (
                         <button
                           key={seat}
+                          type="button"
                           disabled={isOccupied}
+                          aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`}
                           onClick={() =>
                             setSelectedSeats((current) =>
                               isSelected
@@ -1367,30 +1371,28 @@ export function ReelroomApp() {
                             )
                           }
                           className={cn(
-                            "aspect-square rounded-md border text-[9px] font-semibold transition hover:-translate-y-px",
+                            "reelroom-seat group/seat aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
                             isOccupied &&
-                              "cursor-not-allowed border-rose-400/70 bg-rose-500/50 text-rose-100 opacity-80",
+                              "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60",
                             isSelected &&
-                              "border-amber-100 bg-amber-300 font-bold text-[#111318] shadow-[0_0_14px_rgba(251,191,36,.45)] hover:shadow-[0_0_24px_rgba(251,191,36,.9)]",
+                              "border-amber/75 bg-amber/15 text-amber shadow-[0_8px_22px_rgba(217,200,255,.12)] hover:bg-amber/20",
                             !isOccupied &&
                               !isSelected &&
-                              "border-emerald-300/80 bg-emerald-400/25 text-emerald-100 hover:border-emerald-200 hover:bg-emerald-400/45 hover:shadow-[0_0_22px_rgba(52,211,153,.75)]",
+                              "border-white/15 bg-white/[.035] text-ink-2 hover:border-white/35 hover:bg-white/[.1] hover:text-ink hover:shadow-[0_10px_22px_rgba(0,0,0,.22)]",
                           )}
                         >
-                          {index + 1}
+                          <Armchair className="mx-auto size-4 transition-transform duration-300 group-hover/seat:scale-110" aria-hidden="true" />
+                          <span className="sr-only">{seat}</span>
                         </button>
                       );
                     })}
-                    <span className="text-center font-mono text-[9px] text-muted">
-                      {row}
-                    </span>
+                    <span className="text-center font-mono text-[9px] text-muted">{row}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="mx-auto mt-6 flex max-w-md items-center gap-2 rounded-lg border border-amber/20 bg-amber/10 p-3 font-mono text-[10px] text-amber">
-              <Clock3 className="size-3.5" /> Seats are held for 08:42 after
-              selection.
+            <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-full border border-border bg-surface/65 px-4 py-2.5 font-mono text-[10px] text-ink-2">
+              <Clock3 className="size-3.5 text-amber" /> Seats are held for 08:42 after selection.
             </div>
           </div>
         </div>

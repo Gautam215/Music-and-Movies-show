@@ -210,6 +210,38 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   background-attachment: fixed;
 }
 
+.reelroom-seat-map-viewport {
+  background-image: radial-gradient(circle at 50% 0%, hsl(var(--ink) / .055), transparent 48%);
+  scrollbar-color: hsl(var(--border-strong)) transparent;
+  scrollbar-width: thin;
+}
+
+.reelroom-seat-map-viewport::-webkit-scrollbar { height: 6px; }
+.reelroom-seat-map-viewport::-webkit-scrollbar-track { background: transparent; }
+.reelroom-seat-map-viewport::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--border-strong)); }
+
+.reelroom-screen {
+  position: relative;
+  padding-top: .7rem;
+  border-top: 1px solid hsl(var(--ink) / .26);
+  box-shadow: 0 -10px 30px hsl(var(--ink) / .035);
+}
+
+.reelroom-screen::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: hsl(var(--ink) / .45);
+  box-shadow: 0 0 18px hsl(var(--ink) / .2);
+}
+
+.reelroom-seat { box-shadow: inset 0 1px hsl(var(--ink) / .035); }
+.reelroom-seat:not(:disabled):hover { box-shadow: 0 10px 24px hsl(var(--canvas) / .24), inset 0 1px hsl(var(--ink) / .08); }
+.reelroom-seat:disabled { filter: saturate(.45); }
+
 .reelroom-skip-link {
   position: fixed;
   top: .75rem;
