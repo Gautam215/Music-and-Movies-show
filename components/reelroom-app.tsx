@@ -1359,7 +1359,7 @@ export function ReelroomApp() {
                             isOccupied &&
                               "cursor-not-allowed border-rose-400/70 bg-rose-500/50 text-rose-100 opacity-80",
                             isSelected &&
-                              "border-amber-200 bg-amber-300 text-canvas shadow-[0_0_14px_rgba(251,191,36,.45)] hover:shadow-[0_0_24px_rgba(251,191,36,.9)]",
+                              "border-amber-100 bg-amber-300 font-bold text-[#111318] shadow-[0_0_14px_rgba(251,191,36,.45)] hover:shadow-[0_0_24px_rgba(251,191,36,.9)]",
                             !isOccupied &&
                               !isSelected &&
                               "border-emerald-300/80 bg-emerald-400/25 text-emerald-100 hover:border-emerald-200 hover:bg-emerald-400/45 hover:shadow-[0_0_22px_rgba(52,211,153,.75)]",
@@ -1456,32 +1456,6 @@ export function ReelroomApp() {
           </p>
           </aside>
         ) : null}
-      </div>
-      <div className="fixed inset-x-3 bottom-3 z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-amber/40 bg-surface/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,.55)] backdrop-blur-xl sm:inset-x-6 sm:p-4">
-        <div className="min-w-0" aria-live="polite">
-          <span className="block font-mono text-[9px] uppercase tracking-[.14em] text-amber">
-            Confirmation
-          </span>
-          <strong className="mt-1 block truncate font-display text-sm text-ink sm:text-base">
-            {selectedSeats.length
-              ? `${selectedSeats.length} seat${selectedSeats.length === 1 ? "" : "s"} selected`
-              : "Choose your seats"}
-          </strong>
-          <span className="mt-0.5 block truncate font-mono text-[10px] text-muted">
-            {selectedSeats.length
-              ? `${selectedSeats.join(", ")} · ₹${(selectedSeats.length * 16 + 4.8).toFixed(2)}`
-              : "Your selection will appear here"}
-          </span>
-        </div>
-        <Button
-          variant="primary"
-          disabled={!selectedSeats.length}
-          onClick={() => setBooking(true)}
-          className="shrink-0 px-3 sm:px-5"
-        >
-          {selectedSeats.length ? "Continue" : "Select seats"}
-          <ArrowRight className="size-4" />
-        </Button>
       </div>
     </div>
   );
