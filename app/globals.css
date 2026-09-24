@@ -328,6 +328,14 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   background: linear-gradient(135deg, hsl(var(--surface-2) / .55), hsl(var(--canvas) / .72));
 }
 
+.reelroom-soundtrack-eyebrow { color: hsl(var(--ink-2) / .82); }
+
+.reelroom-soundtrack-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -.075em;
+}
+
 @media (max-width: 639px) {
   .reelroom-song-search[data-open="true"] { width: min(15rem, calc(100vw - 7.5rem)); }
 }
