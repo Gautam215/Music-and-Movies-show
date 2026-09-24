@@ -11,7 +11,7 @@ export default async function Page() {
   ]);
   const fallbackMovies = omdbMovies ?? (await getTrendingMovies());
   const initialMovies = upcomingMovies?.length
-    ? [...(omdbMovies?.slice(0, 1) ?? []), ...upcomingMovies, ...(omdbMovies?.slice(1) ?? [])]
+    ? [...(omdbMovies?.slice(0, 1) ?? []), ...upcomingMovies]
     : fallbackMovies;
   return <ReelroomApp initialMovies={initialMovies ?? undefined} />;
 }
