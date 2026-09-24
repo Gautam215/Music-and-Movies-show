@@ -1473,7 +1473,7 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate w-full max-w-full border-y border-border">
+    <div className="reelroom-profile-page relative isolate w-full max-w-full overflow-x-clip border-y border-border">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
       <div className="relative z-10 min-w-0 max-w-full space-y-5">
         <SectionTitle

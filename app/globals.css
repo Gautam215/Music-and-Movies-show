@@ -200,6 +200,10 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   height: auto;
   min-height: 100vh;
   overflow: visible;
+  overflow-x: clip;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
