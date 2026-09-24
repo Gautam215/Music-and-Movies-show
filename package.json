@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.0",
-    "@convex-dev/auth": "^0.0.90",
+    "@convex-dev/auth": "^0.0.95",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.26.2",
     "lucide-react": "^0.468.0",
-    "next": "^15.5.0",
+    "next": "^16.3.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwind-merge": "^2.6.0"
