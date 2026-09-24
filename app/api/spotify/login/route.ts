@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const authorizeUrl = new URL("https://accounts.spotify.com/authorize");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("response_type", "code");
+  authorizeUrl.searchParams.set("state", state);
   authorizeUrl.searchParams.set("redirect_uri", getSpotifyRedirectUri(request));
   authorizeUrl.searchParams.set(
     "scope",
