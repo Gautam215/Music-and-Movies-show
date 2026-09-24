@@ -1462,7 +1462,7 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate min-h-[calc(100vh-5rem)] overflow-hidden rounded-2xl border border-border px-4 py-6 sm:px-8 sm:py-8">
+    <div className="reelroom-profile-page relative isolate min-h-[calc(100vh-5rem)] overflow-hidden rounded-2xl border border-border py-6 sm:py-8">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
       <div className="relative z-10 space-y-7">
         <SectionTitle
@@ -1470,17 +1470,17 @@ export function ReelroomApp() {
           title="Keep your place"
           copy="Your saved films, tickets, and notification rhythm in one quiet corner."
         />
-        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-6 backdrop-blur-md sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-6 backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="grid size-14 place-items-center rounded-full bg-amber font-display text-xl font-bold text-canvas">
-              AK
+              AG
             </div>
             <div>
               <h2 className="font-display text-2xl font-semibold tracking-[-.05em] text-ink">
-                Alex Kim
+                Abhishek Kumar Gautam
               </h2>
               <p className="mt-1 text-xs text-muted">
-                New York · Member since 2024
+                Greater Noida · Member since 2021
               </p>
             </div>
           </div>
@@ -1531,7 +1531,7 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
+          <section className="h-fit self-start rounded-2xl border border-border bg-surface/75 p-5 backdrop-blur-md">
             <SectionTitle eyebrow="Preferences" title="Your signal" />
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-border pb-4">
@@ -1566,7 +1566,7 @@ export function ReelroomApp() {
                     Preferred city
                   </strong>
                   <span className="mt-1 block text-[10px] text-muted">
-                    New York
+                    Greater Noida
                   </span>
                 </div>
                 <MapPin className="size-4 text-amber" />
