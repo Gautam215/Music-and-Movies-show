@@ -1464,9 +1464,9 @@ export function ReelroomApp() {
   );
 
   const profilePage = (
-    <div className="reelroom-profile-page relative isolate m-0 min-h-screen w-screen overflow-hidden border-y border-border p-0">
+    <div className="reelroom-profile-page relative isolate m-0 h-fit min-h-0 w-screen overflow-hidden border-y border-border p-0">
       <HolographicBeams density={15} speed={1.5} aberration={3} opacity={90} />
-      <div className="relative z-10">
+      <div className="relative z-10 space-y-5">
         <SectionTitle
           eyebrow="Profile / your signal"
           title="Keep your place"
@@ -1497,7 +1497,7 @@ export function ReelroomApp() {
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-[fit-content(28rem)_fit-content(28rem)] lg:justify-start">
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-0 backdrop-blur-md">
+          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle
               compact
               eyebrow="Saved for later"
@@ -1537,7 +1537,7 @@ export function ReelroomApp() {
                 </div>
               ))}
           </section>
-          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-0 backdrop-blur-md">
+          <section className="h-fit w-fit max-w-full self-start rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
             <SectionTitle compact eyebrow="Preferences" title="Your signal" />
             <div className="space-y-2">
               <div className="flex items-center justify-between border-b border-border pb-2">
