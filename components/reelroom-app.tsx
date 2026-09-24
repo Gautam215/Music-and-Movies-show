@@ -743,7 +743,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       <section>
         <SectionTitle
           eyebrow="Selected for you"
-          title="The current reel"
+           title="Top upcoming releases"
           action={
             <button
               onClick={() => setPage("movies")}
