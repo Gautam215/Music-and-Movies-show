@@ -62,9 +62,9 @@ const art = [
 ];
 
 const spotifyPlaylists = [
-  "https://open.spotify.com/embed/playlist/0KRdp3sXbFN99A12uhNCDS9?utm_source=generator",
-  "https://open.spotify.com/embed/playlist/0r3TxbYIVZvuwpLE8ZwNO?utm_source=generator",
-  "https://open.spotify.com/embed/playlist/1KjJvqCCXE18hxDiv4Yf-?utm_source=generator",
+  "https://open.spotify.com/embed/playlist/1kjJvVqCCXel8ihxDiVv4y?utm_source=generator&theme=0&si=3ad7c49eb7d64ad5",
+  "https://open.spotify.com/embed/playlist/0r3TxwbYiTVzuwpLE8zwNO?utm_source=generator&si=b214bbe4331d4855",
+  "https://open.spotify.com/embed/playlist/74JccVBpma2koOG0TCbFcf?utm_source=generator&si=51196e94b8964b14",
 ];
 
 const movies: Movie[] = [
