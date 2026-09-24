@@ -242,6 +242,96 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-seat:not(:disabled):hover { box-shadow: 0 10px 24px hsl(var(--canvas) / .24), inset 0 1px hsl(var(--ink) / .08); }
 .reelroom-seat:disabled { filter: saturate(.45); }
 
+.reelroom-song-search {
+  display: flex;
+  align-items: center;
+  width: 2.75rem;
+  max-width: 100%;
+  height: 2.75rem;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .78), hsl(var(--surface) / .5));
+  box-shadow: inset 0 1px hsl(var(--ink) / .07), 0 10px 28px hsl(var(--canvas) / .16);
+  backdrop-filter: blur(18px) saturate(1.25);
+  transition: width 560ms cubic-bezier(.16, 1.35, .3, 1), border-color 280ms ease, box-shadow 280ms ease;
+}
+
+.reelroom-song-search[data-open="true"],
+.reelroom-song-search:focus-within {
+  border-color: hsl(var(--amber) / .62);
+  box-shadow: inset 0 1px hsl(var(--ink) / .1), 0 14px 34px hsl(var(--canvas) / .22);
+}
+
+.reelroom-song-search[data-open="true"] { width: min(18rem, calc(100vw - 2rem)); }
+
+.reelroom-song-search-button {
+  display: grid;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: hsl(var(--ink-2));
+  transition: color 280ms ease, transform 560ms cubic-bezier(.16, 1.35, .3, 1);
+}
+
+.reelroom-song-search-button:hover { color: hsl(var(--ink)); transform: scale(1.06); }
+
+.reelroom-song-search-input {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  opacity: 0;
+  background: transparent;
+  color: hsl(var(--ink));
+  font-size: .75rem;
+  transition: width 460ms cubic-bezier(.16, 1.35, .3, 1), opacity 220ms ease 90ms, padding 460ms cubic-bezier(.16, 1.35, .3, 1);
+}
+
+.reelroom-song-search-input::placeholder { color: hsl(var(--muted)); }
+.reelroom-song-search[data-open="true"] .reelroom-song-search-input { width: 100%; padding: 0 .9rem 0 .15rem; opacity: 1; }
+
+.reelroom-track-card {
+  isolation: isolate;
+  background: linear-gradient(145deg, hsl(var(--surface-2) / .68), hsl(var(--surface) / .42));
+  box-shadow: 0 24px 70px hsl(var(--canvas) / .25), inset 0 1px hsl(var(--ink) / .09);
+  backdrop-filter: blur(22px) saturate(1.25);
+  transition: transform 560ms cubic-bezier(.16, 1.35, .3, 1), border-color 320ms ease, box-shadow 320ms ease;
+}
+
+.reelroom-track-card:hover {
+  transform: translateY(-6px);
+  border-color: hsl(var(--ink) / .28);
+  box-shadow: 0 32px 80px hsl(var(--canvas) / .36), inset 0 1px hsl(var(--ink) / .14);
+}
+
+.reelroom-track-card-art {
+  position: absolute;
+  z-index: -2;
+  inset: -14%;
+  background-position: center;
+  background-size: cover;
+  filter: blur(34px) saturate(.72);
+  opacity: .24;
+  transform: scale(1.1);
+  transition: opacity 700ms ease, transform 700ms cubic-bezier(.16, 1.2, .3, 1);
+}
+
+.reelroom-track-card:hover .reelroom-track-card-art { opacity: .34; transform: scale(1.16); }
+
+.reelroom-track-card-wash {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(135deg, hsl(var(--surface-2) / .55), hsl(var(--canvas) / .72));
+}
+
+@media (max-width: 639px) {
+  .reelroom-song-search[data-open="true"] { width: min(15rem, calc(100vw - 7.5rem)); }
+}
+
 .reelroom-skip-link {
   position: fixed;
   top: .75rem;
