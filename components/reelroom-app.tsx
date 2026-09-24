@@ -39,7 +39,6 @@ type Movie = {
   poster: string;
   backdrop: string;
   synopsis: string;
-  songs: string[];
   showtimes: string[];
   genres: string[];
   release: string;
@@ -52,8 +51,7 @@ type Song = {
   duration: string;
   art: string;
   genre: string;
-  spotifyUrl?: string;
-  previewUrl?: string | null;
+  lastFmUrl?: string;
 };
 
 const art = [
@@ -76,7 +74,6 @@ const movies: Movie[] = [
     backdrop: art[0],
     synopsis:
       "In a city that forgets its nights, one projectionist keeps the final reel alive long enough for a missing daughter to find her way home.",
-    songs: ["Asteria", "Liminal Hours"],
     showtimes: ["10:15 AM", "1:40 PM", "4:25 PM", "8:10 PM"],
     genres: ["Drama", "Mystery"],
     release: "Now playing",
@@ -91,7 +88,6 @@ const movies: Movie[] = [
     backdrop: art[1],
     synopsis:
       "A night-shift medic discovers the city’s predictive system has started prescribing memories instead of medicine.",
-    songs: ["Blue Static", "Soft Reset"],
     showtimes: ["11:20 AM", "3:05 PM", "7:30 PM"],
     genres: ["Sci-Fi", "Thriller"],
     release: "Now playing",
@@ -106,7 +102,6 @@ const movies: Movie[] = [
     backdrop: art[2],
     synopsis:
       "Two architects build a house that changes climate every time they tell the truth.",
-    songs: ["Weather Report", "Half-lit"],
     showtimes: ["12:10 PM", "5:00 PM", "9:20 PM"],
     genres: ["Romance", "Indie"],
     release: "Oct 18, 2026",
@@ -121,7 +116,6 @@ const movies: Movie[] = [
     backdrop: art[3],
     synopsis:
       "A portrait of underground musicians composing a city-wide symphony from broken machines.",
-    songs: ["Bloom Signal", "Copper Sky"],
     showtimes: ["2:20 PM", "6:45 PM"],
     genres: ["Documentary"],
     release: "Oct 24, 2026",
@@ -136,7 +130,6 @@ const movies: Movie[] = [
     backdrop: art[4],
     synopsis:
       "Three siblings cross an unfamiliar coast to return a reel of home movies before the tide erases the road.",
-    songs: ["Salt Lines", "Northbound"],
     showtimes: ["9:45 AM", "12:55 PM", "6:15 PM"],
     genres: ["Adventure", "Drama"],
     release: "Oct 31, 2026",
@@ -151,61 +144,9 @@ const movies: Movie[] = [
     backdrop: art[5],
     synopsis:
       "A radio producer hears tomorrow’s emergency broadcasts one night early — and recognizes her own voice.",
-    songs: ["Carrier Wave", "Signal Loss"],
     showtimes: ["4:00 PM", "9:05 PM"],
     genres: ["Thriller", "Mystery"],
     release: "Nov 07, 2026",
-  },
-];
-
-const songs: Song[] = [
-  {
-    title: "Asteria",
-    artist: "Mina Sol",
-    movie: "The Last Light",
-    duration: "3:42",
-    art: art[0],
-    genre: "Ambient",
-  },
-  {
-    title: "Blue Static",
-    artist: "Kite Theory",
-    movie: "Neon Aftercare",
-    duration: "4:08",
-    art: art[1],
-    genre: "Electronic",
-  },
-  {
-    title: "Weather Report",
-    artist: "June Atlas",
-    movie: "Rooms With Weather",
-    duration: "3:16",
-    art: art[2],
-    genre: "Indie",
-  },
-  {
-    title: "Bloom Signal",
-    artist: "Onda/Null",
-    movie: "Static Bloom",
-    duration: "5:02",
-    art: art[3],
-    genre: "Experimental",
-  },
-  {
-    title: "Salt Lines",
-    artist: "Mara Voss",
-    movie: "Oceans Between Us",
-    duration: "2:58",
-    art: art[4],
-    genre: "Cinematic",
-  },
-  {
-    title: "Carrier Wave",
-    artist: "Nico Vale",
-    movie: "The Quiet Frequency",
-    duration: "3:33",
-    art: art[5],
-    genre: "Synth",
   },
 ];
 
@@ -551,11 +492,9 @@ export function ReelroomApp() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [songSearchOpen, setSongSearchOpen] = useState(false);
   const [songSearch, setSongSearch] = useState("");
-  const [spotifySongs, setSpotifySongs] = useState<Song[]>([]);
-  const [spotifyLoading, setSpotifyLoading] = useState(false);
-  const [spotifyError, setSpotifyError] = useState<string | null>(null);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [spotifyDisplayName, setSpotifyDisplayName] = useState<string | null>(null);
+  const [lastFmSongs, setLastFmSongs] = useState<Song[]>([]);
+  const [lastFmLoading, setLastFmLoading] = useState(false);
+  const [lastFmError, setLastFmError] = useState<string | null>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -564,7 +503,7 @@ export function ReelroomApp() {
   const preferencesRef = useRef<HTMLElement>(null);
   const songSearchRef = useRef<HTMLInputElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
-  const soundtrackSongs = spotifySongs.length ? spotifySongs : songs;
+  const soundtrackSongs = lastFmSongs;
 
   useEffect(() => {
     if (!droppedMovie || detailsShownAt === null) return;
@@ -620,65 +559,31 @@ export function ReelroomApp() {
     }
   }, [bookingUpdates, preferencesReady, releaseAlerts]);
 
-  useEffect(() => {
-    if (page !== "songs" || spotifySongs.length) return;
-    let cancelled = false;
-    setSpotifyLoading(true);
-    setSpotifyError(null);
+  const loadLastFmSongs = () => {
+    setLastFmLoading(true);
+    setLastFmError(null);
 
-    fetch("/api/spotify/tracks")
+    return fetch("/api/lastfm/tracks", { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json()) as { songs?: Song[]; error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "Spotify request failed.");
+        if (!response.ok) throw new Error(payload.error ?? "Last.fm request failed.");
         return payload.songs ?? [];
       })
       .then((remoteSongs) => {
-        if (!cancelled) setSpotifySongs(remoteSongs);
+        setLastFmSongs(remoteSongs);
+        return remoteSongs;
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setSpotifyError(error instanceof Error ? error.message : "Spotify is unavailable.");
-        }
+        setLastFmSongs([]);
+        setLastFmError(error instanceof Error ? error.message : "Last.fm is unavailable.");
+        return [];
       })
-      .finally(() => {
-        if (!cancelled) setSpotifyLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page, spotifySongs.length]);
+      .finally(() => setLastFmLoading(false));
+  };
 
   useEffect(() => {
-    if (page !== "songs") return;
-    let cancelled = false;
-    const authStatus = new URLSearchParams(window.location.search).get("spotify");
-    if (authStatus) {
-      setNotice(
-        authStatus === "connected"
-          ? "Spotify connected securely."
-          : "Spotify connection could not be completed.",
-      );
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.searchParams.delete("spotify");
-      window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-    }
-
-    fetch("/api/spotify/session", { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ connected?: boolean; displayName?: string }>)
-      .then((session) => {
-        if (cancelled) return;
-        setSpotifyConnected(session.connected === true);
-        setSpotifyDisplayName(session.displayName ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setSpotifyConnected(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page]);
+    void loadLastFmSongs();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -735,7 +640,7 @@ export function ReelroomApp() {
     return () => {
       cancelled = true;
     };
-  }, [spotifySongs]);
+  }, [lastFmSongs]);
 
   useEffect(() => {
     document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
@@ -916,7 +821,7 @@ export function ReelroomApp() {
             }
           />
           <div className="space-y-2">
-            {songs.slice(0, 3).map((song) => (
+            {soundtrackSongs.slice(0, 3).map((song) => (
               <div
                 key={song.title}
                 className="flex items-center gap-2 border-b border-border pb-2 last:border-0"
@@ -1073,7 +978,7 @@ export function ReelroomApp() {
             }
           />
           <div className="space-y-2">
-            {songs.slice(0, 3).map((song) => (
+            {soundtrackSongs.slice(0, 3).map((song) => (
               <div
                 key={song.title}
                 className="flex items-center gap-2 border-b border-border pb-2 last:border-0"
@@ -1283,7 +1188,11 @@ export function ReelroomApp() {
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
         <div
           className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
-          style={{ backgroundImage: `url("${soundtrackSongs[0].art}")` }}
+          style={{
+            backgroundImage: soundtrackSongs[0]?.art
+              ? `url("${soundtrackSongs[0].art}")`
+              : undefined,
+          }}
           aria-hidden="true"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-white/[.06] via-transparent to-canvas/60" />
@@ -1306,26 +1215,23 @@ export function ReelroomApp() {
                 {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
               </span>
               <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
-                {spotifyLoading
-                  ? "Syncing Spotify"
-                  : spotifyError
-                    ? "Curated fallback"
-                    : spotifySongs.length
-                      ? "Live Spotify catalog"
-                      : "Curated selection"}
+                {lastFmLoading
+                  ? "Syncing Last.fm"
+                  : lastFmError
+                    ? "Last.fm unavailable"
+                    : lastFmSongs.length
+                      ? "Live Last.fm catalog"
+                      : "Waiting for Last.fm"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  window.location.href = "/api/spotify/login";
-                }}
+                onClick={() => void loadLastFmSongs()}
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface/70 px-3.5 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2 transition duration-300 hover:-translate-y-px hover:border-amber/60 hover:text-ink"
               >
                 <Music2 className="size-3.5 text-amber" />
-                {spotifyConnected ? "Spotify connected" : "Connect FM"}
-                {spotifyDisplayName ? <span className="sr-only">as {spotifyDisplayName}</span> : null}
+                {lastFmLoading ? "Syncing FM" : lastFmSongs.length ? "FM connected" : "Connect FM"}
               </button>
               <div
                 className="reelroom-song-search"
@@ -1403,15 +1309,15 @@ export function ReelroomApp() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (song.spotifyUrl) {
-                        window.open(song.spotifyUrl, "_blank", "noopener,noreferrer");
-                        announce(`Opening ${song.title} in Spotify.`);
+                      if (song.lastFmUrl) {
+                        window.open(song.lastFmUrl, "_blank", "noopener,noreferrer");
+                        announce(`Opening ${song.title} on Last.fm.`);
                         return;
                       }
                       setPlaying(playing === song.title ? null : song.title);
                     }}
                     className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/70 bg-amber text-canvas shadow-[0_8px_24px_rgba(0,0,0,.2)] transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:text-canvas"
-                    aria-label={song.spotifyUrl ? `Open ${song.title} in Spotify` : `${playing === song.title ? "Pause" : "Play"} ${song.title}`}
+                    aria-label={song.lastFmUrl ? `Open ${song.title} on Last.fm` : `${playing === song.title ? "Pause" : "Play"} ${song.title}`}
                   >
                     {playing === song.title ? (
                       <span className="text-sm">Ⅱ</span>
@@ -1978,6 +1884,7 @@ export function ReelroomApp() {
     login: loginPage,
     admin: adminPage,
   }[page];
+  const selectedSoundtrack = selected ? soundtrackSongs.slice(0, 2) : [];
   const detailModal = selected ? (
     <div
       className="fixed inset-0 z-40 grid place-items-center bg-canvas/80 p-4 backdrop-blur-md"
@@ -2057,9 +1964,7 @@ export function ReelroomApp() {
               Original soundtrack
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {songs
-                .filter((song) => selected.songs.includes(song.title))
-                .map((song) => (
+              {selectedSoundtrack.length ? selectedSoundtrack.map((song) => (
                   <div
                     key={song.title}
                     className="flex items-center gap-3 rounded-lg border border-border bg-surface-2 p-2"
@@ -2090,7 +1995,11 @@ export function ReelroomApp() {
                       )}
                     </button>
                   </div>
-                ))}
+                )) : (
+                <p className="text-xs leading-5 text-muted">
+                  Live Last.fm tracks will appear here when available.
+                </p>
+              )}
             </div>
           </div>
         </div>
