@@ -417,19 +417,19 @@ function PosterCard({
 
 function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie) => void }) {
   return (
-    <article className="group reelroom-featured-screening grid w-full overflow-hidden rounded-2xl border border-border bg-surface md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)]">
-      <div className="relative min-h-[22rem] overflow-hidden md:min-h-[31rem]">
+    <article className="group reelroom-featured-screening grid w-full overflow-hidden rounded-2xl border border-border bg-surface md:grid-cols-[minmax(0,1.28fr)_minmax(12rem,.72fr)]">
+      <div className="relative min-h-[22rem] overflow-hidden md:order-2 md:min-h-[31rem]">
         <img
           src={item.poster}
           alt={`${item.title} poster`}
           className="size-full object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-surface" />
+        <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent md:bg-gradient-to-l md:from-transparent md:via-transparent md:to-surface" />
         <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
           TMDB / {item.status}
         </span>
       </div>
-      <div className="flex flex-col justify-center p-5 sm:p-7 md:p-10">
+      <div className="flex flex-col justify-center p-5 sm:p-7 md:order-1 md:p-10">
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           Highly anticipated / next on the reel
         </div>
@@ -715,8 +715,14 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     try {
       const savedReleaseAlerts = window.localStorage.getItem("reelroom.releaseAlerts");
       const savedBookingUpdates = window.localStorage.getItem("reelroom.bookingUpdates");
-      if (savedReleaseAlerts !== null) setReleaseAlerts(savedReleaseAlerts === "true");
-      if (savedBookingUpdates !== null) setBookingUpdates(savedBookingUpdates === "true");
+      if (savedReleaseAlerts !== null) {
+        // Local storage is an external source, so hydrate these preferences after mount.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setReleaseAlerts(savedReleaseAlerts === "true");
+      }
+      if (savedBookingUpdates !== null) {
+        setBookingUpdates(savedBookingUpdates === "true");
+      }
     } catch {
       // Defaults remain available when storage is blocked.
     } finally {
@@ -988,7 +994,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             01 / 06
           </div>
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-            Tonight's note
+            Tonight&apos;s note
           </div>
           <h2 className="mt-2 max-w-sm font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
             The city is still awake.
@@ -1075,7 +1081,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       <section className="reelroom-note-row">
         <div className="relative h-fit self-start overflow-hidden rounded-2xl border border-border bg-surface p-4">
           <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-            Tonight's note
+            Tonight&apos;s note
           </div>
           <h2 className="mt-2 max-w-sm font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
             The city is still awake.
