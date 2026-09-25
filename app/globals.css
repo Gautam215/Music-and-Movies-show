@@ -291,26 +291,49 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   backdrop-filter: blur(24px) saturate(1.45);
   transform: translateX(-50%);
 }
-.reelroom-floating-nav a {
+.reelroom-floating-nav a,
+.reelroom-floating-nav button {
   position: relative;
   min-width: 4.5rem;
   padding: .6rem .8rem .72rem;
   border: 0;
   border-radius: 999px;
+  background: transparent;
   color: rgba(255, 255, 255, .92);
   font-size: .7rem;
   font-weight: 500;
   letter-spacing: .01em;
   text-align: center;
   text-decoration: none;
+  white-space: nowrap;
   transition: background-color 220ms ease, color 220ms ease, transform 220ms ease;
 }
 .reelroom-floating-nav a:hover,
-.reelroom-floating-nav a:focus-visible {
+.reelroom-floating-nav a:focus-visible,
+.reelroom-floating-nav button:hover,
+.reelroom-floating-nav button:focus-visible {
   background: rgba(255, 255, 255, .1);
   color: rgba(255, 255, 255, .96);
   transform: translateY(-1px);
 }
+.reelroom-floating-notifications {
+  position: absolute;
+  top: calc(100% + .7rem);
+  right: 0;
+  display: grid;
+  min-width: 14rem;
+  gap: .35rem;
+  padding: .8rem 1rem;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: .85rem;
+  background: rgba(20, 23, 29, .9);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, .28);
+  color: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(18px) saturate(1.35);
+  font-size: .65rem;
+  text-align: left;
+}
+.reelroom-floating-notifications span { color: rgba(255, 255, 255, .56); }
 .reelroom-floating-nav a[data-active="true"] {
   color: #fff;
 }
@@ -334,11 +357,14 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   .reelroom-floating-nav {
     width: calc(100% - 1.5rem);
     justify-content: space-between;
+    gap: 0;
   }
-  .reelroom-floating-nav a {
+  .reelroom-floating-nav a,
+  .reelroom-floating-nav button {
     min-width: 0;
     flex: 1;
-    padding-inline: .45rem;
+    padding-inline: .2rem;
+    font-size: .58rem;
   }
 }
 .reelroom-app header > .ml-auto { display: none !important; }
