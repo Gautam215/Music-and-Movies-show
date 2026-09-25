@@ -32,7 +32,7 @@ export async function GET() {
 
   const response = NextResponse.json(
     { accessToken, expiresIn: refreshedToken?.expires_in ?? 3600 },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: { "Cache-Control": "private, no-store" } },
   );
 
   if (refreshedToken?.access_token) {

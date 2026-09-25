@@ -650,6 +650,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         setSpotifyStatus("Preparing player");
         setSpotifyError(null);
       } else {
+        setSpotifyStatus("Connect Spotify");
         setSpotifyError("Spotify connection was not completed.");
       }
     };
@@ -667,7 +668,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         name: "Reelscape Web Player",
         volume: 0.72,
         getOAuthToken: (callback) => {
-          fetch("/api/spotify/token", { cache: "no-store" })
+          fetch("/api/spotify/token", { cache: "no-store", credentials: "same-origin" })
             .then(async (response) => {
               const payload = (await response.json()) as { accessToken?: string };
               if (!response.ok || !payload.accessToken) throw new Error("Spotify session expired");
