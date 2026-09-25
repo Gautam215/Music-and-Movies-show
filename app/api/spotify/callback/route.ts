@@ -39,8 +39,9 @@ function redirectToSongs(request: Request, status: string, popupMode: boolean) {
     ? "Returning to Reelscape..."
     : "This window will stay open so you can review the error and try again.";
   const closeScript = connected ? "window.setTimeout(() => window.close(), 80);" : "";
+  const fallbackScript = connected ? `window.location.replace(${safeDestination});` : "";
   const response = new NextResponse(
-    `<!doctype html><html><head><meta charset="utf-8"><title>${heading}</title></head><body><p>${copy}</p><script>const message=${message};if(window.opener&&!window.opener.closed){window.opener.postMessage(message,${safeOrigin});${closeScript}}else{window.location.replace(${safeDestination});}</script></body></html>`,
+    `<!doctype html><html><head><meta charset="utf-8"><title>${heading}</title></head><body><p>${copy}</p><script>const message=${message};if("BroadcastChannel" in window){const channel=new BroadcastChannel("reelroom-spotify-auth");channel.postMessage(message);channel.close();}if(window.opener&&!window.opener.closed){window.opener.postMessage(message,${safeOrigin});${closeScript}}else{${fallbackScript}}</script></body></html>`,
     { headers: { "Cache-Control": "no-store", "Content-Type": "text/html; charset=utf-8" } },
   );
   return clearOAuthCookies(response);
