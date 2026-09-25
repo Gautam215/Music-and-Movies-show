@@ -15,3 +15,8 @@ export type Movie = {
   production?: string;
   actors?: string[];
 };
+
+export type MovieUpdateFeeds = {
+  trending: Movie[];
+  comingSoon: Movie[];
+};

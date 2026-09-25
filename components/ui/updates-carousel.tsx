@@ -4,19 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { ArrowUpRight, Clock3, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Movie } from "@/lib/movie-types";
+import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const radians = (degrees: number) => (degrees * Math.PI) / 180;
 
 export function UpdatesCarousel({
-  movies,
+  moviesByCategory,
   onOpen,
 }: {
-  movies: Movie[];
+  moviesByCategory: MovieUpdateFeeds;
   onOpen: (movie: Movie) => void;
 }) {
-  const visibleMovies = movies.slice(0, 9);
+  const [category, setCategory] = useState<keyof MovieUpdateFeeds>("trending");
+  const visibleMovies = moviesByCategory[category].slice(0, 9);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const rotation = useRef(0);
@@ -61,9 +62,9 @@ export function UpdatesCarousel({
       previous = now;
       if (!reducedMotion) rotation.current = (rotation.current + elapsed * 0.006) % 360;
 
-      const cardWidth = clamp(Math.min(stage.width * 0.19, stage.height * 0.25), 94, 174);
-      const radiusX = Math.max(74, Math.min(stage.width * 0.35, 330));
-      const radiusY = Math.max(72, Math.min(stage.height * 0.31, 220));
+      const cardWidth = clamp(Math.min(stage.width * 0.22, stage.height * 0.28), 108, 236);
+      const radiusX = Math.max(86, Math.min(stage.width * 0.37, 430));
+      const radiusY = Math.max(82, Math.min(stage.height * 0.34, 310));
       const step = 360 / count;
 
       visibleMovies.forEach((movie, index) => {
@@ -111,8 +112,30 @@ export function UpdatesCarousel({
         <span className="updates-wave updates-wave-three" />
       </div>
       <div className="updates-carousel-header">
-        <span>Updates / trending now</span>
-        <span className="updates-carousel-counter">09 titles / live rotation</span>
+        <div>
+          <span>Updates / TMDB daily feed</span>
+          <div className="updates-carousel-categories" role="tablist" aria-label="Movie update categories">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={category === "trending"}
+              className={cn(category === "trending" && "updates-carousel-category-active")}
+              onClick={() => setCategory("trending")}
+            >
+              Trending Now
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={category === "comingSoon"}
+              className={cn(category === "comingSoon" && "updates-carousel-category-active")}
+              onClick={() => setCategory("comingSoon")}
+            >
+              Coming Soon
+            </button>
+          </div>
+        </div>
+        <span className="updates-carousel-counter">0{visibleMovies.length} titles / refreshed daily</span>
       </div>
       <div className="updates-carousel-layout">
         <div

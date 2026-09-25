@@ -1,4 +1,5 @@
-import type { Movie } from "@/lib/movie-types";
+import { unstable_cache } from "next/cache";
+import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
 
 const TMDB_ENDPOINT = "https://api.themoviedb.org/3/trending/movie/week";
 const TMDB_UPCOMING_ENDPOINT = "https://api.themoviedb.org/3/discover/movie";
@@ -112,7 +113,7 @@ export async function getTrendingMovies(): Promise<Movie[] | null> {
     });
     if (!response.ok) return null;
     const data = (await response.json()) as TmdbResponse;
-    const results = data.results?.slice(0, 7) ?? [];
+    const results = data.results?.slice(0, 9) ?? [];
     return results.length ? results.map((movie, index) => mapMovie(movie, index)) : null;
   } catch {
     return null;
@@ -348,7 +349,7 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
           (b.popularity ?? 0) - (a.popularity ?? 0) ||
           releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date),
       )
-      .slice(0, 7);
+      .slice(0, 9);
 
     return results.length
       ? results.map((movie, index) => mapMovie(movie, index, "upcoming"))
@@ -356,4 +357,25 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
   } catch {
     return null;
   }
+}
+
+const getDailyMovieUpdatesCached = unstable_cache(
+  async (): Promise<MovieUpdateFeeds | null> => {
+    const [trending, comingSoon] = await Promise.all([
+      getTrendingMovies(),
+      getUpcomingMovies(),
+    ]);
+
+    if (!trending?.length && !comingSoon?.length) return null;
+    return {
+      trending: trending ?? [],
+      comingSoon: comingSoon ?? [],
+    };
+  },
+  ["reelscape-daily-movie-updates"],
+  { revalidate: 86_400, tags: ["reelscape-daily-movie-updates"] },
+);
+
+export async function getDailyMovieUpdates() {
+  return getDailyMovieUpdatesCached();
 }

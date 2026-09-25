@@ -38,7 +38,7 @@ import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
-import type { Movie } from "@/lib/movie-types";
+import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
 
 type Song = {
   id?: string;
@@ -670,7 +670,13 @@ function pageFromLocation(): NavId {
   return nav.some(([id]) => id === candidate) ? (candidate as NavId) : "home";
 }
 
-export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
+export function ReelroomApp({
+  initialMovies,
+  dailyUpdates,
+}: {
+  initialMovies?: Movie[];
+  dailyUpdates?: MovieUpdateFeeds;
+}) {
   const catalog = initialMovies?.length ? initialMovies : movies;
   const heroCandidates = catalog.filter((item) => item.status === "UPCOMING");
   const [heroIndex, setHeroIndex] = useState(0);
@@ -1441,7 +1447,12 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const shelfMovies = Array.from(
     new Map([...catalog, ...movies].map((movie) => [movie.id, movie])).values(),
   ).slice(0, 10);
-  const updatesMovies = shelfMovies.slice(0, 9);
+  const updatesMoviesByCategory: MovieUpdateFeeds = {
+    trending: dailyUpdates?.trending.length ? dailyUpdates.trending : shelfMovies.slice(0, 9),
+    comingSoon: dailyUpdates?.comingSoon.length
+      ? dailyUpdates.comingSoon
+      : [...catalog.filter((item) => item.status === "UPCOMING"), ...movies.filter((item) => item.status === "UPCOMING")].slice(0, 9),
+  };
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
@@ -1641,7 +1652,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
 
   const updatesWithWheel = (
     <div className="w-full">
-      <UpdatesCarousel movies={updatesMovies} onOpen={setSelected} />
+      <UpdatesCarousel moviesByCategory={updatesMoviesByCategory} onOpen={setSelected} />
     </div>
   );
   const loginPage = (
