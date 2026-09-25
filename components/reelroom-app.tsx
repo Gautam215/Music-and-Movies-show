@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Armchair,
   Bell,
-  Bookmark,
   Check,
   Clock3,
   Disc3,
@@ -455,175 +454,84 @@ function FeaturedScreening({
 
 function CurrentReelSection({
   activeMovie,
-  categories,
-  category,
   city,
   shelfMovies,
-  savedIds,
   onActivate,
-  onBook,
-  onCategoryChange,
   onOpen,
-  onSave,
   onViewAll,
 }: {
   activeMovie: Movie;
-  categories: string[];
-  category: string;
   city: string;
   shelfMovies: Movie[];
-  savedIds: string[];
   onActivate: (movie: Movie) => void;
-  onBook: (movie: Movie) => void;
-  onCategoryChange: (category: string) => void;
   onOpen: (movie: Movie) => void;
-  onSave: (id: string) => void;
   onViewAll: () => void;
 }) {
-  const saved = savedIds.includes(activeMovie.id);
-
   return (
-    <section className="space-y-4" aria-live="polite">
-      <div className="flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
-            For you / {city}
-          </span>
-          <h2 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-4xl">
-            The current reel
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="shrink-0 font-mono text-[10px] text-amber"
-        >
-          View all films ↗
-        </button>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Film categories">
-        {categories.map((option) => (
+    <section
+      className="relative isolate overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6"
+      aria-live="polite"
+    >
+      <img
+        key={activeMovie.id}
+        src={activeMovie.backdrop}
+        alt=""
+        aria-hidden="true"
+        className="reelroom-reel-backdrop pointer-events-none absolute inset-[-4rem] size-[calc(100%+8rem)] object-cover opacity-20"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,11,18,.78),rgba(8,11,18,.96))]" />
+      <div className="relative z-10 space-y-5">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+              Current reel / {city}
+            </span>
+            <h2 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-4xl">
+              The current reel
+            </h2>
+          </div>
           <button
-            key={option}
             type="button"
-            onClick={() => onCategoryChange(option)}
-            className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.12em] transition",
-              category === option
-                ? "border-amber/60 bg-amber text-canvas"
-                : "border-border bg-surface/70 text-muted hover:border-border-strong hover:text-ink",
-            )}
+            onClick={onViewAll}
+            className="shrink-0 font-mono text-[10px] text-amber"
           >
-            {option}
+            View all films ↗
           </button>
-        ))}
-      </div>
-      <article className="relative isolate min-h-[34rem] overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-cinematic">
-        <img
-          key={activeMovie.id}
-          src={activeMovie.backdrop}
-          alt=""
-          aria-hidden="true"
-          className="reelroom-reel-backdrop absolute inset-[-2rem] size-[calc(100%+4rem)] object-cover"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,11,18,.96),rgba(8,11,18,.64)_48%,rgba(8,11,18,.15)),linear-gradient(180deg,rgba(8,11,18,.15),rgba(8,11,18,.98))]" />
-        <div className="relative z-10 flex min-h-[34rem] flex-col justify-between p-5 sm:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <span className="rounded-full border border-amber/50 bg-canvas/35 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.14em] text-amber backdrop-blur-md">
-              Featured Spotlight
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[.14em] text-ink-2">
-              {activeMovie.status === "UPCOMING" ? "Upcoming" : "Now playing"}
-            </span>
-          </div>
-          <div className="grid items-end gap-6 md:grid-cols-[13rem_minmax(0,1fr)]">
-            <button
-              type="button"
-              onClick={() => onOpen(activeMovie)}
-              onMouseEnter={() => onActivate(activeMovie)}
-              className="group/spotlight w-36 text-left md:w-full"
-              aria-label={`Open ${activeMovie.title} details`}
-            >
-              <img
-                src={activeMovie.poster}
-                alt={`${activeMovie.title} poster`}
-                className="aspect-[2/2.8] w-full rounded-xl object-cover shadow-2xl ring-1 ring-white/15 transition duration-700 group-hover/spotlight:scale-[1.03]"
-              />
-            </button>
-            <div className="max-w-2xl">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
-                <span>{activeMovie.release}</span>
-                <span className="text-amber">•</span>
-                <span>{activeMovie.rating === "—" ? "Not rated" : `★ ${activeMovie.rating}`}</span>
-                <span className="text-amber">•</span>
-                <span>{activeMovie.meta}</span>
-              </div>
-              <h3 className="mt-3 max-w-2xl font-display text-4xl font-semibold leading-[.92] tracking-[-.08em] text-ink sm:text-5xl md:text-6xl">
-                {activeMovie.title}
-              </h3>
-              <p className="mt-5 max-w-xl text-sm leading-6 text-ink-2">
-                {activeMovie.synopsis}
-              </p>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Button variant="primary" onClick={() => onBook(activeMovie)}>
-                  Book tickets <ArrowRight className="size-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => onSave(activeMovie.id)}
-                  className="border-white/20 bg-white/10 text-ink hover:bg-white/15"
-                >
-                  <Bookmark className={cn("size-4", saved && "fill-amber text-amber")} />
-                  {saved ? "Saved" : "Save film"}
-                </Button>
-                <Button variant="ghost" onClick={() => onOpen(activeMovie)}>
-                  Details <ArrowRight className="size-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
-      </article>
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2" aria-label="More films">
-        {shelfMovies.map((item) => {
-          const isActive = item.id === activeMovie.id;
-          return (
+        <div className="reelroom-movie-grid" aria-label="Current films">
+          {shelfMovies.map((item, index) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onOpen(item)}
               onMouseEnter={() => onActivate(item)}
               onFocus={() => onActivate(item)}
+              style={{ "--reelroom-float-delay": `${(index % 6) * -0.35}s` } as CSSProperties}
               className={cn(
-                "group min-w-[9.5rem] max-w-[9.5rem] shrink-0 text-left",
-                isActive && "-translate-y-0.5",
+                "reelroom-movie-card group text-left",
+                item.id === activeMovie.id && "reelroom-movie-card-active",
               )}
             >
-              <div
-                className={cn(
-                  "relative aspect-[2/2.8] overflow-hidden rounded-xl border bg-surface",
-                  isActive ? "border-amber/70 shadow-[0_10px_30px_rgba(0,0,0,.28)]" : "border-border",
-                )}
-              >
+              <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl border border-border bg-surface-2 shadow-[0_16px_34px_rgba(0,0,0,.2)] transition duration-500 group-hover:border-amber/60 group-hover:shadow-[0_24px_48px_rgba(0,0,0,.34)]">
                 <img
                   src={item.poster}
                   alt={`${item.title} poster`}
-                  className="size-full object-cover transition duration-500 group-hover:scale-105"
+                  className="size-full object-cover transition duration-700 group-hover:scale-110"
                 />
-                <span className="absolute inset-x-2 bottom-2 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
+                <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent opacity-80" />
+                <span className="absolute inset-x-3 bottom-3 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
                   {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
                 </span>
               </div>
-              <strong className="mt-2 block truncate font-display text-xs font-semibold text-ink">
+              <strong className="mt-3 block truncate font-display text-sm font-semibold text-ink">
                 {item.title}
               </strong>
-              <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-[.06em] text-muted">
+              <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
                 {item.release} · {item.rating === "—" ? "NR" : `★ ${item.rating}`}
               </span>
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
       <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 sm:p-6">
         <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-cobalt/10 to-transparent" />
         <div className="relative z-10 max-w-2xl">
@@ -644,6 +552,7 @@ function CurrentReelSection({
             Open film details <ArrowRight className="size-3.5" />
           </button>
         </div>
+      </div>
       </div>
     </section>
   );
@@ -711,7 +620,6 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
   const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(null);
-  const [reelCategory, setReelCategory] = useState("For you");
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -1470,51 +1378,14 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
 
   const activeReelMovie =
     catalog.find((item) => item.id === activeReelMovieId) ?? heroMovie;
-  const preferenceGenres = Array.from(
-    new Set(
-      catalog
-        .filter((item) => favorites.includes(item.id))
-        .flatMap((item) => item.genres),
-    ),
-  );
-  const reelCategories = Array.from(
-    new Set([
-      "For you",
-      ...preferenceGenres,
-      ...catalog.flatMap((item) => item.genres),
-    ]),
-  ).slice(0, 6);
-  const preferredGenre = preferenceGenres[0] ?? activeReelMovie.genres[0] ?? "Film";
-  const categoryMovies =
-    reelCategory === "For you"
-      ? catalog.filter(
-          (item) =>
-            favorites.includes(item.id) || item.genres.includes(preferredGenre),
-        )
-      : catalog.filter((item) => item.genres.includes(reelCategory));
-  const categoryShelfMovies = (categoryMovies.length ? categoryMovies : catalog).filter(
-    (item) => item.id !== activeReelMovie.id,
-  );
-  const shelfMovies = (categoryShelfMovies.length
-    ? categoryShelfMovies
-    : catalog.filter((item) => item.id !== activeReelMovie.id)
-  ).slice(0, 10);
+  const shelfMovies = catalog.slice(0, 10);
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
-      categories={reelCategories}
-      category={reelCategory}
       city={preferredCity}
       shelfMovies={shelfMovies}
-      savedIds={favorites}
       onActivate={(movie) => setActiveReelMovieId(movie.id)}
-      onBook={(movie) => {
-        setSelected(movie);
-        setPage("tickets");
-      }}
-      onCategoryChange={setReelCategory}
       onOpen={setSelected}
-      onSave={toggleFavorite}
       onViewAll={() => setPage("movies")}
     />
   );

@@ -138,9 +138,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   to { opacity: .72; transform: scale(1); filter: blur(22px) saturate(1.2); }
 }
 
+@keyframes reelroom-card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 .reelroom-more-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: bottom left; }
 .reelroom-header-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: top right; }
 .reelroom-reel-backdrop { animation: reelroom-backdrop-in .72s ease-out both; }
+.reelroom-movie-card { animation: reelroom-card-float 6.8s ease-in-out infinite; animation-delay: var(--reelroom-float-delay, 0s); transition: transform 360ms cubic-bezier(.16, 1.35, .3, 1); }
+.reelroom-movie-card:hover,
+.reelroom-movie-card:focus-visible { animation-play-state: paused; transform: translateY(-8px) scale(1.025); }
+.reelroom-movie-card-active > div:first-child { border-color: hsl(var(--amber) / .68); box-shadow: 0 20px 42px hsl(var(--canvas) / .3), inset 0 1px hsl(var(--ink) / .12); }
 
 /* Liquid-glass treatment is reserved for navigation and floating controls. */
 aside.sticky {
@@ -831,10 +840,19 @@ body:has(.reelroom-app[data-background="black-hole"]) .home-page-content > secti
 .reelroom-movie-selection { width: min(27rem, 31vw); }
 .reelroom-movie-selection-card { max-height: min(70vh, 30rem); overflow: auto; }
 .reelroom-movie-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem .75rem;
+  display: flex;
+  gap: 1rem;
+  margin-inline: -.25rem;
+  overflow-x: auto;
+  padding: .25rem .25rem .85rem;
+  scroll-snap-type: x proximity;
+  scrollbar-color: hsl(var(--border-strong)) transparent;
+  scrollbar-width: thin;
 }
+.reelroom-movie-grid::-webkit-scrollbar { height: 6px; }
+.reelroom-movie-grid::-webkit-scrollbar-track { background: transparent; }
+.reelroom-movie-grid::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--border-strong)); }
+.reelroom-movie-card { flex: 0 0 clamp(10.5rem, 24vw, 13.5rem); scroll-snap-align: start; }
 .reelroom-note-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -842,15 +860,6 @@ body:has(.reelroom-app[data-background="black-hole"]) .home-page-content > secti
 }
 @media (min-width: 1024px) {
   .reelroom-note-row { grid-template-columns: fit-content(28rem) minmax(0, 1fr); }
-}
-@media (min-width: 640px) {
-  .reelroom-movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 1rem; }
-}
-@media (min-width: 1024px) {
-  .reelroom-movie-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (min-width: 1280px) {
-  .reelroom-movie-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 body:has(.reelroom-app[data-background="black-hole"]) .reelroom-header-overflow { z-index: 40; }
 body:has(.reelroom-app[data-background="black-hole"]) .reelroom-arrow-glass {
