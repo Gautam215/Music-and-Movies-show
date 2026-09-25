@@ -1647,53 +1647,53 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
           <div className="flex min-w-0 flex-col gap-5">
             <div className="space-y-5">
-              <div className="flex flex-wrap items-end gap-3">
-                <span className="inline-flex w-fit rounded-full border border-white/15 bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.24em] text-ink-2 backdrop-blur">
-                  listen app
-                </span>
-                <div className="flex flex-wrap gap-3 sm:ml-auto">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={startListening}
-                    className="h-10 rounded-full px-6 text-xs"
-                  >
-                    {activeSong ? (spotifyPaused ? "Start listening" : "Now playing") : "Connect Spotify"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
-                    className="h-10 rounded-full px-6 text-xs hover:bg-white/[.06]"
-                  >
-                    View playlist
-                  </Button>
-                </div>
-              </div>
               <div className="space-y-4">
-                <h1 className="max-w-2xl text-5xl font-semibold leading-[.9] tracking-[-.075em] text-ink sm:text-6xl lg:text-7xl">
+                <span className="reelroom-soundtrack-eyebrow font-mono text-[10px] uppercase tracking-[.26em]">
+                  Listen App / recommendations
+                </span>
+                <h1 className="reelroom-soundtrack-title max-w-2xl text-5xl leading-[.9] text-ink sm:text-6xl lg:text-7xl">
                   Sound that feels like a private concert
                 </h1>
                 <p className="max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg">
                   Recommended tracks for the scene, synced from your {spotifyPlaylistName} playlist and ready for the next frame.
                 </p>
               </div>
-            </div>
 
-            <div className="max-w-xl rounded-3xl border border-white/[.12] bg-black/20 px-4 py-3 backdrop-blur-xl">
-              <div className="flex items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/[.16] bg-white/[.08] text-ink-2">
-                <Headphones className="size-4" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-ink">{spotifyPlaylistName} / recommended</h2>
-                  <p className="mt-0.5 truncate text-xs leading-5 text-ink-2">
-                    {spotifyPlaylistLoading
-                      ? "Syncing the tracks attached to this scene..."
-                      : spotifyConnected
-                        ? `${filteredSongs.length} tracks from Recommended tracks for the scene.`
-                        : "Connect Spotify to load the recommended tracks for this scene."}
-                  </p>
+              <div className="reelroom-recommendation-actions flex flex-wrap gap-2.5">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={startListening}
+                  className="reelroom-listen-button h-11 rounded-full px-5 text-xs"
+                >
+                  <Headphones className="size-3.5" />
+                  Listen app
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
+                  className="reelroom-playlist-button h-11 rounded-full px-5 text-xs"
+                >
+                  View playlist
+                </Button>
+              </div>
+
+              <div className="reelroom-recommendation-card w-fit max-w-full rounded-[1.35rem] border border-white/[.16] px-4 py-3.5 backdrop-blur-2xl sm:px-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/[.14] bg-white/[.08] text-ink-2 shadow-[inset_0_1px_rgba(255,255,255,.12)]">
+                    <Headphones className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold tracking-[-.02em] text-ink">{spotifyPlaylistName} / recommended</h2>
+                    <p className="mt-0.5 max-w-[28rem] text-xs leading-5 text-ink-2">
+                      {spotifyPlaylistLoading
+                        ? "Syncing the tracks attached to this scene..."
+                        : spotifyConnected
+                          ? `${filteredSongs.length} tracks from Recommended tracks for the scene.`
+                          : "Connect Spotify to load the recommended tracks for this scene."}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
