@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   createSpotifyState,
   getSpotifyRedirectUri,
+  SPOTIFY_POPUP_COOKIE,
   SPOTIFY_STATE_COOKIE,
   spotifyCookieOptions,
 } from "@/lib/spotify-auth";
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
   }
 
   const state = createSpotifyState();
+  const popupMode = new URL(request.url).searchParams.get("mode") === "popup";
   const authorizeUrl = new URL("https://accounts.spotify.com/authorize");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("response_type", "code");
@@ -45,5 +47,8 @@ export async function GET(request: Request) {
     state,
     spotifyCookieOptions(10 * 60),
   );
+  if (popupMode) {
+    response.cookies.set(SPOTIFY_POPUP_COOKIE, "1", spotifyCookieOptions(10 * 60));
+  }
   return response;
 }

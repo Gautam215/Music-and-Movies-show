@@ -561,6 +561,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>(soundtrackSongs);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyConnecting, setSpotifyConnecting] = useState(false);
   const [spotifyReady, setSpotifyReady] = useState(false);
   const [spotifyStatus, setSpotifyStatus] = useState("Connect Spotify");
   const [spotifyError, setSpotifyError] = useState<string | null>(null);
@@ -581,6 +582,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const spotifyDeviceIdRef = useRef<string | null>(null);
   const spotifySearchInputRef = useRef<HTMLInputElement>(null);
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
+  const spotifyAuthWindowRef = useRef<Window | null>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -635,6 +637,25 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const onSpotifyAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "reelroom-spotify-auth") return;
+      setSpotifyConnecting(false);
+      spotifyAuthWindowRef.current = null;
+      if (event.data.status === "connected") {
+        setSpotifyConnected(true);
+        setSpotifyStatus("Preparing player");
+        setSpotifyError(null);
+      } else {
+        setSpotifyError("Spotify connection was not completed.");
+      }
+    };
+
+    window.addEventListener("message", onSpotifyAuthMessage);
+    return () => window.removeEventListener("message", onSpotifyAuthMessage);
   }, []);
 
   useEffect(() => {
@@ -923,7 +944,29 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     window.setTimeout(() => setNotice(null), 2400);
   };
   const connectSpotify = () => {
-    window.location.assign("/api/spotify/login");
+    if (spotifyConnecting) return;
+    const authWindow = window.open(
+      "/api/spotify/login?mode=popup",
+      "reelroom-spotify-auth",
+      "popup=yes,width=520,height=720,resizable=yes,scrollbars=yes",
+    );
+    if (!authWindow) {
+      setSpotifyError("Allow pop-ups to connect Spotify without leaving Reelscape.");
+      return;
+    }
+    spotifyAuthWindowRef.current = authWindow;
+    setSpotifyConnecting(true);
+    setSpotifyError(null);
+    setSpotifyStatus("Waiting for Spotify");
+    const closeWatcher = window.setInterval(() => {
+      if (!authWindow.closed) return;
+      window.clearInterval(closeWatcher);
+      if (spotifyAuthWindowRef.current !== authWindow) return;
+      spotifyAuthWindowRef.current = null;
+      setSpotifyConnecting(false);
+      setSpotifyStatus("Connect Spotify");
+      setSpotifyError("Spotify connection was cancelled.");
+    }, 500);
   };
   const searchSpotify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -964,7 +1007,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   };
   const toggleSpotifySong = async (song: Song) => {
     if (!spotifyConnected) {
-      connectSpotify();
+      setSpotifyError("Connect Spotify above to enable in-app playback.");
       return;
     }
     const player = spotifyPlayerRef.current;
@@ -1412,10 +1455,16 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               <button
                 type="button"
                 onClick={spotifyConnected ? undefined : connectSpotify}
-                disabled={spotifyConnected && !spotifyReady}
+                disabled={spotifyConnected ? !spotifyReady : spotifyConnecting}
                 className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
               >
-                {spotifyConnected ? (spotifyReady ? "Spotify connected" : "Connecting...") : "Connect Spotify"}
+                {spotifyConnected
+                  ? spotifyReady
+                    ? "Spotify connected"
+                    : "Connecting..."
+                  : spotifyConnecting
+                    ? "Opening Spotify..."
+                    : "Connect Spotify"}
               </button>
             </div>
           </div>

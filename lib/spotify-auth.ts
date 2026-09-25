@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 export const SPOTIFY_STATE_COOKIE = "spotify_oauth_state";
+export const SPOTIFY_POPUP_COOKIE = "spotify_oauth_popup";
 export const SPOTIFY_ACCESS_COOKIE = "spotify_access_token";
 export const SPOTIFY_REFRESH_COOKIE = "spotify_refresh_token";
 
