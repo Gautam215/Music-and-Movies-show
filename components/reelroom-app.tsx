@@ -690,7 +690,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     soundtrackAbortRef.current = controller;
     setSoundtrackLoading(true);
 
-    fetch(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=2`, {
+    fetch(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=8`, {
       cache: "no-store",
       signal: controller.signal,
     })
