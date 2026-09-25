@@ -28,6 +28,7 @@ import {
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
+import { SpotifyWaveform } from "@/components/ui/spotify-waveform";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
 import type { Movie } from "@/lib/movie-types";
@@ -1461,65 +1462,83 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       className="reelroom-soundtrack-page space-y-8"
       style={soundtrackAtmosphereStyle}
     >
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 px-5 py-10 shadow-cinematic backdrop-blur-xl sm:px-8 sm:py-14">
-          <div
-            className="absolute -right-16 -top-28 size-72 rounded-full bg-cover bg-center opacity-25 blur-3xl"
-            style={{
-            backgroundImage: spotifyCatalog[0]?.art
-              ? `url("${spotifyCatalog[0].art}")`
-              : undefined,
+      <section className="relative min-h-[38rem] overflow-hidden rounded-[2rem] border border-white/[.12] bg-[#070a0f] px-5 py-8 shadow-[0_28px_90px_rgba(0,0,0,.42)] sm:px-8 sm:py-10">
+        <SpotifyWaveform className="absolute inset-0" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(90deg, rgba(7, 10, 15, .98) 0%, rgba(7, 10, 15, .82) 27%, rgba(7, 10, 15, .24) 68%, rgba(7, 10, 15, .48) 100%), linear-gradient(180deg, rgba(7, 10, 15, .18), transparent 38%, rgba(7, 10, 15, .92) 100%)",
           }}
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[.06] via-transparent to-canvas/60" />
-        <div className="relative flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative z-10 flex min-h-[34rem] flex-col justify-between gap-10">
           <div className="max-w-2xl">
             <span className="reelroom-soundtrack-eyebrow font-mono text-[10px] uppercase tracking-[.2em] text-muted">
-              Songs / original motion
+              Songs / live signal
             </span>
             <h1 className="reelroom-soundtrack-title mt-4 max-w-xl text-5xl leading-[.88] text-ink sm:text-7xl">
               The soundtrack
             </h1>
             <p className="mt-6 max-w-lg text-sm leading-6 text-ink-2">
-              Music for the scenes that stay with you. Preview the original
-              score attached to every film in the reel.
+              Music for the scenes that stay with you. Move through the signal,
+              then preview the original score attached to every film in the reel.
             </p>
           </div>
-          <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
-            <div className="text-right">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-end gap-6">
+              <div>
+                <span className="block font-mono text-[9px] uppercase tracking-[.16em] text-muted">
+                  Pointer reactive
+                </span>
+                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[.12em] text-ink-2">
+                  03 / layered frequencies
+                </span>
+              </div>
+              <div>
+                <span className="block font-mono text-[9px] uppercase tracking-[.16em] text-muted">
+                  Listening room
+                </span>
+                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[.12em] text-ink-2">
+                  {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
+                </span>
+              </div>
+            </div>
+            <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
+              <div className="text-right">
               <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-muted">
-                {filteredSongs.length} {filteredSongs.length === 1 ? "track" : "tracks"}
+                Player status
               </span>
               <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
                 {spotifyStatus}
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSpotifySearchOpen((open) => !open)}
-                aria-expanded={spotifySearchOpen}
-                aria-controls="spotify-search-panel"
-                aria-label={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
-                title={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
-                className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 shadow-[0_8px_20px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
-              >
-                {spotifySearchOpen ? <X className="size-4" /> : <Search className="size-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={spotifyConnected ? undefined : connectSpotify}
-                disabled={spotifyConnected ? !spotifyReady : spotifyConnecting}
-                className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
-              >
-                {spotifyConnected
-                  ? spotifyReady
-                    ? "Spotify connected"
-                    : "Connecting..."
-                  : spotifyConnecting
-                    ? "Opening Spotify..."
-                    : "Connect Spotify"}
-              </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSpotifySearchOpen((open) => !open)}
+                  aria-expanded={spotifySearchOpen}
+                  aria-controls="spotify-search-panel"
+                  aria-label={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
+                  title={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
+                  className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 shadow-[0_8px_20px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
+                >
+                  {spotifySearchOpen ? <X className="size-4" /> : <Search className="size-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={spotifyConnected ? undefined : connectSpotify}
+                  disabled={spotifyConnected ? !spotifyReady : spotifyConnecting}
+                  className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
+                >
+                  {spotifyConnected
+                    ? spotifyReady
+                      ? "Spotify connected"
+                      : "Connecting..."
+                    : spotifyConnecting
+                      ? "Opening Spotify..."
+                      : "Connect Spotify"}
+                </button>
+              </div>
             </div>
           </div>
           {spotifyError ? (
