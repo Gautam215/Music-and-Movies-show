@@ -36,7 +36,7 @@ import {
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
-import { SpotifyWaveform } from "@/components/ui/spotify-waveform";
+import { BassEqualizerBorder } from "@/components/ui/bass-equalizer-border";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
 import type { Movie } from "@/lib/movie-types";
@@ -1569,8 +1569,6 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,9,11,.98)_0%,rgba(8,9,11,.86)_36%,rgba(8,9,11,.42)_72%,rgba(8,9,11,.7)_100%),linear-gradient(180deg,rgba(8,9,11,.4),rgba(8,9,11,.94))]"
           aria-hidden="true"
         />
-        <SpotifyWaveform className="absolute inset-0 opacity-35" />
-
         <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
           <div className="flex min-w-0 flex-col gap-5">
             <div className="space-y-5">
@@ -1627,8 +1625,12 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           </div>
 
           <div className="min-w-0 space-y-5">
-            <div className="rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
-              <div className="flex items-start gap-4">
+            <div className="relative rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
+              <BassEqualizerBorder
+                active={Boolean(activeSong && spotifyTrackUri === activeSong.spotifyUri && !spotifyPaused)}
+                audioUrl={activeSong?.previewUrl}
+              />
+              <div className="relative z-10 flex items-start gap-4">
                 <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/[.15] bg-gradient-to-br from-white/35 via-white/10 to-transparent sm:size-24">
                   {activeSong?.art ? (
                     <img src={activeSong.art} alt="" className="size-full object-cover" />
@@ -1669,7 +1671,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-7">
+              <div className="relative z-10 space-y-3 pt-7">
                 <div className="flex items-center justify-between text-xs font-medium tracking-wide text-ink-2">
                   <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
                   <span>{activeSong?.duration ?? "--:--"}</span>
@@ -1679,7 +1681,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-7">
+              <div className="relative z-10 flex items-center justify-between pt-7">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1750,7 +1752,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               </div>
 
               {activeTrackId ? (
-                <div className="mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
+                <div className="relative z-10 mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
                   <iframe
                     className="h-[152px] w-full"
                     src={`https://open.spotify.com/embed/track/${activeTrackId}?utm_source=generator`}
