@@ -252,8 +252,12 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   height: calc(100% + 2px);
   overflow: visible;
   pointer-events: none;
-  opacity: .94;
-  animation: reelroom-neon-breathe 4.8s ease-in-out infinite;
+  opacity: var(--reelroom-neon-opacity, .2);
+  transition: opacity 360ms ease, filter 360ms ease;
+}
+
+.reelroom-neon-perimeter[data-playing="true"] {
+  filter: saturate(1.12) brightness(1.06);
 }
 
 .reelroom-neon-perimeter path {
@@ -265,23 +269,19 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 }
 
 .reelroom-neon-perimeter-glow {
-  stroke-width: 18px;
-  opacity: .36;
+  stroke-width: var(--reelroom-neon-glow-width, 14px);
+  opacity: var(--reelroom-neon-glow-opacity, .06);
   filter: url("#reelroom-neon-halo");
 }
 
 .reelroom-neon-perimeter-line {
   stroke-width: 2.8px;
+  opacity: var(--reelroom-neon-line-opacity, .35);
   filter: url("#reelroom-neon-core");
 }
 
-@keyframes reelroom-neon-breathe {
-  0%, 100% { opacity: .76; }
-  50% { opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .reelroom-neon-perimeter { animation: none; }
+  .reelroom-neon-perimeter { transition: none; filter: none; }
   .reelroom-neon-perimeter animateTransform { display: none; }
 }
 

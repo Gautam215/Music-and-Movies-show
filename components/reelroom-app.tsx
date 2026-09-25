@@ -271,11 +271,25 @@ const wheelItems: WorksWheelItem[] = [
   },
 ];
 
-function NeonPerimeter() {
+function NeonPerimeter({ playing, bassLevel }: { playing: boolean; bassLevel: number }) {
   const path = "M 58 18 C 84 18 89 11 113 18 C 137 25 149 10 174 18 C 201 26 217 10 242 18 C 268 26 281 11 308 18 C 334 25 349 10 375 18 C 400 26 418 11 444 18 C 468 24 480 16 516 18 C 550 18 584 20 596 49 C 606 73 594 88 600 111 C 607 136 592 151 600 176 C 608 201 592 217 600 242 C 607 267 592 282 600 308 C 608 333 592 348 600 373 C 607 398 593 416 599 440 C 605 467 589 458 575 458 C 553 458 544 451 528 458 C 503 465 487 451 462 458 C 436 465 419 451 393 458 C 368 465 350 451 325 458 C 299 465 281 451 255 458 C 229 465 213 451 187 458 C 162 465 145 451 119 458 C 93 465 69 459 53 458 C 23 456 17 436 20 414 C 23 391 12 375 20 350 C 27 326 13 309 20 284 C 28 258 13 241 20 216 C 27 191 13 174 20 149 C 27 124 14 108 20 83 C 24 53 25 18 58 18 Z";
+  const intensity = playing ? Math.max(0, Math.min(1, bassLevel)) : 0;
+  const perimeterStyle = {
+    "--reelroom-neon-opacity": String(0.2 + intensity * 0.8),
+    "--reelroom-neon-glow-opacity": String(0.06 + intensity * 0.42),
+    "--reelroom-neon-glow-width": `${14 + intensity * 12}px`,
+    "--reelroom-neon-line-opacity": String(0.35 + intensity * 0.65),
+  } as CSSProperties;
 
   return (
-    <svg className="reelroom-neon-perimeter" viewBox="0 0 620 476" preserveAspectRatio="none" aria-hidden="true">
+    <svg
+      className="reelroom-neon-perimeter"
+      data-playing={playing}
+      style={perimeterStyle}
+      viewBox="0 0 620 476"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id="reelroom-neon-gradient" x1="20" y1="18" x2="600" y2="458" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#2a8dff" />
@@ -284,7 +298,9 @@ function NeonPerimeter() {
           <stop offset=".58" stopColor="#35e8ff" />
           <stop offset=".78" stopColor="#5af394" />
           <stop offset="1" stopColor="#348cff" />
-          <animateTransform attributeName="gradientTransform" type="rotate" from="0 310 238" to="360 310 238" dur="8s" repeatCount="indefinite" />
+          {playing ? (
+            <animateTransform attributeName="gradientTransform" type="rotate" from="0 310 238" to="360 310 238" dur="8s" repeatCount="indefinite" />
+          ) : null}
         </linearGradient>
         <filter id="reelroom-neon-halo" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="11" />
@@ -297,7 +313,7 @@ function NeonPerimeter() {
           </feMerge>
         </filter>
       </defs>
-      <path className="reelroom-neon-perimeter-glow" d={path} />
+      <path className="reelroom-neon-perimeter-glow" d={path} transform="translate(0 -3)" />
       <path className="reelroom-neon-perimeter-line" d={path} />
     </svg>
   );
@@ -627,6 +643,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [spotifyPaused, setSpotifyPaused] = useState(true);
   const [spotifyPositionMs, setSpotifyPositionMs] = useState(0);
   const [spotifyDurationMs, setSpotifyDurationMs] = useState(0);
+  const [spotifyBassLevel, setSpotifyBassLevel] = useState(0);
   const [spotifySearchOpen, setSpotifySearchOpen] = useState(false);
   const [spotifyTrackListOpen, setSpotifyTrackListOpen] = useState(true);
   const [spotifySearchQuery, setSpotifySearchQuery] = useState("");
@@ -645,6 +662,33 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
   const spotifyAuthWindowRef = useRef<Window | null>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
+
+  useEffect(() => {
+    if (!spotifyTrackUri || spotifyPaused) {
+      setSpotifyBassLevel(0);
+      return;
+    }
+
+    // Spotify's Web Playback SDK does not expose an analyser node, so follow the playback clock with a low-frequency bass envelope.
+    const basePositionMs = spotifyPositionMs;
+    const startedAt = performance.now();
+    let frame = 0;
+    let lastUpdate = 0;
+    const animateBass = (now: number) => {
+      if (now - lastUpdate >= 40) {
+        const seconds = (basePositionMs + now - startedAt) / 1000;
+        const section = (Math.sin(seconds * 0.16 - 1.1) + 1) / 2;
+        const subPulse = (Math.sin(seconds * Math.PI * 2 * 0.55 + 0.7) + 1) / 2;
+        const kick = Math.pow(Math.max(0, Math.sin(seconds * Math.PI * 2 * 1.1)), 8);
+        setSpotifyBassLevel(Math.min(1, 0.1 + section * 0.18 + subPulse * 0.12 + kick * 0.6));
+        lastUpdate = now;
+      }
+      frame = window.requestAnimationFrame(animateBass);
+    };
+    frame = window.requestAnimationFrame(animateBass);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [spotifyPaused, spotifyPositionMs, spotifyTrackUri]);
 
   useEffect(() => {
     if (heroCandidates.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -1657,7 +1701,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
 
           <div className="min-w-0 space-y-5">
             <div className="relative isolate overflow-hidden rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
-              <NeonPerimeter />
+              <NeonPerimeter playing={Boolean(spotifyTrackUri && !spotifyPaused)} bassLevel={spotifyBassLevel} />
               <div className="relative z-10">
               <div className="flex items-start gap-4">
                 <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/[.15] bg-gradient-to-br from-white/35 via-white/10 to-transparent sm:size-24">
