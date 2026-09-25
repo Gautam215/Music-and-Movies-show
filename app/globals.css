@@ -514,13 +514,35 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-track-list {
   background: linear-gradient(145deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .018));
   backdrop-filter: blur(24px) saturate(1.15);
+  scrollbar-color: rgba(255, 255, 255, .22) transparent;
+  scrollbar-width: thin;
 }
 
 .reelroom-track-row {
   position: relative;
-  min-height: 4.65rem;
+  min-height: 5.25rem;
   border-top: 1px solid rgba(255, 255, 255, .075);
   transition: background-color 220ms ease, padding 220ms ease;
+}
+
+.reelroom-track-list::-webkit-scrollbar { width: 6px; }
+.reelroom-track-list::-webkit-scrollbar-track { background: transparent; }
+.reelroom-track-list::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255, 255, 255, .2); }
+
+.reelroom-track-count-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  padding: 0 .55rem;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  color: hsl(var(--ink-2));
+  background: rgba(255, 255, 255, .055);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .reelroom-track-row:first-child { border-top: 0; }

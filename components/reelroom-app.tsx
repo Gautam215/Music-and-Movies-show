@@ -1923,18 +1923,20 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         </div>
       </section>
 
-      <section id="reelroom-recommended-tracks" className="reelroom-recommendations mx-auto w-full max-w-4xl rounded-[1.75rem] border border-white/[.1] bg-surface/55 p-2 shadow-cinematic backdrop-blur-xl sm:p-3">
-        <div className="mb-3 flex items-center justify-center gap-3 px-1 text-center sm:px-2">
-          <div>
+      <section id="reelroom-recommended-tracks" className="reelroom-recommendations mx-auto w-full max-w-[35rem] rounded-[1.75rem] border border-white/[.1] bg-surface/55 p-2 shadow-cinematic backdrop-blur-xl sm:p-3">
+        <div className="reelroom-recommendations-header mx-auto mb-3 flex max-w-[33rem] items-center justify-between gap-3 px-1 sm:px-2">
+          <div className="min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
               Spotify / {spotifyPlaylistName}
             </span>
-            <h2 className="mt-1 font-display text-xl font-semibold tracking-[-.05em] text-ink sm:text-2xl">
-              Recommended tracks for the scene.
-            </h2>
-            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+            <div className="mt-1.5 flex items-center gap-2">
+              <h2 className="truncate font-display text-lg font-semibold tracking-[-.05em] text-ink sm:text-xl">
+                Recommended tracks
+              </h2>
+              <span className="reelroom-track-count-badge shrink-0">
               {filteredSongs.length} tracks
-            </span>
+              </span>
+            </div>
           </div>
           <button
             type="button"
@@ -1946,7 +1948,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             <EllipsisVertical className="size-4" />
           </button>
         </div>
-        <div className="reelroom-spotify-player mx-auto flex max-w-4xl flex-col gap-5 rounded-[1.4rem] p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="reelroom-spotify-player mx-auto flex w-full max-w-[33rem] flex-col gap-4 rounded-[1.4rem] p-3.5 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-7">
           <div className="reelroom-reelscape-copy min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="reelroom-reelscape-eyebrow font-mono text-[10px] uppercase tracking-[.2em]">
@@ -2007,18 +2009,18 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       </section>
 
       {spotifyTrackListOpen ? (
-        <div className="mx-auto w-full max-w-4xl">
+        <div className="mx-auto w-full max-w-[33rem]">
           {spotifyPlaylistLoading ? (
             <section className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-5 text-center shadow-cinematic backdrop-blur-xl">
               <p className="font-mono text-[10px] uppercase tracking-[.16em] text-muted">Syncing {spotifyPlaylistName} recommendations...</p>
             </section>
           ) : filteredSongs.length ? (
-            <section className="reelroom-track-list overflow-hidden rounded-[1.5rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl">
+            <section className="reelroom-track-list max-h-[31rem] overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl">
               <div className="px-2 sm:px-3">
                 {filteredSongs.map((song) => (
                   <article
                     key={song.id ?? song.spotifyUri ?? song.title}
-                    className="reelroom-track-row group mx-auto flex min-w-0 items-center gap-3 px-2 py-3 sm:gap-4 sm:px-3"
+                    className="reelroom-track-row group mx-auto flex min-w-0 items-center gap-4 px-2 py-4 sm:gap-5 sm:px-3"
                     data-playing={isSongPlaying(song)}
                   >
                     <img src={song.art} alt="" className="reelroom-track-art size-11 shrink-0 rounded-xl object-cover sm:size-12" />
