@@ -581,23 +581,6 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   color: #fff;
 }
 .reelroom-floating-nav[data-contrast="light"] a[data-active="true"] { color: #0b0e13; }
-.reelroom-floating-nav-dot {
-  position: absolute;
-  left: 50%;
-  bottom: .34rem;
-  width: .22rem;
-  height: .22rem;
-  border-radius: 50%;
-  background: transparent;
-  transform: translateX(-50%) scale(.4);
-  transition: background-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
-}
-.reelroom-floating-nav a[data-active="true"] .reelroom-floating-nav-dot {
-  background: currentColor;
-  box-shadow: 0 0 10px rgba(255, 255, 255, .72);
-  transform: translateX(-50%) scale(1);
-}
-.reelroom-floating-nav[data-contrast="light"] a[data-active="true"] .reelroom-floating-nav-dot { box-shadow: 0 0 10px rgba(0, 0, 0, .32); }
 @media (max-width: 480px) {
   .reelroom-floating-nav {
     width: calc(100% - 1.5rem);

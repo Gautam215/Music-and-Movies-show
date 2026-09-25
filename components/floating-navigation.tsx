@@ -114,7 +114,6 @@ export function FloatingNavigation() {
           >
             <Icon className="reelroom-floating-nav-icon" aria-hidden="true" />
             <span>{label}</span>
-            <span className="reelroom-floating-nav-dot" aria-hidden="true" />
           </a>
         );
       })}
