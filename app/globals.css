@@ -244,47 +244,6 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   background: linear-gradient(180deg, hsl(var(--canvas) / .28), hsl(var(--canvas) / .82) 56%, hsl(var(--canvas)) 100%);
 }
 
-.reelroom-neon-perimeter {
-  position: absolute;
-  inset: -1px;
-  z-index: 0;
-  width: calc(100% + 2px);
-  height: calc(100% + 2px);
-  overflow: visible;
-  pointer-events: none;
-  opacity: var(--reelroom-neon-opacity, .2);
-  transition: opacity 360ms ease, filter 360ms ease;
-}
-
-.reelroom-neon-perimeter[data-playing="true"] {
-  filter: saturate(1.12) brightness(1.06);
-}
-
-.reelroom-neon-perimeter path {
-  fill: none;
-  stroke: url("#reelroom-neon-gradient");
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.reelroom-neon-perimeter-glow {
-  stroke-width: var(--reelroom-neon-glow-width, 14px);
-  opacity: var(--reelroom-neon-glow-opacity, .06);
-  filter: url("#reelroom-neon-halo");
-}
-
-.reelroom-neon-perimeter-line {
-  stroke-width: 2.8px;
-  opacity: var(--reelroom-neon-line-opacity, .35);
-  filter: url("#reelroom-neon-core");
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reelroom-neon-perimeter { transition: none; filter: none; }
-.reelroom-neon-perimeter animateTransform { display: none; }
-}
-
 .reelroom-player-card {
   background: linear-gradient(145deg, rgba(28, 31, 42, .72), rgba(8, 10, 16, .62));
   box-shadow: 0 28px 80px rgba(0, 0, 0, .34), inset 0 1px rgba(255, 255, 255, .08);
