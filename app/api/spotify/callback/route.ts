@@ -4,6 +4,7 @@ import {
   exchangeSpotifyCode,
   getSpotifyRedirectUri,
   SPOTIFY_ACCESS_COOKIE,
+  SPOTIFY_CODE_VERIFIER_COOKIE,
   SPOTIFY_POPUP_COOKIE,
   SPOTIFY_REFRESH_COOKIE,
   SPOTIFY_STATE_COOKIE,
@@ -19,6 +20,7 @@ function songsDestination(request: Request, status: string) {
 
 function clearOAuthCookies(response: NextResponse) {
   response.cookies.set(SPOTIFY_STATE_COOKIE, "", spotifyCookieOptions(0));
+  response.cookies.set(SPOTIFY_CODE_VERIFIER_COOKIE, "", spotifyCookieOptions(0));
   response.cookies.set(SPOTIFY_POPUP_COOKIE, "", spotifyCookieOptions(0));
   return response;
 }
@@ -45,9 +47,10 @@ export async function GET(request: Request) {
   const oauthError = requestUrl.searchParams.get("error");
   const cookieStore = await cookies();
   const savedState = cookieStore.get(SPOTIFY_STATE_COOKIE)?.value;
+  const codeVerifier = cookieStore.get(SPOTIFY_CODE_VERIFIER_COOKIE)?.value;
   const popupMode = cookieStore.get(SPOTIFY_POPUP_COOKIE)?.value === "1";
 
-  if (oauthError || !code || !returnedState || returnedState !== savedState) {
+  if (oauthError || !code || !returnedState || returnedState !== savedState || !codeVerifier) {
     return redirectToSongs(request, "error", popupMode);
   }
 
@@ -55,6 +58,7 @@ export async function GET(request: Request) {
     const token = await exchangeSpotifyCode(
       code,
       getSpotifyRedirectUri(request),
+      codeVerifier,
     );
     if (!token?.access_token) return redirectToSongs(request, "error", popupMode);
 

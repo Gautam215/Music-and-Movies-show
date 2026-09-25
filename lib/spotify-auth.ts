@@ -1,7 +1,8 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 export const SPOTIFY_STATE_COOKIE = "spotify_oauth_state";
 export const SPOTIFY_POPUP_COOKIE = "spotify_oauth_popup";
+export const SPOTIFY_CODE_VERIFIER_COOKIE = "spotify_code_verifier";
 export const SPOTIFY_ACCESS_COOKIE = "spotify_access_token";
 export const SPOTIFY_REFRESH_COOKIE = "spotify_refresh_token";
 
@@ -27,7 +28,23 @@ export function createSpotifyState() {
   return randomBytes(32).toString("hex");
 }
 
-export async function exchangeSpotifyCode(code: string, redirectUri: string) {
+function base64Url(buffer: Buffer) {
+  return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function createSpotifyCodeVerifier() {
+  return base64Url(randomBytes(64));
+}
+
+export function createSpotifyCodeChallenge(codeVerifier: string) {
+  return base64Url(createHash("sha256").update(codeVerifier).digest());
+}
+
+export async function exchangeSpotifyCode(
+  code: string,
+  redirectUri: string,
+  codeVerifier: string,
+) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
@@ -42,6 +59,7 @@ export async function exchangeSpotifyCode(code: string, redirectUri: string) {
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
     }),
     cache: "no-store",
   });
