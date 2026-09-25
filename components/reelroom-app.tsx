@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, FormEvent, ReactNode } from "react";
 import {
   ArrowRight,
   Armchair,
@@ -17,7 +17,9 @@ import {
   LogIn,
   MapPin,
   Music2,
+  Pause,
   Play,
+  Search,
   Share2,
   Ticket,
   UserRound,
@@ -31,6 +33,7 @@ import { cn } from "@/lib/utils";
 import type { Movie } from "@/lib/movie-types";
 
 type Song = {
+  id?: string;
   title: string;
   artist: string;
   movie: string;
@@ -38,6 +41,8 @@ type Song = {
   art: string;
   genre: string;
   spotifyUri?: string;
+  spotifyUrl?: string;
+  previewUrl?: string | null;
 };
 
 type SpotifyPlayerState = {
@@ -561,6 +566,11 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [spotifyError, setSpotifyError] = useState<string | null>(null);
   const [spotifyTrackUri, setSpotifyTrackUri] = useState<string | null>(null);
   const [spotifyPaused, setSpotifyPaused] = useState(true);
+  const [spotifySearchOpen, setSpotifySearchOpen] = useState(false);
+  const [spotifySearchQuery, setSpotifySearchQuery] = useState("");
+  const [spotifySearchResults, setSpotifySearchResults] = useState<Song[]>([]);
+  const [spotifySearchLoading, setSpotifySearchLoading] = useState(false);
+  const [spotifySearchError, setSpotifySearchError] = useState<string | null>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -569,6 +579,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const preferencesRef = useRef<HTMLElement>(null);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceIdRef = useRef<string | null>(null);
+  const spotifySearchInputRef = useRef<HTMLInputElement>(null);
+  const spotifySearchAbortRef = useRef<AbortController | null>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -711,6 +723,19 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       setSpotifyReady(false);
     };
   }, [spotifyConnected]);
+
+  useEffect(() => {
+    if (!spotifySearchOpen) return;
+    const frame = window.requestAnimationFrame(() => spotifySearchInputRef.current?.focus());
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSpotifySearchOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [spotifySearchOpen]);
 
   const setPage = (nextPage: NavId) => {
     setPageState(nextPage);
@@ -899,6 +924,43 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   };
   const connectSpotify = () => {
     window.location.assign("/api/spotify/login");
+  };
+  const searchSpotify = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = spotifySearchQuery.trim();
+    if (!query) {
+      setSpotifySearchResults([]);
+      setSpotifySearchError(null);
+      return;
+    }
+
+    spotifySearchAbortRef.current?.abort();
+    const controller = new AbortController();
+    spotifySearchAbortRef.current = controller;
+    setSpotifySearchLoading(true);
+    setSpotifySearchError(null);
+
+    try {
+      const response = await fetch(`/api/spotify/tracks?q=${encodeURIComponent(query)}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        songs?: Song[];
+        error?: string;
+      } | null;
+      if (!response.ok) throw new Error(payload?.error ?? "Spotify search is unavailable.");
+      setSpotifySearchResults(payload?.songs ?? []);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setSpotifySearchResults([]);
+      setSpotifySearchError(error instanceof Error ? error.message : "Spotify search is unavailable.");
+    } finally {
+      if (spotifySearchAbortRef.current === controller) {
+        spotifySearchAbortRef.current = null;
+        setSpotifySearchLoading(false);
+      }
+    }
   };
   const toggleSpotifySong = async (song: Song) => {
     if (!spotifyConnected) {
@@ -1338,6 +1400,17 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => setSpotifySearchOpen((open) => !open)}
+                aria-expanded={spotifySearchOpen}
+                aria-controls="spotify-search-panel"
+                aria-label={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
+                title={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
+                className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 shadow-[0_8px_20px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
+              >
+                {spotifySearchOpen ? <X className="size-4" /> : <Search className="size-4" />}
+              </button>
+              <button
+                type="button"
                 onClick={spotifyConnected ? undefined : connectSpotify}
                 disabled={spotifyConnected && !spotifyReady}
                 className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
@@ -1349,6 +1422,105 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           {spotifyError ? (
             <p className="relative mt-4 max-w-xl text-xs text-amber">{spotifyError}</p>
           ) : null}
+        </div>
+      </section>
+
+      <section
+        id="spotify-search-panel"
+        aria-label="Search Spotify"
+        aria-hidden={!spotifySearchOpen}
+        className={cn(
+          "overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl transition-[max-height,opacity,transform,margin] duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
+          spotifySearchOpen
+            ? "mt-4 max-h-[42rem] translate-y-0 opacity-100"
+            : "pointer-events-none mt-0 max-h-0 -translate-y-3 opacity-0",
+        )}
+      >
+        <div className="p-5 sm:p-7">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
+                Spotify / search
+              </span>
+              <h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em] text-ink sm:text-3xl">
+                Find a song for the scene.
+              </h2>
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+              Press escape to close
+            </span>
+          </div>
+          <form onSubmit={searchSpotify} className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <label className="relative min-w-0 flex-1">
+              <span className="sr-only">Search Spotify tracks</span>
+              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
+              <input
+                ref={spotifySearchInputRef}
+                value={spotifySearchQuery}
+                onChange={(event) => setSpotifySearchQuery(event.target.value)}
+                placeholder="Search by song, artist, or album"
+                className="h-12 w-full rounded-full border border-white/15 bg-white/[.06] pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-muted focus:border-amber/70 focus:bg-white/[.1]"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={spotifySearchLoading}
+              className="h-12 rounded-full border border-amber/60 bg-amber px-5 font-mono text-[10px] uppercase tracking-[.1em] text-canvas transition hover:border-amber hover:bg-ink hover:text-ink disabled:cursor-wait disabled:opacity-60"
+            >
+              {spotifySearchLoading ? "Searching..." : "Search"}
+            </button>
+          </form>
+
+          <div className="mt-5">
+            {spotifySearchError ? (
+              <p className="rounded-2xl border border-amber/30 bg-amber/[.08] p-4 text-sm text-amber">
+                {spotifySearchError}
+              </p>
+            ) : spotifySearchLoading ? (
+              <p className="py-8 text-center font-mono text-[10px] uppercase tracking-[.14em] text-muted">
+                Searching the Spotify catalog...
+              </p>
+            ) : spotifySearchQuery.trim() && !spotifySearchResults.length ? (
+              <p className="py-8 text-center font-display text-xl font-semibold tracking-[-.04em] text-ink">
+                No tracks found for “{spotifySearchQuery.trim()}”.
+              </p>
+            ) : spotifySearchResults.length ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {spotifySearchResults.map((song) => {
+                  const songPlaying = isSongPlaying(song);
+                  return (
+                    <article
+                      key={song.id ?? song.spotifyUri ?? song.title}
+                      className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 transition hover:border-white/25 hover:bg-white/[.08]"
+                    >
+                      <img
+                        src={song.art}
+                        alt=""
+                        className="size-14 shrink-0 rounded-xl object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-semibold text-ink">{song.title}</h3>
+                        <p className="mt-1 truncate text-xs text-ink-2">{song.artist} · {song.movie}</p>
+                      </div>
+                      <span className="shrink-0 font-mono text-[10px] text-muted">{song.duration}</span>
+                      <button
+                        type="button"
+                        onClick={() => void toggleSpotifySong(song)}
+                        aria-label={`${songPlaying ? "Pause" : "Play"} ${song.title}`}
+                        className="grid size-9 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
+                      >
+                        {songPlaying ? <Pause className="size-3.5 fill-current" /> : <Play className="size-3.5 fill-current" />}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-8 text-center font-mono text-[10px] uppercase tracking-[.14em] text-muted">
+                Search the catalog for a song, artist, or album.
+              </p>
+            )}
+          </div>
         </div>
       </section>
 

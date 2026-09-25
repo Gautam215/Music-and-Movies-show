@@ -19,7 +19,7 @@ function formatDuration(durationMs: number) {
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
@@ -56,10 +56,16 @@ export async function GET() {
       );
     }
 
+    const requestUrl = new URL(request.url);
+    const query = requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
+    const requestedLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(Math.floor(requestedLimit), 1), 20)
+      : 10;
     const searchUrl = new URL("https://api.spotify.com/v1/search");
-    searchUrl.searchParams.set("q", "movie soundtrack");
+    searchUrl.searchParams.set("q", query);
     searchUrl.searchParams.set("type", "track");
-    searchUrl.searchParams.set("limit", "10");
+    searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("market", "US");
 
     const tracksResponse = await fetch(searchUrl, {
