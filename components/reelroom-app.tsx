@@ -1252,6 +1252,39 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       setSpotifyError("Spotify could not seek this track right now.");
     }
   };
+  const seekSpotifyTo = async (positionMs: number) => {
+    const player = spotifyPlayerRef.current;
+    if (!player || !spotifyReady || !spotifyTrackUri || !player.seek) {
+      setSpotifyError("Choose a track to enable seek controls.");
+      return;
+    }
+    try {
+      await player.activateElement();
+      const duration = spotifyDurationMs || positionMs;
+      const targetPosition = Math.min(Math.max(positionMs, 0), Math.max(duration, 0));
+      await player.seek(targetPosition);
+      setSpotifyPositionMs(targetPosition);
+    } catch {
+      setSpotifyError("Spotify could not seek this track right now.");
+    }
+  };
+  const playAdjacentTrack = async (direction: -1 | 1) => {
+    const playableSongs = filteredSongs.filter((song) => song.spotifyUri);
+    if (!playableSongs.length) {
+      announce("Connect Spotify to browse the recommended tracks.");
+      return;
+    }
+    const currentIndex = playableSongs.findIndex((song) => song.spotifyUri === spotifyTrackUri);
+    const targetIndex = currentIndex === -1
+      ? direction === 1 ? 0 : playableSongs.length - 1
+      : (currentIndex + direction + playableSongs.length) % playableSongs.length;
+    const targetSong = playableSongs[targetIndex];
+    if (targetSong.spotifyUri === spotifyTrackUri) {
+      if (spotifyPaused) await toggleSpotifySong(targetSong);
+      return;
+    }
+    await toggleSpotifySong(targetSong);
+  };
   const isSongPlaying = (song: Song) =>
     song.spotifyUri ? spotifyTrackUri === song.spotifyUri && !spotifyPaused : playing === song.title;
   const focusPreferences = () => {
@@ -1700,132 +1733,145 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           </div>
 
           <div className="min-w-0 space-y-5">
-            <div className="relative isolate overflow-hidden rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
+            <div className="reelroom-player-card relative isolate overflow-hidden rounded-[2rem] border border-white/[.12] p-5 sm:p-7">
               <NeonPerimeter playing={Boolean(spotifyTrackUri && !spotifyPaused)} bassLevel={spotifyBassLevel} />
               <div className="relative z-10">
-              <div className="flex items-start gap-4">
-                <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/[.15] bg-gradient-to-br from-white/35 via-white/10 to-transparent sm:size-24">
-                  {activeSong?.art ? (
-                    <img src={activeSong.art} alt="" className="size-full object-cover" />
-                  ) : (
-                    <div className="grid size-full place-items-center text-2xl font-semibold text-white/50">♪</div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-[10px] uppercase tracking-[.3em] text-ink-2">Now playing</p>
-                      <h2 className="mt-2 truncate text-2xl font-semibold tracking-[-.05em] text-ink">
-                        {activeSong?.title ?? "Choose a recommended track"}
-                      </h2>
-                      <p className="truncate text-sm text-ink-2">
-                        {activeSong ? `${activeSong.artist} · ${activeSong.movie}` : "Spotify / Hehe"}
-                      </p>
+                <div className="reelroom-player-header flex items-center gap-5">
+                  <div className="reelroom-player-art size-32 shrink-0 overflow-hidden rounded-[1.65rem] sm:size-40">
+                    {activeSong?.art ? (
+                      <img src={activeSong.art} alt="" className="size-full object-cover" />
+                    ) : (
+                      <div className="grid size-full place-items-center text-4xl font-semibold text-white/50">♪</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[.28em] text-ink-2">Now playing</p>
+                      <button
+                        type="button"
+                        aria-label="Save current track"
+                        onClick={() => activeSong && announce("Saved to your scene shortlist.")}
+                        className="reelroom-player-icon shrink-0"
+                      >
+                        <Heart className="size-4" />
+                      </button>
                     </div>
+                    <h2 className="reelroom-player-title mt-4 truncate text-3xl text-ink sm:text-4xl">
+                      {activeSong?.title ?? "Choose a recommended track"}
+                    </h2>
+                    <p className="reelroom-player-artist mt-1 truncate text-sm text-ink-2">
+                      {activeSong?.artist ?? "Spotify"}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-ink-2/70">
+                      {activeSong?.movie ?? "Hehe / recommended"}
+                    </p>
+                    {activeSong?.spotifyUrl ? (
+                      <a
+                        href={activeSong.spotifyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="reelroom-player-link mt-4 inline-flex text-[10px] uppercase tracking-[.18em]"
+                      >
+                        Open in Spotify
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="reelroom-player-progress-block mt-8">
+                  <input
+                    className="reelroom-player-progress"
+                    type="range"
+                    min="0"
+                    max={Math.max(spotifyDurationMs, 1)}
+                    value={Math.min(spotifyPositionMs, Math.max(spotifyDurationMs, 1))}
+                    onChange={(event) => void seekSpotifyTo(Number(event.currentTarget.value))}
+                    disabled={!spotifyTrackUri || !spotifyReady || !spotifyDurationMs}
+                    aria-label="Track progress"
+                    style={{ "--reelroom-progress": `${playbackProgress}%` } as CSSProperties}
+                  />
+                  <div className="mt-2 flex items-center justify-between font-mono text-[10px] tracking-[.08em] text-ink-2">
+                    <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
+                    <span>{activeSong?.duration ?? "--:--"}</span>
+                  </div>
+                </div>
+
+                <div className="reelroom-player-controls mt-7 flex items-center justify-between gap-2">
+                  <div className="reelroom-player-edge flex items-center">
                     <button
                       type="button"
-                      aria-label="Save current track"
-                      onClick={() => activeSong && announce("Saved to your scene shortlist.")}
-                      className="grid size-10 shrink-0 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                      aria-label="Shuffle recommended track"
+                      onClick={() => {
+                        if (!filteredSongs.length) {
+                          startListening();
+                          return;
+                        }
+                        void toggleSpotifySong(filteredSongs[Math.floor(Math.random() * filteredSongs.length)]);
+                      }}
+                      className="reelroom-player-control"
                     >
-                      <Heart className="size-4" />
+                      <Shuffle className="size-4" />
                     </button>
                   </div>
-                  {activeSong?.spotifyUrl ? (
-                    <a
-                      href={activeSong.spotifyUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded-full border border-white/[.15] bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.2em] text-ink-2 transition hover:border-white/35 hover:text-ink"
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      aria-label="Previous track"
+                      onClick={() => void playAdjacentTrack(-1)}
+                      disabled={!filteredSongs.length}
+                      className="reelroom-player-control reelroom-player-skip"
                     >
-                      Open in Spotify
-                    </a>
-                  ) : null}
-                </div>
-              </div>
+                      <SkipBack className="size-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={spotifyPaused ? "Play current track" : "Pause current track"}
+                      onClick={() => {
+                        if (!activeSong) {
+                          connectSpotify();
+                          return;
+                        }
+                        if (spotifyTrackUri === activeSong.spotifyUri) void toggleSpotifyPlayback();
+                        else void toggleSpotifySong(activeSong);
+                      }}
+                      className="reelroom-player-play"
+                    >
+                      {spotifyPaused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next track"
+                      onClick={() => void playAdjacentTrack(1)}
+                      disabled={!filteredSongs.length}
+                      className="reelroom-player-control reelroom-player-skip"
+                    >
+                      <SkipForward className="size-5" />
+                    </button>
+                  </div>
 
-              <div className="space-y-3 pt-7">
-                <div className="flex items-center justify-between text-xs font-medium tracking-wide text-ink-2">
-                  <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
-                  <span>{activeSong?.duration ?? "--:--"}</span>
+                  <div className="reelroom-player-edge flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Repeat track"
+                      onClick={() => announce("Repeat is controlled by your Spotify player.")}
+                      className="reelroom-player-control"
+                    >
+                      <Repeat className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Spotify volume"
+                      onClick={() => announce("Volume is controlled by Spotify.")}
+                      className="reelroom-player-control"
+                    >
+                      <Volume2 className="size-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[.1]">
-                  <div className="h-full rounded-full bg-gradient-to-r from-ink to-ink-2 transition-[width]" style={{ width: `${playbackProgress}%` }} />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-7">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="Play a random recommended track"
-                    onClick={() => {
-                      if (!filteredSongs.length) {
-                        startListening();
-                        return;
-                      }
-                      void toggleSpotifySong(filteredSongs[Math.floor(Math.random() * filteredSongs.length)]);
-                    }}
-                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
-                  >
-                    <Shuffle className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Rewind 10 seconds"
-                    onClick={() => void seekSpotify(-10_000)}
-                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
-                  >
-                    <SkipBack className="size-4" />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  aria-label={spotifyPaused ? "Play current track" : "Pause current track"}
-                  onClick={() => {
-                    if (!activeSong) {
-                      connectSpotify();
-                      return;
-                    }
-                    if (spotifyTrackUri === activeSong.spotifyUri) void toggleSpotifyPlayback();
-                    else void toggleSpotifySong(activeSong);
-                  }}
-                  className="grid size-14 place-items-center rounded-full bg-ink text-canvas shadow-[0_10px_30px_rgba(255,255,255,.12)] transition hover:scale-105"
-                >
-                  {spotifyPaused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="Fast-forward 10 seconds"
-                    onClick={() => void seekSpotify(10_000)}
-                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
-                  >
-                    <SkipForward className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Repeat track"
-                    onClick={() => announce("Repeat is controlled by your Spotify player.")}
-                    className="hidden size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink sm:grid"
-                  >
-                    <Repeat className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Spotify volume"
-                    onClick={() => announce("Volume is controlled by Spotify.")}
-                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
-                  >
-                    <Volume2 className="size-4" />
-                  </button>
-                </div>
-              </div>
 
               {activeTrackId ? (
-                <div className="mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
+                <div className="reelroom-player-embed mt-7 overflow-hidden rounded-[1.35rem]">
                   <iframe
                     className="h-[152px] w-full"
                     src={`https://open.spotify.com/embed/track/${activeTrackId}?utm_source=generator`}
