@@ -110,6 +110,7 @@ export function FloatingNavigation() {
             ref={(node) => { linkRefs.current[id] = node; }}
             href={href}
             data-active={id === activePage}
+            aria-current={id === activePage ? "page" : undefined}
           >
             <Icon className="reelroom-floating-nav-icon" aria-hidden="true" />
             <span>{label}</span>
