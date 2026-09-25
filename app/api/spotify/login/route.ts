@@ -45,6 +45,8 @@ export async function GET(request: Request) {
       "user-read-private",
       "user-read-email",
       "user-top-read",
+      "playlist-read-private",
+      "playlist-read-collaborative",
     ].join(" "),
   );
 

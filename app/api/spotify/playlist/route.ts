@@ -1,0 +1,143 @@
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import {
+  refreshSpotifyToken,
+  SPOTIFY_ACCESS_COOKIE,
+  SPOTIFY_REFRESH_COOKIE,
+  spotifyCookieOptions,
+} from "@/lib/spotify-auth";
+
+type SpotifyTrack = {
+  id: string;
+  uri: string;
+  name: string;
+  duration_ms: number;
+  preview_url: string | null;
+  external_urls?: { spotify?: string };
+  artists: Array<{ name: string }>;
+  album: {
+    name: string;
+    images?: Array<{ url: string }>;
+  };
+};
+
+type SpotifyPlaylist = {
+  id: string;
+  name: string;
+};
+
+type SpotifyPlaylistItem = {
+  track?: SpotifyTrack | null;
+};
+
+function formatDuration(durationMs: number) {
+  const totalSeconds = Math.floor(durationMs / 1000);
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function setRefreshedCookies(
+  response: NextResponse,
+  token: { access_token?: string; refresh_token?: string; expires_in?: number } | null,
+) {
+  if (!token?.access_token) return response;
+  response.cookies.set(
+    SPOTIFY_ACCESS_COOKIE,
+    token.access_token,
+    spotifyCookieOptions(Math.max(token.expires_in ?? 3600, 60)),
+  );
+  if (token.refresh_token) {
+    response.cookies.set(
+      SPOTIFY_REFRESH_COOKIE,
+      token.refresh_token,
+      spotifyCookieOptions(60 * 60 * 24 * 30),
+    );
+  }
+  return response;
+}
+
+export async function GET(request: Request) {
+  const playlistName = new URL(request.url).searchParams.get("name")?.trim() || "Hehe";
+  const cookieStore = await cookies();
+  let accessToken = cookieStore.get(SPOTIFY_ACCESS_COOKIE)?.value;
+  const refreshToken = cookieStore.get(SPOTIFY_REFRESH_COOKIE)?.value;
+  let refreshedToken: { access_token?: string; refresh_token?: string; expires_in?: number } | null = null;
+
+  if (!accessToken && refreshToken) {
+    refreshedToken = await refreshSpotifyToken(refreshToken);
+    accessToken = refreshedToken?.access_token;
+  }
+  if (!accessToken) {
+    return NextResponse.json({ error: "Spotify is not connected." }, { status: 401 });
+  }
+
+  const spotifyFetch = (url: URL | string) =>
+    fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+
+  let playlistsResponse = await spotifyFetch("https://api.spotify.com/v1/me/playlists?limit=50");
+  if (playlistsResponse.status === 401 && refreshToken) {
+    refreshedToken = await refreshSpotifyToken(refreshToken);
+    accessToken = refreshedToken?.access_token;
+    if (accessToken) playlistsResponse = await spotifyFetch("https://api.spotify.com/v1/me/playlists?limit=50");
+  }
+  if (!playlistsResponse.ok) {
+    const message = playlistsResponse.status === 403
+      ? "Spotify playlist access needs approval. Reconnect Spotify to continue."
+      : "Spotify playlists could not be loaded.";
+    return setRefreshedCookies(
+      NextResponse.json({ error: message }, { status: playlistsResponse.status === 403 ? 403 : 502 }),
+      refreshedToken,
+    );
+  }
+
+  const playlistsPayload = (await playlistsResponse.json()) as {
+    items?: SpotifyPlaylist[];
+    next?: string | null;
+  };
+  const playlist = (playlistsPayload.items ?? []).find(
+    (item) => item.name.trim().toLowerCase() === playlistName.toLowerCase(),
+  );
+  if (!playlist) {
+    return setRefreshedCookies(
+      NextResponse.json({ error: `Spotify playlist “${playlistName}” was not found.` }, { status: 404 }),
+      refreshedToken,
+    );
+  }
+
+  const itemsUrl = new URL(`https://api.spotify.com/v1/playlists/${playlist.id}/items`);
+  itemsUrl.searchParams.set("limit", "50");
+  const itemsResponse = await spotifyFetch(itemsUrl);
+  if (!itemsResponse.ok) {
+    return setRefreshedCookies(
+      NextResponse.json({ error: "Tracks from this Spotify playlist could not be loaded." }, { status: 502 }),
+      refreshedToken,
+    );
+  }
+
+  const itemsPayload = (await itemsResponse.json()) as { items?: SpotifyPlaylistItem[] };
+  const songs = (itemsPayload.items ?? [])
+    .map((item) => item.track)
+    .filter((track): track is SpotifyTrack => Boolean(track?.uri && track.external_urls?.spotify))
+    .map((track) => ({
+      id: track.id,
+      spotifyUri: track.uri,
+      title: track.name,
+      artist: track.artists.map((artist) => artist.name).join(", "),
+      movie: track.album.name,
+      duration: formatDuration(track.duration_ms),
+      art: track.album.images?.[0]?.url ?? "",
+      genre: "Hehe / recommended",
+      spotifyUrl: track.external_urls?.spotify,
+      previewUrl: track.preview_url,
+    }));
+
+  return setRefreshedCookies(
+    NextResponse.json(
+      { playlistName: playlist.name, songs, updatedAt: new Date().toISOString() },
+      { headers: { "Cache-Control": "private, no-store" } },
+    ),
+    refreshedToken,
+  );
+}
