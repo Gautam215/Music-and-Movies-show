@@ -141,7 +141,7 @@ function LiquidWaveCanvas() {
     };
 
     resize();
-    canvas.addEventListener("pointermove", move);
+    window.addEventListener("pointermove", move);
     window.addEventListener("resize", resize);
     let frame = 0;
     const startedAt = performance.now();
@@ -156,7 +156,7 @@ function LiquidWaveCanvas() {
 
     return () => {
       window.cancelAnimationFrame(frame);
-      canvas.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", move);
       window.removeEventListener("resize", resize);
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
