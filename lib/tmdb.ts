@@ -194,14 +194,15 @@ async function getMovieCommercialDetails(movieId: number, token: string) {
 
 function upcomingSignalCount(movie: TmdbMovie) {
   const audienceDemand =
-    ((movie.popularity ?? 0) >= 8 && (movie.vote_count ?? 0) >= 25) ||
-    ((movie.vote_average ?? 0) >= 6.5 && (movie.vote_count ?? 0) >= 50);
-  const marketHype = (movie.popularity ?? 0) >= 8 || (movie.vote_count ?? 0) >= 50;
-  const productionBudget = (movie.budget ?? 0) >= 15_000_000;
+    (movie.popularity ?? 0) >= 4 ||
+    (movie.vote_count ?? 0) >= 10 ||
+    (movie.vote_average ?? 0) >= 6;
+  const marketHype = (movie.popularity ?? 0) >= 4 || (movie.vote_count ?? 0) >= 10;
+  const productionBudget = (movie.budget ?? 0) >= 10_000_000;
   // Upcoming titles rarely have realized revenue, so use budget and audience demand as a forecast.
   const boxOfficeViability =
     (movie.revenue ?? 0) >= 40_000_000 ||
-    ((movie.budget ?? 0) >= 15_000_000 && audienceDemand) ||
+    ((movie.budget ?? 0) >= 10_000_000 && audienceDemand) ||
     ((movie.revenue ?? 0) === 0 && audienceDemand);
 
   return [marketHype, productionBudget, boxOfficeViability].filter(Boolean).length;
