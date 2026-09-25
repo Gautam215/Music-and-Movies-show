@@ -1,11 +1,11 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
-  refreshSpotifyToken,
-  SPOTIFY_ACCESS_COOKIE,
-  SPOTIFY_REFRESH_COOKIE,
-  spotifyCookieOptions,
-} from "@/lib/spotify-auth";
+  clearSpotifyTokenCookies,
+  getSpotifyServerToken,
+  persistSpotifyToken,
+  spotifyPrivateHeaders,
+} from "@/lib/spotify-server";
 
 async function playTrack(accessToken: string, uri: string, deviceId: string) {
   const url = new URL("https://api.spotify.com/v1/me/player/play");
@@ -40,6 +40,12 @@ async function startTrack(accessToken: string, uri: string, deviceId: string) {
 }
 
 export async function POST(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+  const requestOriginHeader = request.headers.get("origin");
+  if (requestOriginHeader && requestOriginHeader !== requestOrigin) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const body = (await request.json().catch(() => null)) as {
     uri?: string;
     deviceId?: string;
@@ -48,20 +54,19 @@ export async function POST(request: Request) {
   const deviceId = body?.deviceId?.trim();
 
   if (!uri?.startsWith("spotify:track:") || !deviceId) {
-    return NextResponse.json({ error: "A Spotify track and device are required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "A Spotify track and device are required." },
+      { status: 400, headers: spotifyPrivateHeaders() },
+    );
   }
 
-  const cookieStore = await cookies();
-  let accessToken = cookieStore.get(SPOTIFY_ACCESS_COOKIE)?.value;
-  const refreshToken = cookieStore.get(SPOTIFY_REFRESH_COOKIE)?.value;
-  let refreshedToken: { access_token?: string; refresh_token?: string; expires_in?: number } | null = null;
-
-  if (!accessToken && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-  }
+  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
   if (!accessToken) {
-    return NextResponse.json({ error: "Spotify is not connected." }, { status: 401 });
+    const response = NextResponse.json(
+      { error: "Spotify is not connected." },
+      { status: 401, headers: spotifyPrivateHeaders() },
+    );
+    return clearSpotifyTokenCookies(response);
   }
 
   let spotifyResponse = await startTrack(accessToken, uri, deviceId);
@@ -82,23 +87,14 @@ export async function POST(request: Request) {
     const status = spotifyResponse.status === 401 || spotifyResponse.status === 403
       ? spotifyResponse.status
       : 502;
-    return NextResponse.json({ error }, { status });
+    return persistSpotifyToken(
+      NextResponse.json({ error }, { status, headers: spotifyPrivateHeaders() }),
+      refreshedToken,
+    );
   }
 
-  const response = NextResponse.json({ playing: true });
-  if (refreshedToken?.access_token) {
-    response.cookies.set(
-      SPOTIFY_ACCESS_COOKIE,
-      refreshedToken.access_token,
-      spotifyCookieOptions(Math.max(refreshedToken.expires_in ?? 3600, 60)),
-    );
-    if (refreshedToken.refresh_token) {
-      response.cookies.set(
-        SPOTIFY_REFRESH_COOKIE,
-        refreshedToken.refresh_token,
-        spotifyCookieOptions(60 * 60 * 24 * 30),
-      );
-    }
-  }
-  return response;
+  return persistSpotifyToken(
+    NextResponse.json({ playing: true }, { headers: spotifyPrivateHeaders() }),
+    refreshedToken,
+  );
 }

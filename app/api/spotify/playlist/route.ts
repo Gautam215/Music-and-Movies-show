@@ -1,11 +1,11 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
-  refreshSpotifyToken,
-  SPOTIFY_ACCESS_COOKIE,
-  SPOTIFY_REFRESH_COOKIE,
-  spotifyCookieOptions,
-} from "@/lib/spotify-auth";
+  clearSpotifyTokenCookies,
+  getSpotifyServerToken,
+  persistSpotifyToken,
+  spotifyPrivateHeaders,
+} from "@/lib/spotify-server";
 
 type SpotifyTrack = {
   id: string;
@@ -40,35 +40,18 @@ function setRefreshedCookies(
   response: NextResponse,
   token: { access_token?: string; refresh_token?: string; expires_in?: number } | null,
 ) {
-  if (!token?.access_token) return response;
-  response.cookies.set(
-    SPOTIFY_ACCESS_COOKIE,
-    token.access_token,
-    spotifyCookieOptions(Math.max(token.expires_in ?? 3600, 60)),
-  );
-  if (token.refresh_token) {
-    response.cookies.set(
-      SPOTIFY_REFRESH_COOKIE,
-      token.refresh_token,
-      spotifyCookieOptions(60 * 60 * 24 * 30),
-    );
-  }
-  return response;
+  return persistSpotifyToken(response, token);
 }
 
 export async function GET(request: Request) {
   const playlistName = new URL(request.url).searchParams.get("name")?.trim() || "Hehe";
-  const cookieStore = await cookies();
-  let accessToken = cookieStore.get(SPOTIFY_ACCESS_COOKIE)?.value;
-  const refreshToken = cookieStore.get(SPOTIFY_REFRESH_COOKIE)?.value;
-  let refreshedToken: { access_token?: string; refresh_token?: string; expires_in?: number } | null = null;
-
-  if (!accessToken && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-  }
+  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
   if (!accessToken) {
-    return NextResponse.json({ error: "Spotify is not connected." }, { status: 401 });
+    const response = NextResponse.json(
+      { error: "Spotify is not connected." },
+      { status: 401, headers: spotifyPrivateHeaders() },
+    );
+    return clearSpotifyTokenCookies(response);
   }
 
   const spotifyFetch = (url: URL | string) =>
@@ -109,7 +92,10 @@ export async function GET(request: Request) {
     return setRefreshedCookies(
       NextResponse.json(
         { error: message, needsReauth: playlistsResponse?.status === 403 },
-        { status: playlistsResponse?.status === 403 ? 403 : 502 },
+        {
+          status: playlistsResponse?.status === 403 ? 403 : 502,
+          headers: spotifyPrivateHeaders(),
+        },
       ),
       refreshedToken,
     );
@@ -122,7 +108,7 @@ export async function GET(request: Request) {
           error: `Spotify playlist “${playlistName}” was not found in the visible playlists. If it is private, reconnect Spotify to grant playlist access.`,
           needsReauth: true,
         },
-        { status: 404 },
+        { status: 404, headers: spotifyPrivateHeaders() },
       ),
       refreshedToken,
     );
@@ -145,7 +131,10 @@ export async function GET(request: Request) {
             : "Tracks from this Spotify playlist could not be loaded.",
           needsReauth: itemsResponse.status === 403,
         },
-        { status: itemsResponse.status === 403 ? 403 : 502 },
+        {
+          status: itemsResponse.status === 403 ? 403 : 502,
+          headers: spotifyPrivateHeaders(),
+        },
       ),
       refreshedToken,
     );
@@ -171,7 +160,7 @@ export async function GET(request: Request) {
   return setRefreshedCookies(
     NextResponse.json(
       { playlistName: playlist.name, songs, updatedAt: new Date().toISOString() },
-      { headers: { "Cache-Control": "private, no-store" } },
+      { headers: spotifyPrivateHeaders() },
     ),
     refreshedToken,
   );

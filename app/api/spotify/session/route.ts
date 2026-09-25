@@ -1,11 +1,11 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
-  refreshSpotifyToken,
-  SPOTIFY_ACCESS_COOKIE,
-  SPOTIFY_REFRESH_COOKIE,
-  spotifyCookieOptions,
-} from "@/lib/spotify-auth";
+  clearSpotifyTokenCookies,
+  getSpotifyServerToken,
+  persistSpotifyToken,
+  spotifyPrivateHeaders,
+} from "@/lib/spotify-server";
 
 type SpotifyProfile = {
   display_name?: string;
@@ -13,25 +13,14 @@ type SpotifyProfile = {
 };
 
 export async function GET() {
-  const cookieStore = await cookies();
-  let accessToken = cookieStore.get(SPOTIFY_ACCESS_COOKIE)?.value;
-  const refreshToken = cookieStore.get(SPOTIFY_REFRESH_COOKIE)?.value;
-  let refreshedToken: { access_token?: string; refresh_token?: string; expires_in?: number } | null = null;
-
-  if (!accessToken && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-  }
+  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
 
   if (!accessToken) {
     const response = NextResponse.json(
       { connected: false },
-      { headers: { "Cache-Control": "private, no-store" } },
+      { headers: spotifyPrivateHeaders() },
     );
-    if (refreshToken) {
-      response.cookies.set(SPOTIFY_REFRESH_COOKIE, "", spotifyCookieOptions(0));
-    }
-    return response;
+    return clearSpotifyTokenCookies(response);
   }
 
   let profileResponse = await fetch("https://api.spotify.com/v1/me", {
@@ -53,13 +42,12 @@ export async function GET() {
   if (!profileResponse.ok) {
     const response = NextResponse.json(
       { connected: false },
-      { headers: { "Cache-Control": "private, no-store" } },
+      { headers: spotifyPrivateHeaders() },
     );
     if (profileResponse.status === 401) {
-      response.cookies.set(SPOTIFY_ACCESS_COOKIE, "", spotifyCookieOptions(0));
-      response.cookies.set(SPOTIFY_REFRESH_COOKIE, "", spotifyCookieOptions(0));
+      return clearSpotifyTokenCookies(response);
     }
-    return response;
+    return persistSpotifyToken(response, refreshedToken);
   }
 
   const profile = (await profileResponse.json()) as SpotifyProfile;
@@ -67,22 +55,7 @@ export async function GET() {
     connected: true,
     displayName: profile.display_name ?? "Spotify listener",
     product: profile.product ?? null,
-  }, { headers: { "Cache-Control": "private, no-store" } });
+  }, { headers: spotifyPrivateHeaders() });
 
-  if (refreshedToken?.access_token) {
-    response.cookies.set(
-      SPOTIFY_ACCESS_COOKIE,
-      refreshedToken.access_token,
-      spotifyCookieOptions(Math.max(refreshedToken.expires_in ?? 3600, 60)),
-    );
-    if (refreshedToken.refresh_token) {
-      response.cookies.set(
-        SPOTIFY_REFRESH_COOKIE,
-        refreshedToken.refresh_token,
-        spotifyCookieOptions(60 * 60 * 24 * 30),
-      );
-    }
-  }
-
-  return response;
+  return persistSpotifyToken(response, refreshedToken);
 }
