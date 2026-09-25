@@ -2029,9 +2029,9 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               <span className="reelroom-reelscape-eyebrow font-mono text-[10px] uppercase tracking-[.2em]">
                 ReelScape player
               </span>
-              <span className="reelroom-reelscape-status" data-active={Boolean(spotifyTrackUri)}>
+              <span className="reelroom-reelscape-status" data-active={Boolean(spotifyTrackUri && !spotifyPaused)}>
                 <span aria-hidden="true" />
-                {spotifyTrackUri ? "Playing" : spotifyConnected ? "Ready" : "Offline"}
+                {spotifyTrackUri ? spotifyPaused ? "Paused" : "Playing" : spotifyConnected ? "Ready" : "Offline"}
               </span>
             </div>
             <h3 className="mt-2 truncate font-display text-xl font-semibold tracking-[-.055em] text-ink sm:text-2xl">
