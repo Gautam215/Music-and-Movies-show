@@ -38,6 +38,7 @@ import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
+import { fetchWithBackoff } from "@/lib/client-fetch";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
 
 type Song = {
@@ -83,7 +84,7 @@ type SpotifySession = {
 };
 
 async function fetchSpotifySession() {
-  const response = await fetch("/api/spotify/session", {
+  const response = await fetchWithBackoff("/api/spotify/session", {
     cache: "no-store",
     credentials: "same-origin",
   });
@@ -763,7 +764,7 @@ export function ReelroomApp({
       const request = (async () => {
         setSpotifyPlaylistLoading(true);
         try {
-          const response = await fetch("/api/spotify/playlist?name=Hehe", {
+          const response = await fetchWithBackoff("/api/spotify/playlist?name=Hehe", {
             cache: "no-store",
             credentials: "same-origin",
           });
@@ -827,7 +828,7 @@ export function ReelroomApp({
     soundtrackAbortRef.current = controller;
     setSoundtrackLoading(true);
 
-    fetch(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=8`, {
+    fetchWithBackoff(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=8`, {
       cache: "no-store",
       signal: controller.signal,
     })
@@ -953,7 +954,7 @@ export function ReelroomApp({
         name: "Reelscape Web Player",
         volume: 0.72,
         getOAuthToken: (callback) => {
-          fetch("/api/spotify/token", { cache: "no-store", credentials: "same-origin" })
+          fetchWithBackoff("/api/spotify/token", { cache: "no-store", credentials: "same-origin" })
             .then(async (response) => {
               const payload = (await response.json()) as { accessToken?: string };
               if (!response.ok || !payload.accessToken) throw new Error("Spotify session expired");
@@ -1311,7 +1312,7 @@ export function ReelroomApp({
     setSpotifySearchError(null);
 
     try {
-      const response = await fetch(`/api/spotify/tracks?q=${encodeURIComponent(query)}`, {
+      const response = await fetchWithBackoff(`/api/spotify/tracks?q=${encodeURIComponent(query)}`, {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -1353,11 +1354,11 @@ export function ReelroomApp({
       setSpotifyError("This track is not available in the Spotify catalog yet.");
       return;
     }
-    const response = await fetch("/api/spotify/player", {
+    const response = await fetchWithBackoff("/api/spotify/player", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ uri: song.spotifyUri, deviceId }),
-    });
+    }, { retryUnsafeMethods: true });
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       setSpotifyError(payload?.error ?? "Spotify could not start this track.");
