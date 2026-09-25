@@ -1923,8 +1923,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         </div>
       </section>
 
-      <section id="reelroom-recommended-tracks" className="reelroom-recommendations mx-auto w-full max-w-[35rem] rounded-[1.75rem] border border-white/[.1] bg-surface/55 p-2 shadow-cinematic backdrop-blur-xl sm:p-3">
-        <div className="reelroom-recommendations-header mx-auto mb-3 flex max-w-[33rem] items-center justify-between gap-3 px-1 sm:px-2">
+      <section id="reelroom-recommended-tracks" className="reelroom-recommendations mx-auto w-full max-w-[33rem]">
+        <div className="reelroom-recommendations-header mb-3 flex items-center justify-between gap-3 px-1 sm:px-2">
           <div className="min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
               Spotify / {spotifyPlaylistName}
@@ -1948,7 +1948,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             <EllipsisVertical className="size-4" />
           </button>
         </div>
-        <div className="reelroom-spotify-player mx-auto flex w-full max-w-[33rem] flex-col gap-4 rounded-[1.4rem] p-3.5 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-7">
+        <div className="reelroom-spotify-player mx-auto flex w-full flex-col gap-4 rounded-[1.4rem] p-3.5 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-7">
           <div className="reelroom-reelscape-copy min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="reelroom-reelscape-eyebrow font-mono text-[10px] uppercase tracking-[.2em]">
