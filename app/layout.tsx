@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { MinimalCursor } from "@/components/crosshair-cursor";
+import { FloatingNavigation } from "@/components/floating-navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,5 +14,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className="grain"><MinimalCursor />{children}</body></html>;
+  return <html lang="en"><body className="grain"><MinimalCursor />{children}<FloatingNavigation /></body></html>;
 }
