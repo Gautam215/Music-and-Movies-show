@@ -27,6 +27,7 @@ type SpotifyPlaylist = {
 };
 
 type SpotifyPlaylistItem = {
+  item?: SpotifyTrack | null;
   track?: SpotifyTrack | null;
 };
 
@@ -152,7 +153,7 @@ export async function GET(request: Request) {
 
   const itemsPayload = (await itemsResponse.json()) as { items?: SpotifyPlaylistItem[] };
   const songs = (itemsPayload.items ?? [])
-    .map((item) => item.track)
+    .map((item) => item.item ?? item.track)
     .filter((track): track is SpotifyTrack => Boolean(track?.uri && track.external_urls?.spotify))
     .map((track) => ({
       id: track.id,
