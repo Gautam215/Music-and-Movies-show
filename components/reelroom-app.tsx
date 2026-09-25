@@ -427,31 +427,30 @@ function FeaturedScreening({
   return (
     <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
       <div>
-        <div className="relative min-h-[22rem] overflow-hidden md:min-h-[31rem]">
+        <div className="relative min-h-[22rem] overflow-hidden rounded-2xl md:min-h-[31rem]">
           <img
             src={item.poster}
             alt={`${item.title} poster`}
             className="size-full object-cover transition duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-canvas/95 via-canvas/25 to-transparent" />
           <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
             Featured event
           </span>
-          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-            <h2 className="font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
-              {item.title}
-            </h2>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
-              <span className="flex items-center gap-1.5 text-amber">
-                <Clock3 className="size-3" /> {item.release}
-              </span>
-              <span className="text-amber">•</span>
-              <span>★ {item.rating}</span>
-              <span className="text-amber">•</span>
-              <span>{item.meta}</span>
-              <span className="text-amber">•</span>
-              <span>Approx. ₹{item.price}</span>
-            </div>
+        </div>
+        <div className="px-1 pt-4">
+          <h2 className="font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
+            {item.title}
+          </h2>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+            <span className="flex items-center gap-1.5 text-amber">
+              <Clock3 className="size-3" /> {item.release}
+            </span>
+            <span className="text-amber">•</span>
+            <span>★ {item.rating}</span>
+            <span className="text-amber">•</span>
+            <span>{item.meta}</span>
+            <span className="text-amber">•</span>
+            <span>Approx. ₹{item.price}</span>
           </div>
         </div>
       </div>
