@@ -36,7 +36,7 @@ import {
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
-import { BassEqualizerBorder } from "@/components/ui/bass-equalizer-border";
+import { SpotifyWaveform } from "@/components/ui/spotify-waveform";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
 import type { Movie } from "@/lib/movie-types";
@@ -271,6 +271,38 @@ const wheelItems: WorksWheelItem[] = [
     details: "A closed cinema screens a film no one remembers making.",
   },
 ];
+
+function NeonPerimeter() {
+  const path = "M 58 18 C 84 18 89 11 113 18 C 137 25 149 10 174 18 C 201 26 217 10 242 18 C 268 26 281 11 308 18 C 334 25 349 10 375 18 C 400 26 418 11 444 18 C 468 24 480 16 516 18 C 550 18 584 20 596 49 C 606 73 594 88 600 111 C 607 136 592 151 600 176 C 608 201 592 217 600 242 C 607 267 592 282 600 308 C 608 333 592 348 600 373 C 607 398 593 416 599 440 C 605 467 589 458 575 458 C 553 458 544 451 528 458 C 503 465 487 451 462 458 C 436 465 419 451 393 458 C 368 465 350 451 325 458 C 299 465 281 451 255 458 C 229 465 213 451 187 458 C 162 465 145 451 119 458 C 93 465 69 459 53 458 C 23 456 17 436 20 414 C 23 391 12 375 20 350 C 27 326 13 309 20 284 C 28 258 13 241 20 216 C 27 191 13 174 20 149 C 27 124 14 108 20 83 C 24 53 25 18 58 18 Z";
+
+  return (
+    <svg className="reelroom-neon-perimeter" viewBox="0 0 620 476" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="reelroom-neon-gradient" x1="20" y1="18" x2="600" y2="458" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#2a8dff" />
+          <stop offset=".22" stopColor="#bd4bff" />
+          <stop offset=".4" stopColor="#fa42d1" />
+          <stop offset=".58" stopColor="#35e8ff" />
+          <stop offset=".78" stopColor="#5af394" />
+          <stop offset="1" stopColor="#348cff" />
+          <animateTransform attributeName="gradientTransform" type="rotate" from="0 310 238" to="360 310 238" dur="8s" repeatCount="indefinite" />
+        </linearGradient>
+        <filter id="reelroom-neon-halo" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="11" />
+        </filter>
+        <filter id="reelroom-neon-core" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <path className="reelroom-neon-perimeter-glow" d={path} />
+      <path className="reelroom-neon-perimeter-line" d={path} />
+    </svg>
+  );
+}
 
 const nav = [
   ["home", "Home", Home],
@@ -1569,6 +1601,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,9,11,.98)_0%,rgba(8,9,11,.86)_36%,rgba(8,9,11,.42)_72%,rgba(8,9,11,.7)_100%),linear-gradient(180deg,rgba(8,9,11,.4),rgba(8,9,11,.94))]"
           aria-hidden="true"
         />
+        <SpotifyWaveform className="absolute inset-0 opacity-35" />
+
         <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
           <div className="flex min-w-0 flex-col gap-5">
             <div className="space-y-5">
@@ -1625,12 +1659,10 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           </div>
 
           <div className="min-w-0 space-y-5">
-            <div className="relative rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
-              <BassEqualizerBorder
-                active={Boolean(activeSong && spotifyTrackUri === activeSong.spotifyUri && !spotifyPaused)}
-                audioUrl={activeSong?.previewUrl}
-              />
-              <div className="relative z-10 flex items-start gap-4">
+            <div className="relative isolate overflow-hidden rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
+              <NeonPerimeter />
+              <div className="relative z-10">
+              <div className="flex items-start gap-4">
                 <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/[.15] bg-gradient-to-br from-white/35 via-white/10 to-transparent sm:size-24">
                   {activeSong?.art ? (
                     <img src={activeSong.art} alt="" className="size-full object-cover" />
@@ -1671,7 +1703,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                 </div>
               </div>
 
-              <div className="relative z-10 space-y-3 pt-7">
+              <div className="space-y-3 pt-7">
                 <div className="flex items-center justify-between text-xs font-medium tracking-wide text-ink-2">
                   <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
                   <span>{activeSong?.duration ?? "--:--"}</span>
@@ -1681,7 +1713,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                 </div>
               </div>
 
-              <div className="relative z-10 flex items-center justify-between pt-7">
+              <div className="flex items-center justify-between pt-7">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1752,7 +1784,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               </div>
 
               {activeTrackId ? (
-                <div className="relative z-10 mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
+                <div className="mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
                   <iframe
                     className="h-[152px] w-full"
                     src={`https://open.spotify.com/embed/track/${activeTrackId}?utm_source=generator`}
@@ -1765,6 +1797,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
                   />
                 </div>
               ) : null}
+              </div>
             </div>
 
             {spotifyError || visiblePlaylistError ? (

@@ -244,6 +244,47 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   background: linear-gradient(180deg, hsl(var(--canvas) / .28), hsl(var(--canvas) / .82) 56%, hsl(var(--canvas)) 100%);
 }
 
+.reelroom-neon-perimeter {
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  overflow: visible;
+  pointer-events: none;
+  opacity: .94;
+  animation: reelroom-neon-breathe 4.8s ease-in-out infinite;
+}
+
+.reelroom-neon-perimeter path {
+  fill: none;
+  stroke: url("#reelroom-neon-gradient");
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.reelroom-neon-perimeter-glow {
+  stroke-width: 18px;
+  opacity: .36;
+  filter: url("#reelroom-neon-halo");
+}
+
+.reelroom-neon-perimeter-line {
+  stroke-width: 2.8px;
+  filter: url("#reelroom-neon-core");
+}
+
+@keyframes reelroom-neon-breathe {
+  0%, 100% { opacity: .76; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reelroom-neon-perimeter { animation: none; }
+  .reelroom-neon-perimeter animateTransform { display: none; }
+}
+
 .reelroom-screen {
   position: relative;
   padding-top: .7rem;
