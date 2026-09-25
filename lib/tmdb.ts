@@ -193,15 +193,16 @@ async function getMovieCommercialDetails(movieId: number, token: string) {
 }
 
 function upcomingSignalCount(movie: TmdbMovie) {
-  const marketHype = (movie.popularity ?? 0) >= 10 || (movie.vote_count ?? 0) >= 100;
+  const audienceDemand =
+    ((movie.popularity ?? 0) >= 8 && (movie.vote_count ?? 0) >= 25) ||
+    ((movie.vote_average ?? 0) >= 6.5 && (movie.vote_count ?? 0) >= 50);
+  const marketHype = (movie.popularity ?? 0) >= 8 || (movie.vote_count ?? 0) >= 50;
   const productionBudget = (movie.budget ?? 0) >= 15_000_000;
   // Upcoming titles rarely have realized revenue, so use budget and audience demand as a forecast.
   const boxOfficeViability =
     (movie.revenue ?? 0) >= 40_000_000 ||
-    ((movie.budget ?? 0) >= 15_000_000 && (movie.popularity ?? 0) >= 10) ||
-    ((movie.revenue ?? 0) === 0 &&
-      (movie.popularity ?? 0) >= 10 &&
-      (movie.vote_count ?? 0) >= 50);
+    ((movie.budget ?? 0) >= 15_000_000 && audienceDemand) ||
+    ((movie.revenue ?? 0) === 0 && audienceDemand);
 
   return [marketHype, productionBudget, boxOfficeViability].filter(Boolean).length;
 }
@@ -249,9 +250,9 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
       candidates.map(async (movie) => {
         try {
           const details = await getMovieCommercialDetails(movie.id, token);
-          return details ? { ...movie, ...details } : null;
+          return { ...movie, ...(details ?? {}) };
         } catch {
-          return null;
+          return movie;
         }
       }),
     );
