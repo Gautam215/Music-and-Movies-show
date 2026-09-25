@@ -36,7 +36,6 @@ import {
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
-import { SpotifyWaveform } from "@/components/ui/spotify-waveform";
 import HolographicBeams from "@/components/ui/beams-background";
 import { cn } from "@/lib/utils";
 import type { Movie } from "@/lib/movie-types";
@@ -1601,8 +1600,6 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,9,11,.98)_0%,rgba(8,9,11,.86)_36%,rgba(8,9,11,.42)_72%,rgba(8,9,11,.7)_100%),linear-gradient(180deg,rgba(8,9,11,.4),rgba(8,9,11,.94))]"
           aria-hidden="true"
         />
-        <SpotifyWaveform className="absolute inset-0 opacity-35" />
-
         <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
           <div className="flex min-w-0 flex-col gap-5">
             <div className="space-y-5">
