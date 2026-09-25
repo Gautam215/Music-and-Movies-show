@@ -276,22 +276,6 @@ async function getMovieCommercialDetails(movieId: number, token: string, include
   >;
 }
 
-function upcomingSignalCount(movie: TmdbMovie) {
-  const audienceDemand =
-    (movie.popularity ?? 0) >= 4 ||
-    (movie.vote_count ?? 0) >= 10 ||
-    (movie.vote_average ?? 0) >= 6;
-  const marketHype = (movie.popularity ?? 0) >= 4 || (movie.vote_count ?? 0) >= 10;
-  const productionBudget = (movie.budget ?? 0) >= 10_000_000;
-  // Upcoming titles rarely have realized revenue, so use budget and audience demand as a forecast.
-  const boxOfficeViability =
-    (movie.revenue ?? 0) >= 40_000_000 ||
-    ((movie.budget ?? 0) >= 10_000_000 && audienceDemand) ||
-    ((movie.revenue ?? 0) === 0 && audienceDemand);
-
-  return [marketHype, productionBudget, boxOfficeViability].filter(Boolean).length;
-}
-
 export async function getUpcomingMovies(): Promise<Movie[] | null> {
   const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
   if (!token) return null;
@@ -342,11 +326,10 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
       }),
     );
     const results = enriched
-      .filter((movie): movie is TmdbMovie => movie !== null && upcomingSignalCount(movie) >= 2)
       .sort(
         (a, b) =>
-          upcomingSignalCount(b) - upcomingSignalCount(a) ||
           (b.popularity ?? 0) - (a.popularity ?? 0) ||
+          (b.vote_average ?? 0) - (a.vote_average ?? 0) ||
           releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date),
       )
       .slice(0, 9);
@@ -372,8 +355,8 @@ const getDailyMovieUpdatesCached = unstable_cache(
       comingSoon: comingSoon ?? [],
     };
   },
-  ["reelscape-daily-movie-updates"],
-  { revalidate: 86_400, tags: ["reelscape-daily-movie-updates"] },
+  ["reelscape-daily-movie-updates-v2"],
+  { revalidate: 86_400, tags: ["reelscape-daily-movie-updates-v2"] },
 );
 
 export async function getDailyMovieUpdates() {
