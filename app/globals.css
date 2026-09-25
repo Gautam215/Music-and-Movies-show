@@ -405,16 +405,6 @@ body:has(.reelroom-app[data-background="black-hole"]) .home-page-content .reelro
 body:has(.reelroom-app[data-background="black-hole"]) .home-page-content .reelroom-poster-card > div:last-child { padding-top: .5rem; }
 body:has(.reelroom-app[data-background="black-hole"]) .home-page-content .reelroom-poster-card h3 { font-size: .78rem; }
 body:has(.reelroom-app[data-background="black-hole"]) .home-page-content > section { max-width: 1180px; margin-inline: auto; }
-body:has(.reelroom-app[data-background="black-hole"]) .reelroom-featured-screening {
-  background: linear-gradient(145deg, hsl(var(--surface-2) / .72), hsl(var(--surface) / .42));
-  border-color: hsl(var(--border-strong) / .78);
-  box-shadow: 0 22px 60px hsl(var(--canvas) / .34), inset 0 1px hsl(var(--ink) / .1);
-  backdrop-filter: blur(22px) saturate(1.25);
-}
-body:has(.reelroom-app[data-background="black-hole"]) .reelroom-featured-screening:hover {
-  border-color: hsl(var(--amber) / .62);
-  box-shadow: 0 28px 70px hsl(var(--canvas) / .42), inset 0 1px hsl(var(--ink) / .14);
-}
 .reelroom-movie-stream {
   position: fixed;
   top: 0;
