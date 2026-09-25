@@ -50,6 +50,13 @@ function setRefreshedCookies(
   return persistSpotifyToken(response, token);
 }
 
+function spotifyErrorHeaders(upstreamResponse: Response | null) {
+  const retryAfter = upstreamResponse?.headers.get("retry-after");
+  return retryAfter
+    ? { ...spotifyPrivateHeaders(), "Retry-After": retryAfter }
+    : spotifyPrivateHeaders();
+}
+
 export async function GET(request: Request) {
   const playlistName = new URL(request.url).searchParams.get("name")?.trim() || "Hehe";
   let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
@@ -136,7 +143,7 @@ export async function GET(request: Request) {
             : "Spotify playlists could not be loaded.";
     const response = NextResponse.json(
       { error: message, needsReauth: status === 401 || status === 403 },
-      { status, headers: spotifyPrivateHeaders() },
+      { status, headers: spotifyErrorHeaders(playlistsResponse) },
     );
     return status === 401
       ? clearSpotifyTokenCookies(response)
@@ -194,7 +201,7 @@ export async function GET(request: Request) {
                 : "Tracks from this Spotify playlist could not be loaded.",
         needsReauth: status === 401 || status === 403,
       },
-      { status, headers: spotifyPrivateHeaders() },
+      { status, headers: spotifyErrorHeaders(itemsResponse) },
     );
     return status === 401
       ? clearSpotifyTokenCookies(response)

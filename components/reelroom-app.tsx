@@ -729,6 +729,8 @@ export function ReelroomApp({
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
   const soundtrackAbortRef = useRef<AbortController | null>(null);
   const spotifyAuthWindowRef = useRef<Window | null>(null);
+  const spotifyPlaylistRequestRef = useRef<Promise<void> | null>(null);
+  const spotifyPlaylistRetryAtRef = useRef(0);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -754,43 +756,64 @@ export function ReelroomApp({
     if (!spotifyConnected) return;
 
     let cancelled = false;
-    const loadPlaylist = async () => {
-      setSpotifyPlaylistLoading(true);
-      try {
-        const response = await fetch("/api/spotify/playlist?name=Hehe", {
-          cache: "no-store",
-          credentials: "same-origin",
-        });
-        const payload = (await response.json().catch(() => null)) as {
-          playlistName?: string;
-          songs?: Song[];
-          error?: string;
-        } | null;
-        if (cancelled) return;
-        if (!response.ok) {
-          setSpotifyCatalog([]);
-          setSpotifyPlaylistError(payload?.error ?? "Hehe playlist tracks are unavailable.");
-          return;
+    const loadPlaylist = () => {
+      if (cancelled || spotifyPlaylistRequestRef.current) return spotifyPlaylistRequestRef.current;
+      if (Date.now() < spotifyPlaylistRetryAtRef.current) return null;
+
+      const request = (async () => {
+        setSpotifyPlaylistLoading(true);
+        try {
+          const response = await fetch("/api/spotify/playlist?name=Hehe", {
+            cache: "no-store",
+            credentials: "same-origin",
+          });
+          const payload = (await response.json().catch(() => null)) as {
+            playlistName?: string;
+            songs?: Song[];
+            error?: string;
+          } | null;
+          if (cancelled) return;
+          if (!response.ok) {
+            if (response.status !== 429) setSpotifyCatalog([]);
+            if (response.status === 429) {
+              const retryAfter = Number(response.headers.get("retry-after"));
+              spotifyPlaylistRetryAtRef.current = Date.now() + Math.max(
+                Number.isFinite(retryAfter) ? retryAfter * 1000 : 30_000,
+                15_000,
+              );
+            }
+            setSpotifyPlaylistError(payload?.error ?? "Hehe playlist tracks are unavailable.");
+            return;
+          }
+          spotifyPlaylistRetryAtRef.current = 0;
+          setSpotifyPlaylistName(payload?.playlistName ?? "Hehe");
+          setSpotifyCatalog(payload?.songs ?? []);
+          setSpotifyPlaylistError(null);
+        } catch {
+          if (!cancelled) setSpotifyPlaylistError("Hehe playlist tracks are unavailable.");
+        } finally {
+          if (!cancelled) setSpotifyPlaylistLoading(false);
         }
-        setSpotifyPlaylistName(payload?.playlistName ?? "Hehe");
-        setSpotifyCatalog(payload?.songs ?? []);
-        setSpotifyPlaylistError(null);
-      } catch {
-        if (!cancelled) setSpotifyPlaylistError("Hehe playlist tracks are unavailable.");
-      } finally {
-        if (!cancelled) setSpotifyPlaylistLoading(false);
-      }
+      })();
+      spotifyPlaylistRequestRef.current = request;
+      void request.finally(() => {
+        if (spotifyPlaylistRequestRef.current === request) spotifyPlaylistRequestRef.current = null;
+      });
+      return request;
+    };
+    const refreshPlaylist = () => {
+      if (document.visibilityState === "visible") void loadPlaylist();
     };
 
     void loadPlaylist();
     const refreshInterval = window.setInterval(loadPlaylist, 120_000);
-    window.addEventListener("focus", loadPlaylist);
-    document.addEventListener("visibilitychange", loadPlaylist);
+    window.addEventListener("focus", refreshPlaylist);
+    document.addEventListener("visibilitychange", refreshPlaylist);
     return () => {
       cancelled = true;
       window.clearInterval(refreshInterval);
-      window.removeEventListener("focus", loadPlaylist);
-      document.removeEventListener("visibilitychange", loadPlaylist);
+      window.removeEventListener("focus", refreshPlaylist);
+      document.removeEventListener("visibilitychange", refreshPlaylist);
     };
   }, [spotifyConnected]);
 
