@@ -55,14 +55,22 @@ export function FloatingNavigation() {
   }, []);
 
   useEffect(() => {
-    const syncContrast = () => setContrastMode(getContrastMode());
+    const syncContrast = () => {
+      window.requestAnimationFrame(() => setContrastMode(getContrastMode()));
+    };
     syncContrast();
+    const delayedSync = window.setTimeout(syncContrast, 80);
     const media = window.matchMedia("(prefers-color-scheme: light)");
     media.addEventListener("change", syncContrast);
+    window.addEventListener("hashchange", syncContrast);
+    window.addEventListener("resize", syncContrast);
     const observer = new MutationObserver(syncContrast);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
     return () => {
+      window.clearTimeout(delayedSync);
       media.removeEventListener("change", syncContrast);
+      window.removeEventListener("hashchange", syncContrast);
+      window.removeEventListener("resize", syncContrast);
       observer.disconnect();
     };
   }, []);
