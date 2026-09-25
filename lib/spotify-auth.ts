@@ -46,16 +46,15 @@ export async function exchangeSpotifyCode(
   codeVerifier: string,
 ) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
+  if (!clientId) return null;
 
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
+      client_id: clientId,
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
@@ -74,16 +73,15 @@ export async function exchangeSpotifyCode(
 
 export async function refreshSpotifyToken(refreshToken: string) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
+  if (!clientId) return null;
 
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
+      client_id: clientId,
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),

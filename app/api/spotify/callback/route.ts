@@ -33,8 +33,14 @@ function redirectToSongs(request: Request, status: string, popupMode: boolean) {
   const message = JSON.stringify({ type: "reelroom-spotify-auth", status });
   const safeOrigin = JSON.stringify(origin);
   const safeDestination = JSON.stringify(destination.toString());
+  const connected = status === "connected";
+  const heading = connected ? "Spotify connected" : "Spotify connection failed";
+  const copy = connected
+    ? "Returning to Reelscape..."
+    : "This window will stay open so you can review the error and try again.";
+  const closeScript = connected ? "window.setTimeout(() => window.close(), 80);" : "";
   const response = new NextResponse(
-    `<!doctype html><html><head><meta charset="utf-8"><title>Spotify connection</title></head><body><p>Returning to Reelscape...</p><script>const message=${message};if(window.opener&&!window.opener.closed){window.opener.postMessage(message,${safeOrigin});window.close();}else{window.location.replace(${safeDestination});}</script></body></html>`,
+    `<!doctype html><html><head><meta charset="utf-8"><title>${heading}</title></head><body><p>${copy}</p><script>const message=${message};if(window.opener&&!window.opener.closed){window.opener.postMessage(message,${safeOrigin});${closeScript}}else{window.location.replace(${safeDestination});}</script></body></html>`,
     { headers: { "Cache-Control": "no-store", "Content-Type": "text/html; charset=utf-8" } },
   );
   return clearOAuthCookies(response);
