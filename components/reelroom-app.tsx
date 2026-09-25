@@ -1572,11 +1572,31 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         <SpotifyWaveform className="absolute inset-0 opacity-35" />
 
         <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
-          <div className="flex min-w-0 flex-col justify-between gap-10">
+          <div className="flex min-w-0 flex-col gap-5">
             <div className="space-y-5">
-              <span className="inline-flex w-fit rounded-full border border-white/15 bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.24em] text-ink-2 backdrop-blur">
-                listen app
-              </span>
+              <div className="flex flex-wrap items-end gap-3">
+                <span className="inline-flex w-fit rounded-full border border-white/15 bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.24em] text-ink-2 backdrop-blur">
+                  listen app
+                </span>
+                <div className="flex flex-wrap gap-3 sm:ml-auto">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={startListening}
+                    className="h-10 rounded-full px-6 text-xs"
+                  >
+                    {activeSong ? (spotifyPaused ? "Start listening" : "Now playing") : "Connect Spotify"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
+                    className="h-10 rounded-full px-6 text-xs hover:bg-white/[.06]"
+                  >
+                    View playlist
+                  </Button>
+                </div>
+              </div>
               <div className="space-y-4">
                 <h1 className="max-w-2xl text-5xl font-semibold leading-[.9] tracking-[-.075em] text-ink sm:text-6xl lg:text-7xl">
                   Sound that feels like a private concert
@@ -1587,37 +1607,22 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-              <Button
-                type="button"
-                variant="primary"
-                onClick={startListening}
-                className="h-12 rounded-full px-8 text-sm"
-              >
-                {activeSong ? (spotifyPaused ? "Start listening" : "Now playing") : "Connect Spotify"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-12 rounded-full px-8 text-sm hover:bg-white/[.06]"
-              >
-                View playlist
-              </Button>
-            </div>
-
-            <div className="rounded-3xl border border-white/[.12] bg-black/20 p-6 backdrop-blur-xl">
-              <div className="mb-4 flex size-10 items-center justify-center rounded-full border border-white/[.16] bg-white/[.08] text-ink-2">
+            <div className="max-w-xl rounded-3xl border border-white/[.12] bg-black/20 px-4 py-3 backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/[.16] bg-white/[.08] text-ink-2">
                 <Headphones className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-ink">{spotifyPlaylistName} / recommended</h2>
+                  <p className="mt-0.5 truncate text-xs leading-5 text-ink-2">
+                    {spotifyPlaylistLoading
+                      ? "Syncing the tracks attached to this scene..."
+                      : spotifyConnected
+                        ? `${filteredSongs.length} tracks from Recommended tracks for the scene.`
+                        : "Connect Spotify to load the recommended tracks for this scene."}
+                  </p>
+                </div>
               </div>
-              <h2 className="text-lg font-semibold text-ink">{spotifyPlaylistName} / recommended</h2>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-2">
-                {spotifyPlaylistLoading
-                  ? "Syncing the tracks attached to this scene..."
-                  : spotifyConnected
-                    ? `${filteredSongs.length} tracks from Recommended tracks for the scene.`
-                    : "Connect Spotify to load the recommended tracks for this scene."}
-              </p>
             </div>
           </div>
 
