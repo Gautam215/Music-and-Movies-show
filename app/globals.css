@@ -145,11 +145,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 .reelroom-more-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: bottom left; }
 .reelroom-header-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: top right; }
-.reelroom-reel-backdrop { animation: reelroom-backdrop-in .72s ease-out both; }
 .reelroom-movie-card { animation: reelroom-card-float 6.8s ease-in-out infinite; animation-delay: var(--reelroom-float-delay, 0s); transition: transform 360ms cubic-bezier(.16, 1.35, .3, 1); }
 .reelroom-movie-card:hover,
 .reelroom-movie-card:focus-visible { animation-play-state: paused; transform: translateY(-8px) scale(1.025); }
-.reelroom-movie-card-active > div:first-child { border-color: hsl(var(--amber) / .68); box-shadow: 0 20px 42px hsl(var(--canvas) / .3), inset 0 1px hsl(var(--ink) / .12); }
+.reelroom-reel-preview { display: inline-block; width: fit-content; max-width: min(100%, 52rem); border: 1px solid hsl(var(--border)); border-radius: 1rem; background: hsl(var(--surface) / .58); padding: 1.25rem; animation: reelroom-menu-in .38s ease-out both; }
 
 /* Liquid-glass treatment is reserved for navigation and floating controls. */
 aside.sticky {
@@ -840,19 +839,11 @@ body:has(.reelroom-app[data-background="black-hole"]) .home-page-content > secti
 .reelroom-movie-selection { width: min(27rem, 31vw); }
 .reelroom-movie-selection-card { max-height: min(70vh, 30rem); overflow: auto; }
 .reelroom-movie-grid {
-  display: flex;
-  gap: 1rem;
-  margin-inline: -.25rem;
-  overflow-x: auto;
-  padding: .25rem .25rem .85rem;
-  scroll-snap-type: x proximity;
-  scrollbar-color: hsl(var(--border-strong)) transparent;
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3vw, 2.5rem) clamp(.75rem, 1.5vw, 1.25rem);
 }
-.reelroom-movie-grid::-webkit-scrollbar { height: 6px; }
-.reelroom-movie-grid::-webkit-scrollbar-track { background: transparent; }
-.reelroom-movie-grid::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--border-strong)); }
-.reelroom-movie-card { flex: 0 0 clamp(10.5rem, 24vw, 13.5rem); scroll-snap-align: start; }
+.reelroom-movie-card { min-width: 0; }
 .reelroom-note-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -873,6 +864,8 @@ body:has(.reelroom-app[data-background="black-hole"]) .reelroom-arrow-glass:hove
 body:has(.reelroom-app[data-background="black-hole"]) [aria-label="Black hole artwork"] h1 { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0; }
 
 @media (max-width: 767px) {
+  .reelroom-movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem .85rem; }
+  .reelroom-reel-preview { padding: 1rem; }
   .reelroom-stream-top { height: 38%; padding-inline: .75rem; }
   .reelroom-stream-details { width: 100%; max-width: none; }
   .reelroom-stream-dropzone { bottom: .75rem; max-width: 20rem; padding-inline: .8rem; }

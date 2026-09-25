@@ -468,19 +468,7 @@ function CurrentReelSection({
   onViewAll: () => void;
 }) {
   return (
-    <section
-      className="relative isolate overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6"
-      aria-live="polite"
-    >
-      <img
-        key={activeMovie.id}
-        src={activeMovie.backdrop}
-        alt=""
-        aria-hidden="true"
-        className="reelroom-reel-backdrop pointer-events-none absolute inset-[-4rem] size-[calc(100%+8rem)] object-cover opacity-20"
-      />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,11,18,.78),rgba(8,11,18,.96))]" />
-      <div className="relative z-10 space-y-5">
+    <section className="relative space-y-7" aria-live="polite">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
@@ -512,7 +500,7 @@ function CurrentReelSection({
                 item.id === activeMovie.id && "reelroom-movie-card-active",
               )}
             >
-              <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl border border-border bg-surface-2 shadow-[0_16px_34px_rgba(0,0,0,.2)] transition duration-500 group-hover:border-amber/60 group-hover:shadow-[0_24px_48px_rgba(0,0,0,.34)]">
+              <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl">
                 <img
                   src={item.poster}
                   alt={`${item.title} poster`}
@@ -523,7 +511,12 @@ function CurrentReelSection({
                   {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
                 </span>
               </div>
-              <strong className="mt-3 block truncate font-display text-sm font-semibold text-ink">
+              <strong
+                className={cn(
+                  "mt-3 block truncate font-display text-sm font-semibold",
+                  item.id === activeMovie.id ? "text-amber" : "text-ink",
+                )}
+              >
                 {item.title}
               </strong>
               <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
@@ -532,28 +525,48 @@ function CurrentReelSection({
             </button>
           ))}
         </div>
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 sm:p-6">
-        <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-cobalt/10 to-transparent" />
-        <div className="relative z-10 max-w-2xl">
-          <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-            Tonight&apos;s note / {activeMovie.release}
+        <div className="relative">
+          <div key={activeMovie.id} className="reelroom-reel-preview">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.12em] text-amber">
+              <span>{activeMovie.status === "UPCOMING" ? "Upcoming" : "Now playing"}</span>
+              <span className="text-muted">{activeMovie.release}</span>
+              <span className="text-muted">{activeMovie.meta}</span>
+              <span className="text-muted">
+                {activeMovie.rating === "—" ? "NR" : `★ ${activeMovie.rating}`}
+              </span>
+              <span className="text-muted">${activeMovie.price}</span>
+            </div>
+            <h3 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
+              {activeMovie.title}
+            </h3>
+            <p className="mt-3 max-w-3xl text-xs leading-6 text-ink-2">
+              {activeMovie.synopsis}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {activeMovie.genres.map((genre) => (
+                <span
+                  key={genre}
+                  className="font-mono text-[10px] uppercase tracking-[.12em] text-muted"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+              <span className="text-amber">Showtimes</span>
+              {activeMovie.showtimes.map((showtime) => (
+                <span key={showtime}>{showtime}</span>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpen(activeMovie)}
+              className="mt-5 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-amber"
+            >
+              Open film details <ArrowRight className="size-3.5" />
+            </button>
           </div>
-          <h3 className="mt-2 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink">
-            {activeMovie.title}
-          </h3>
-          <p className="mt-3 text-xs leading-6 text-ink-2">
-            {activeMovie.synopsis}
-          </p>
-          <button
-            type="button"
-            onClick={() => onOpen(activeMovie)}
-            className="mt-4 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-amber"
-          >
-            Open film details <ArrowRight className="size-3.5" />
-          </button>
         </div>
-      </div>
-      </div>
     </section>
   );
 }
@@ -1378,7 +1391,9 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
 
   const activeReelMovie =
     catalog.find((item) => item.id === activeReelMovieId) ?? heroMovie;
-  const shelfMovies = catalog.slice(0, 10);
+  const shelfMovies = Array.from(
+    new Map([...catalog, ...movies].map((movie) => [movie.id, movie])).values(),
+  ).slice(0, 10);
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
