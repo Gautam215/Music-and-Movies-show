@@ -427,7 +427,7 @@ function FeaturedScreening({
   return (
     <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
       <div>
-        <div className="relative min-h-[22rem] overflow-hidden rounded-2xl md:min-h-[31rem]">
+        <div className="relative min-h-[22rem] overflow-hidden md:min-h-[31rem]">
           <img
             src={item.poster}
             alt={`${item.title} poster`}
