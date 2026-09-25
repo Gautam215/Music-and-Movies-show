@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   Archive,
   Bell,
@@ -248,6 +249,7 @@ export function NotificationCenter() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [swipe, setSwipe] = useState<SwipeState>(null);
+  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
 
   const groups = profileSession ? memberGroups(profileSession.name) : guestGroups;
   const allItems = groups.flatMap((group) => group.items);
@@ -316,6 +318,13 @@ export function NotificationCenter() {
   const openPanel = () => {
     setProfileSession(readProfileSession());
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    const trigger = triggerRef.current?.getBoundingClientRect();
+    if (trigger && !window.matchMedia("(max-width: 640px)").matches) {
+      setPanelPosition({
+        top: trigger.bottom + 12,
+        left: Math.max(12, Math.min(window.innerWidth - 392, trigger.right - 380)),
+      });
+    }
     setMounted(true);
     setClosing(false);
     setAnnouncement(unreadCount ? `Notifications opened. ${unreadCount} unread update${unreadCount === 1 ? "" : "s"}.` : "Notifications opened. You are all caught up.");
@@ -433,8 +442,8 @@ export function NotificationCenter() {
       </button>
       <span className="sr-only" role="status" aria-live="polite">{announcement}</span>
 
-      {mounted ? (
-        <div className="notification-center-layer">
+      {mounted && typeof document !== "undefined" ? createPortal((
+        <div className="notification-center-layer" style={{ "--notification-top": `${panelPosition.top}px`, "--notification-left": `${panelPosition.left}px` } as CSSProperties}>
           <button type="button" className="notification-center-backdrop" aria-label="Close notifications" tabIndex={-1} onClick={() => closePanel(false)} />
           <section
             ref={panelRef}
@@ -564,7 +573,7 @@ export function NotificationCenter() {
             <p className="notification-center-footer">{profileSession ? "Personalized to your saved films, songs, and screenings." : "Swipe right to read · swipe left to archive"}</p>
           </section>
         </div>
-      ) : null}
+      ), document.body) : null}
     </div>
   );
 }
