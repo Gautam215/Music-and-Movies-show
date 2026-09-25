@@ -235,7 +235,7 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
     const enriched = await Promise.all(
       candidates.map(async (movie) => {
         try {
-          const details = await getMovieCommercialDetails(movie.id, token);
+          const details = await getMovieCommercialDetails(movie.id, token, true);
           return { ...movie, ...(details ?? {}) };
         } catch {
           return movie;
@@ -262,8 +262,9 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
   }
 }
 
-async function getMovieCommercialDetails(movieId: number, token: string) {
-  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US&append_to_response=credits`, {
+async function getMovieCommercialDetails(movieId: number, token: string, includeCredits = false) {
+  const appendCredits = includeCredits ? "&append_to_response=credits" : "";
+  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US${appendCredits}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
