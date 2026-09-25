@@ -27,14 +27,14 @@ export function FloatingNavigation() {
 
   if (pathname !== "/") return null;
 
+  const visibleItems = items.filter(([id]) => id !== activePage);
+
   return (
     <nav className="reelroom-floating-nav" aria-label="Primary navigation">
-      {items.map(([id, label, href]) => {
-        const active = activePage === id;
+      {visibleItems.map(([id, label, href]) => {
         return (
-          <a key={id} href={href} aria-current={active ? "page" : undefined} data-active={active}>
+          <a key={id} href={href}>
             <span>{label}</span>
-            <span className="reelroom-floating-nav-dot" aria-hidden="true" />
           </a>
         );
       })}
