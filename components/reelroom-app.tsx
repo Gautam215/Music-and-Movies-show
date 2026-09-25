@@ -417,26 +417,26 @@ function PosterCard({
 
 function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie) => void }) {
   return (
-    <article className="group reelroom-featured-screening grid w-full overflow-hidden rounded-2xl border border-border bg-surface md:grid-cols-[minmax(0,1.28fr)_minmax(12rem,.72fr)]">
-      <div className="relative min-h-[22rem] overflow-hidden md:order-2 md:min-h-[31rem]">
+    <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
+      <div className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border bg-surface shadow-cinematic md:min-h-[31rem]">
         <img
           src={item.poster}
           alt={`${item.title} poster`}
           className="size-full object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent md:bg-gradient-to-l md:from-transparent md:via-transparent md:to-surface" />
+        <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-canvas/10 to-transparent" />
         <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
-          TMDB / {item.status}
+          Featured event
         </span>
       </div>
-      <div className="flex flex-col justify-center p-5 sm:p-7 md:order-1 md:p-10">
+      <div className="flex flex-col justify-center py-2 md:py-8">
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-          Highly anticipated / next on the reel
+          First Screening
         </div>
-        <h2 className="mt-4 max-w-xl font-display text-4xl font-semibold leading-[.94] tracking-[-.07em] text-ink sm:text-5xl">
+        <h2 className="mt-4 max-w-xl font-display text-4xl font-semibold leading-[.94] tracking-[-.07em] text-ink sm:text-5xl md:text-6xl">
           {item.title}
         </h2>
-        <div className="mt-5 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
           <span className="flex items-center gap-1.5 text-amber">
             <Clock3 className="size-3" /> {item.release}
           </span>
@@ -444,6 +444,8 @@ function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie
           <span>★ {item.rating}</span>
           <span className="text-amber">•</span>
           <span>{item.meta}</span>
+          <span className="text-amber">•</span>
+          <span>Approx. ₹{item.price}</span>
         </div>
         <p className="mt-5 max-w-xl text-sm leading-6 text-ink-2">
           {item.synopsis}
@@ -453,7 +455,7 @@ function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie
           onClick={() => onOpen(item)}
           className="reelroom-action-button mt-4 inline-flex items-center gap-2 rounded-full border border-amber/60 bg-ink/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition"
         >
-          See film details <ArrowRight className="size-3.5" />
+          See event details <ArrowRight className="size-3.5" />
         </button>
       </div>
     </article>
