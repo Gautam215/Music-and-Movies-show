@@ -258,7 +258,7 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
 @media (max-width: 1023px) {
   .reelroom-updates-header { padding-inline: 1rem; }
   .reelroom-updates-main .updates-carousel-header { padding: 6rem 1.25rem 0; }
-  .reelroom-updates-main .updates-carousel-layout { min-height: 100svh; }
+  .reelroom-updates-main .updates-carousel-layout { min-height: 100svh; grid-template-columns: minmax(0, 1fr); }
   .reelroom-updates-main .updates-carousel-stage { min-height: 72svh; }
   .reelroom-updates-main .updates-carousel-panel { min-height: 0; padding: 2rem 1.25rem 2.5rem; }
 }
