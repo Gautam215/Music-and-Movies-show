@@ -39,6 +39,11 @@ type TmdbMovie = {
   genre_ids?: number[];
   budget?: number;
   revenue?: number;
+  runtime?: number;
+  production_companies?: Array<{ name?: string }>;
+  credits?: {
+    cast?: Array<{ name?: string; order?: number }>;
+  };
 };
 
 type TmdbResponse = { results?: TmdbMovie[] };
@@ -225,21 +230,48 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
       })
       .slice(0, 10);
 
-    return candidates.length === 10
-      ? candidates.map((movie, index) => mapMovie(movie, index, "trending"))
-      : null;
+    if (candidates.length !== 10) return null;
+
+    const enriched = await Promise.all(
+      candidates.map(async (movie) => {
+        try {
+          const details = await getMovieCommercialDetails(movie.id, token);
+          return { ...movie, ...(details ?? {}) };
+        } catch {
+          return movie;
+        }
+      }),
+    );
+
+    return enriched.map((movie, index) => ({
+      ...mapMovie(movie, index, "trending"),
+      runtime: movie.runtime,
+      production: movie.production_companies
+        ?.map((company) => company.name?.trim())
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" · "),
+      actors: movie.credits?.cast
+        ?.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((actor) => actor.name?.trim())
+        .filter((name): name is string => Boolean(name))
+        .slice(0, 4),
+    }));
   } catch {
     return null;
   }
 }
 
 async function getMovieCommercialDetails(movieId: number, token: string) {
-  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US`, {
+  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US&append_to_response=credits`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
   if (!response.ok) return null;
-  return (await response.json()) as Pick<TmdbMovie, "budget" | "revenue">;
+  return (await response.json()) as Pick<
+    TmdbMovie,
+    "budget" | "revenue" | "runtime" | "production_companies" | "credits"
+  >;
 }
 
 function upcomingSignalCount(movie: TmdbMovie) {

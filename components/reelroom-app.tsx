@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
+import { UpdatesCarousel } from "@/components/ui/updates-carousel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
@@ -1440,6 +1441,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const shelfMovies = Array.from(
     new Map([...catalog, ...movies].map((movie) => [movie.id, movie])).values(),
   ).slice(0, 10);
+  const updatesMovies = shelfMovies.slice(0, 9);
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
@@ -1638,13 +1640,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   );
 
   const updatesWithWheel = (
-    <div className="h-auto min-h-[42rem] w-full overflow-hidden lg:h-[calc(100vh-5rem)] lg:min-h-[32rem]">
-      <WorksWheel
-        items={wheelItems}
-        label="Upcoming '26"
-        action="Open"
-        className="h-full min-h-0"
-      />
+    <div className="w-full">
+      <UpdatesCarousel movies={updatesMovies} onOpen={setSelected} />
     </div>
   );
   const loginPage = (

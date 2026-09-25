@@ -11,4 +11,7 @@ export type Movie = {
   genres: string[];
   release: string;
   price: number;
+  runtime?: number;
+  production?: string;
+  actors?: string[];
 };
