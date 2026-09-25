@@ -1062,8 +1062,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       distance={8}
       elevation={7}
       focus={[0.7, 0.48]}
-      scrim="left"
-      scrimStrength={0.9}
+       scrim="none"
       glow={1.2}
       starBrightness={0.55}
       spinSpeed={0.36}
