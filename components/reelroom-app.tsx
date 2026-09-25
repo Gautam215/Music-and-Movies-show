@@ -64,6 +64,20 @@ type SpotifyPlayer = {
   resume: () => Promise<void>;
 };
 
+type SpotifySession = {
+  connected?: boolean;
+  product?: string | null;
+};
+
+async function fetchSpotifySession() {
+  const response = await fetch("/api/spotify/session", {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as SpotifySession;
+}
+
 declare global {
   interface Window {
     onSpotifyWebPlaybackSDKReady?: () => void;
@@ -621,12 +635,33 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   }, []);
 
   useEffect(() => {
+    if (!spotifyConnected && !spotifyConnecting) return;
+    const syncSession = () => {
+      void fetchSpotifySession().then((session) => {
+        if (session?.connected) {
+          setSpotifyConnecting(false);
+          setSpotifyConnected(true);
+          if (!spotifyReady) setSpotifyStatus("Preparing player");
+          return;
+        }
+        if (spotifyConnected) {
+          setSpotifyConnected(false);
+          setSpotifyReady(false);
+          setSpotifyStatus("Reconnect Spotify");
+        }
+      }).catch(() => undefined);
+    };
+    window.addEventListener("focus", syncSession);
+    document.addEventListener("visibilitychange", syncSession);
+    return () => {
+      window.removeEventListener("focus", syncSession);
+      document.removeEventListener("visibilitychange", syncSession);
+    };
+  }, [spotifyConnected, spotifyConnecting, spotifyReady]);
+
+  useEffect(() => {
     let cancelled = false;
-    fetch("/api/spotify/session", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return (await response.json()) as { connected?: boolean };
-      })
+    fetchSpotifySession()
       .then((session) => {
         if (!cancelled && session?.connected) {
           setSpotifyConnected(true);
@@ -640,15 +675,30 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const onSpotifyAuthMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "reelroom-spotify-auth") return;
       setSpotifyConnecting(false);
       spotifyAuthWindowRef.current = null;
       if (event.data.status === "connected") {
-        setSpotifyConnected(true);
-        setSpotifyStatus("Preparing player");
-        setSpotifyError(null);
+        setSpotifyStatus("Checking Spotify session");
+        void fetchSpotifySession().then((session) => {
+          if (cancelled) return;
+          if (session?.connected) {
+            setSpotifyConnected(true);
+            setSpotifyStatus("Preparing player");
+            setSpotifyError(null);
+          } else {
+            setSpotifyStatus("Connect Spotify");
+            setSpotifyError("Spotify did not return a usable playback session.");
+          }
+        }).catch(() => {
+          if (!cancelled) {
+            setSpotifyStatus("Connect Spotify");
+            setSpotifyError("Spotify session verification failed.");
+          }
+        });
       } else {
         setSpotifyStatus("Connect Spotify");
         setSpotifyError("Spotify connection was not completed.");
@@ -656,7 +706,10 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     };
 
     window.addEventListener("message", onSpotifyAuthMessage);
-    return () => window.removeEventListener("message", onSpotifyAuthMessage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("message", onSpotifyAuthMessage);
+    };
   }, []);
 
   useEffect(() => {

@@ -18,7 +18,21 @@ export async function GET() {
   const refreshToken = cookieStore.get(SPOTIFY_REFRESH_COOKIE)?.value;
   let refreshedToken: { access_token?: string; refresh_token?: string; expires_in?: number } | null = null;
 
-  if (!accessToken) return NextResponse.json({ connected: false });
+  if (!accessToken && refreshToken) {
+    refreshedToken = await refreshSpotifyToken(refreshToken);
+    accessToken = refreshedToken?.access_token;
+  }
+
+  if (!accessToken) {
+    const response = NextResponse.json(
+      { connected: false },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+    if (refreshToken) {
+      response.cookies.set(SPOTIFY_REFRESH_COOKIE, "", spotifyCookieOptions(0));
+    }
+    return response;
+  }
 
   let profileResponse = await fetch("https://api.spotify.com/v1/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -37,7 +51,15 @@ export async function GET() {
   }
 
   if (!profileResponse.ok) {
-    return NextResponse.json({ connected: false });
+    const response = NextResponse.json(
+      { connected: false },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+    if (profileResponse.status === 401) {
+      response.cookies.set(SPOTIFY_ACCESS_COOKIE, "", spotifyCookieOptions(0));
+      response.cookies.set(SPOTIFY_REFRESH_COOKIE, "", spotifyCookieOptions(0));
+    }
+    return response;
   }
 
   const profile = (await profileResponse.json()) as SpotifyProfile;
@@ -45,7 +67,7 @@ export async function GET() {
     connected: true,
     displayName: profile.display_name ?? "Spotify listener",
     product: profile.product ?? null,
-  });
+  }, { headers: { "Cache-Control": "private, no-store" } });
 
   if (refreshedToken?.access_token) {
     response.cookies.set(
@@ -61,5 +83,6 @@ export async function GET() {
       );
     }
   }
+
   return response;
 }
