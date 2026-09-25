@@ -30,7 +30,7 @@ function getContrastMode(): ContrastMode {
     return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
   };
   const luminance = 0.2126 * toLinear(red) + 0.7152 * toLinear(green) + 0.0722 * toLinear(blue);
-  return luminance > 0.48 ? "light" : "dark";
+  return luminance > 0.38 ? "light" : "dark";
 }
 
 export function FloatingNavigation() {
