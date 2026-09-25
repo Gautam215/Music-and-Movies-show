@@ -1492,9 +1492,13 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             favorites.includes(item.id) || item.genres.includes(preferredGenre),
         )
       : catalog.filter((item) => item.genres.includes(reelCategory));
-  const shelfMovies = (categoryMovies.length ? categoryMovies : catalog)
-    .filter((item) => item.id !== activeReelMovie.id)
-    .slice(0, 10);
+  const categoryShelfMovies = (categoryMovies.length ? categoryMovies : catalog).filter(
+    (item) => item.id !== activeReelMovie.id,
+  );
+  const shelfMovies = (categoryShelfMovies.length
+    ? categoryShelfMovies
+    : catalog.filter((item) => item.id !== activeReelMovie.id)
+  ).slice(0, 10);
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
