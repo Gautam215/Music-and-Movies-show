@@ -11,10 +11,11 @@ export default async function Page() {
     getUpcomingMovies(),
   ]);
   const fallbackMovies = omdbMovies ?? (await getTrendingMovies());
-  const initialMovies = curatedMovies?.length
-    ? curatedMovies
-    : upcomingMovies?.length
-    ? [...(omdbMovies?.slice(0, 1) ?? []), ...upcomingMovies]
+  const initialMovies = curatedMovies?.length || upcomingMovies?.length
+    ? [...(curatedMovies ?? []), ...(upcomingMovies ?? [])].filter(
+        (movie, index, allMovies) =>
+          allMovies.findIndex((candidate) => candidate.id === movie.id) === index,
+      )
     : fallbackMovies;
   return <ReelroomApp initialMovies={initialMovies ?? undefined} />;
 }

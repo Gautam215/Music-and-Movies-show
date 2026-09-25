@@ -191,13 +191,14 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
   const params = new URLSearchParams({
     language: "en-US",
     region: "US",
-    sort_by: "primary_release_date.asc",
+    sort_by: "popularity.desc",
     include_adult: "false",
     include_video: "false",
     page: "1",
     "primary_release_date.gte": todayValue,
     "primary_release_date.lte": nextYear.toISOString().slice(0, 10),
     with_release_type: "2|3",
+    "vote_count.gte": "5",
   });
 
   try {
@@ -211,10 +212,10 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
     const results = (data.results ?? [])
       .filter((movie) => releaseTimestamp(movie.release_date) >= Date.parse(`${todayValue}T00:00:00Z`))
       .sort((a, b) => {
-        const releaseDifference = releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date);
-        if (releaseDifference !== 0) return releaseDifference;
+        const popularityDifference = (b.popularity ?? 0) - (a.popularity ?? 0);
+        if (popularityDifference !== 0) return popularityDifference;
         const ratingDifference = (b.vote_average ?? 0) - (a.vote_average ?? 0);
-        return ratingDifference || (b.popularity ?? 0) - (a.popularity ?? 0);
+        return ratingDifference || releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date);
       })
       .slice(0, 7);
 
