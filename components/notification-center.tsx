@@ -403,7 +403,7 @@ export function NotificationCenter() {
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLElement>, id: string) => {
-    if ((event.target as HTMLElement).closest("button, a")) return;
+    if ((event.target as HTMLElement).closest(".notification-center-item-actions")) return;
     setSwipe({ id, pointerId: event.pointerId, startX: event.clientX, deltaX: 0 });
     event.currentTarget.setPointerCapture(event.pointerId);
   };
