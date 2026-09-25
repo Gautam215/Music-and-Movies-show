@@ -49,8 +49,8 @@ export interface BlackHoleHeroSectionProps extends React.HTMLAttributes<HTMLDivE
  */
 export function BlackHoleHeroSection({
   imageSrc = "/black-hole.jpg",
-  imagePosition = "78% 52%",
-  imageScale = 1.34,
+  imagePosition = "70% 50%",
+  imageScale = 1,
   scrim = "left",
   scrimStrength = 1,
   className,
