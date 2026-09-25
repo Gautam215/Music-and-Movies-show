@@ -54,7 +54,7 @@ export async function fetchWithBackoff(
   const maxRetries = Math.max(0, options.maxRetries ?? DEFAULT_MAX_RETRIES);
   const baseDelayMs = Math.max(0, options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS);
   const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS);
-  const signal = init.signal;
+  const signal = init.signal ?? undefined;
 
   for (let attempt = 0; ; attempt += 1) {
     let response: Response;
