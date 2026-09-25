@@ -2,6 +2,7 @@ import type { Movie } from "@/lib/movie-types";
 
 const TMDB_ENDPOINT = "https://api.themoviedb.org/3/trending/movie/week";
 const TMDB_UPCOMING_ENDPOINT = "https://api.themoviedb.org/3/discover/movie";
+const TMDB_MOVIE_ENDPOINT = "https://api.themoviedb.org/3/movie";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w780";
 const FALLBACK_POSTER = "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
 const FALLBACK_BACKDROP = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85";
@@ -36,6 +37,8 @@ type TmdbMovie = {
   popularity?: number;
   original_language?: string;
   genre_ids?: number[];
+  budget?: number;
+  revenue?: number;
 };
 
 type TmdbResponse = { results?: TmdbMovie[] };
@@ -180,6 +183,27 @@ function releaseTimestamp(value?: string) {
   return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
 }
 
+async function getMovieCommercialDetails(movieId: number, token: string) {
+  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as Pick<TmdbMovie, "budget" | "revenue">;
+}
+
+function upcomingSignalCount(movie: TmdbMovie) {
+  const marketHype =
+    (movie.popularity ?? 0) >= 12 ||
+    ((movie.vote_average ?? 0) >= 6.5 && (movie.vote_count ?? 0) >= 100);
+  const productionBudget = (movie.budget ?? 0) >= 20_000_000;
+  const boxOfficeViability =
+    (movie.revenue ?? 0) >= 50_000_000 ||
+    ((movie.budget ?? 0) > 0 && (movie.revenue ?? 0) >= (movie.budget ?? 0) * 1.25);
+
+  return [marketHype, productionBudget, boxOfficeViability].filter(Boolean).length;
+}
+
 export async function getUpcomingMovies(): Promise<Movie[] | null> {
   const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
   if (!token) return null;
@@ -209,7 +233,7 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
     if (!response.ok) return null;
 
     const data = (await response.json()) as TmdbResponse;
-    const results = (data.results ?? [])
+    const candidates = (data.results ?? [])
       .filter((movie) => releaseTimestamp(movie.release_date) >= Date.parse(`${todayValue}T00:00:00Z`))
       .sort((a, b) => {
         const popularityDifference = (b.popularity ?? 0) - (a.popularity ?? 0);
@@ -217,6 +241,26 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
         const ratingDifference = (b.vote_average ?? 0) - (a.vote_average ?? 0);
         return ratingDifference || releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date);
       })
+      .slice(0, 18);
+
+    const enriched = await Promise.all(
+      candidates.map(async (movie) => {
+        try {
+          const details = await getMovieCommercialDetails(movie.id, token);
+          return details ? { ...movie, ...details } : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const results = enriched
+      .filter((movie): movie is TmdbMovie => movie !== null && upcomingSignalCount(movie) >= 2)
+      .sort(
+        (a, b) =>
+          upcomingSignalCount(b) - upcomingSignalCount(a) ||
+          (b.popularity ?? 0) - (a.popularity ?? 0) ||
+          releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date),
+      )
       .slice(0, 7);
 
     return results.length
