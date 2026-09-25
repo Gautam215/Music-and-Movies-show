@@ -18,7 +18,10 @@ export function FloatingNavigation() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
-    const syncPage = () => setActivePage(window.location.hash.slice(1) || "home");
+    const syncPage = () => {
+      setActivePage(window.location.hash.slice(1) || "home");
+      setNotificationsOpen(false);
+    };
     syncPage();
     window.addEventListener("hashchange", syncPage);
     window.addEventListener("popstate", syncPage);
