@@ -1,15 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Bell, Check, ChevronRight, Clock3, Film, Music2, Ticket, X } from "lucide-react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  Archive,
+  Bell,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock3,
+  Film,
+  Flame,
+  ListMusic,
+  Music2,
+  Play,
+  SlidersHorizontal,
+  Ticket,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+type ProfileSession = { name: string; email: string };
 
 type NotificationItem = {
   id: string;
+  eyebrow: string;
   title: string;
   detail: string;
   age: string;
+  artwork: string;
+  actionLabel: string;
+  actionHref?: string;
+  actionType?: "link" | "reminder";
+  priority?: "high" | "medium" | "low";
 };
 
 type NotificationGroup = {
@@ -21,116 +45,248 @@ type NotificationGroup = {
   items: NotificationItem[];
 };
 
-const STORAGE_KEY = "reelroom.notification-read.v1";
+type SwipeState = { id: string; pointerId: number; startX: number; deltaX: number } | null;
 
-const notificationGroups: NotificationGroup[] = [
+const READ_KEY = "reelroom.notification-read.v1";
+const ARCHIVED_KEY = "reelroom.notification-archived.v1";
+const REMINDERS_KEY = "reelroom.notification-reminders.v1";
+const PREFERENCES_KEY = "reelroom.notification-preferences.v1";
+const PROFILE_SESSION_KEY = "reelroom.profile.session";
+
+const artwork = {
+  neon: "https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=160&q=82",
+  light: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=160&q=82",
+  bloom: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=160&q=82",
+  cinema: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=160&q=82",
+};
+
+const guestGroups: NotificationGroup[] = [
   {
-    id: "film-releases",
-    label: "Film releases",
-    meta: "Reelscape daily feed",
+    id: "guest-trending",
+    label: "Trending near you",
+    meta: "A first look at your next signal",
     accent: "#ff9f0a",
-    icon: Film,
+    icon: Flame,
     items: [
       {
-        id: "film-neon-aftercare",
-        title: "Neon Aftercare enters the queue",
-        detail: "A new sci-fi screening is ready for your next night out.",
+        id: "guest-neon-aftercare",
+        eyebrow: "Trailer preview",
+        title: "Neon Aftercare is glowing tonight",
+        detail: "A tender sci-fi drama with a late-night pulse. Watch the two-minute trailer before it leaves the marquee.",
         age: "12 min ago",
+        artwork: artwork.neon,
+        actionLabel: "Watch trailer",
+        actionHref: "https://www.youtube.com/results?search_query=Neon+Aftercare+trailer",
+        priority: "high",
       },
       {
-        id: "film-rooms-weather",
-        title: "Rooms With Weather is coming soon",
-        detail: "Release details and showtimes have been refreshed.",
-        age: "1 hr ago",
+        id: "guest-static-bloom",
+        eyebrow: "Curious about",
+        title: "Static Bloom is finding its people",
+        detail: "A quiet documentary about the songs we keep after the credits. See why it is moving through the city.",
+        age: "34 min ago",
+        artwork: artwork.bloom,
+        actionLabel: "Open the reel",
+        actionHref: "#updates",
+        priority: "medium",
       },
     ],
   },
   {
-    id: "song-updates",
-    label: "Song updates",
-    meta: "Hehe / recommended",
+    id: "guest-soundtrack",
+    label: "Soundtrack desk",
+    meta: "A small sample from Hehe",
     accent: "#bf9aff",
     icon: Music2,
     items: [
       {
-        id: "song-playlist-refresh",
-        title: "Your scene playlist was refreshed",
-        detail: "Two new tracks are waiting in the soundtrack desk.",
-        age: "34 min ago",
-      },
-      {
-        id: "song-static-bloom",
-        title: "Static Bloom has a new soundtrack pick",
-        detail: "A fresh recommendation matches your documentary shelf.",
-        age: "Yesterday",
+        id: "guest-soundtrack-preview",
+        eyebrow: "Spotify preview",
+        title: "The Last Light has a song for the walk home",
+        detail: "A soft, synth-lit cue from Mara Vale is waiting for your next scene.",
+        age: "1 hr ago",
+        artwork: artwork.light,
+        actionLabel: "Open in Spotify",
+        actionHref: "https://open.spotify.com/search/The%20Last%20Light%20Mara%20Vale",
+        priority: "low",
       },
     ],
   },
   {
-    id: "ticket-desk",
+    id: "guest-ticket-desk",
     label: "Ticket desk",
-    meta: "Your saved screenings",
+    meta: "One reason to make a plan",
     accent: "#64d2ff",
     icon: Ticket,
     items: [
       {
-        id: "ticket-last-light",
-        title: "The Last Light starts in 45 minutes",
-        detail: "Your saved seat plan is ready when you are.",
+        id: "guest-last-light",
+        eyebrow: "Tonight · limited seats",
+        title: "The Last Light is still playing at 8:40",
+        detail: "The late show has the room for a good reset. See showtimes before the last row goes.",
         age: "Today",
+        artwork: artwork.cinema,
+        actionLabel: "See showtimes",
+        actionHref: "#tickets",
+        priority: "high",
       },
     ],
   },
 ];
 
-const allItems = notificationGroups.flatMap((group) => group.items);
+function memberGroups(name: string): NotificationGroup[] {
+  const firstName = name.split(" ")[0] || "there";
+  return [
+    {
+      id: "member-daily",
+      label: `Good morning, ${firstName}`,
+      meta: "Your daily signal",
+      accent: "#ff9f0a",
+      icon: Film,
+      items: [
+        {
+          id: "member-last-light",
+          eyebrow: "Saved screening · soon",
+          title: "The Last Light starts in 45 minutes",
+          detail: "Your saved seat plan is ready. The room is waiting when you are.",
+          age: "Today · 7:55 PM",
+          artwork: artwork.light,
+          actionLabel: "Open tickets",
+          actionHref: "#tickets",
+          priority: "high",
+        },
+        {
+          id: "member-neon-aftercare",
+          eyebrow: "New release",
+          title: "Neon Aftercare just entered your queue",
+          detail: "Because you saved The Last Light and kept the night open for something luminous.",
+          age: "12 min ago",
+          artwork: artwork.neon,
+          actionLabel: "Watch trailer",
+          actionHref: "https://www.youtube.com/results?search_query=Neon+Aftercare+trailer",
+          priority: "medium",
+        },
+      ],
+    },
+    {
+      id: "member-soundtrack",
+      label: "Your soundtrack",
+      meta: "Hehe / matched to your shelf",
+      accent: "#bf9aff",
+      icon: ListMusic,
+      items: [
+        {
+          id: "member-playlist-refresh",
+          eyebrow: "Spotify update",
+          title: "Your scene playlist was refreshed",
+          detail: "Two new tracks from Mara Vale and Eli North now sit beside your saved films.",
+          age: "34 min ago",
+          artwork: artwork.bloom,
+          actionLabel: "Play on Spotify",
+          actionHref: "https://open.spotify.com/search/Reelscape%20scene%20playlist",
+          priority: "medium",
+        },
+      ],
+    },
+    {
+      id: "member-drops",
+      label: "Upcoming drops",
+      meta: "Save the date before it becomes a memory",
+      accent: "#64d2ff",
+      icon: CalendarDays,
+      items: [
+        {
+          id: "member-rooms-weather",
+          eyebrow: "Friday · 18 October",
+          title: "Rooms With Weather lands this week",
+          detail: "A new screening drop is queued for your calendar. Keep the evening soft and unclaimed.",
+          age: "2 days away",
+          artwork: artwork.cinema,
+          actionLabel: "Remind me",
+          actionType: "reminder",
+          priority: "low",
+        },
+      ],
+    },
+  ];
+}
+
+function readProfileSession(): ProfileSession | null {
+  try {
+    const stored = window.sessionStorage.getItem(PROFILE_SESSION_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as Partial<ProfileSession>;
+    return parsed.name && parsed.email ? { name: parsed.name, email: parsed.email } : null;
+  } catch {
+    return null;
+  }
+}
+
+function readStringList(key: string) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export function NotificationCenter() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const readIdsRef = useRef<string[]>([]);
   const closeTimerRef = useRef<number | null>(null);
+  const [profileSession, setProfileSession] = useState<ProfileSession | null>(null);
   const [readIds, setReadIds] = useState<string[]>([]);
+  const [archivedIds, setArchivedIds] = useState<string[]>([]);
+  const [reminderIds, setReminderIds] = useState<string[]>([]);
+  const [preferences, setPreferences] = useState<string[]>(["Film drops", "Soundtracks", "Ticket reminders"]);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [storageReady, setStorageReady] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [swipe, setSwipe] = useState<SwipeState>(null);
 
-  const unreadCount = allItems.filter((item) => !readIds.includes(item.id)).length;
+  const groups = profileSession ? memberGroups(profileSession.name) : guestGroups;
+  const allItems = groups.flatMap((group) => group.items);
+  const visibleItems = allItems.filter((item) => !archivedIds.includes(item.id));
+  const unreadCount = visibleItems.filter((item) => !readIds.includes(item.id)).length;
   const panelOpen = mounted && !closing;
 
   useEffect(() => {
-    readIdsRef.current = readIds;
-  }, [readIds]);
+    const syncSession = () => setProfileSession(readProfileSession());
+    syncSession();
+    window.addEventListener("reelroom-profile-session", syncSession);
+    return () => window.removeEventListener("reelroom-profile-session", syncSession);
+  }, []);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      const savedIds = saved ? (JSON.parse(saved) as unknown) : [];
-      if (Array.isArray(savedIds)) {
-        setReadIds(savedIds.filter((id): id is string => typeof id === "string"));
-      }
-    } catch {
-      // The notification center remains usable when storage is blocked or corrupted.
-    } finally {
-      setStorageReady(true);
-    }
+    setReadIds(readStringList(READ_KEY));
+    setArchivedIds(readStringList(ARCHIVED_KEY));
+    setReminderIds(readStringList(REMINDERS_KEY));
+    const savedPreferences = readStringList(PREFERENCES_KEY);
+    if (savedPreferences.length) setPreferences(savedPreferences);
+    setStorageReady(true);
   }, []);
 
   useEffect(() => {
     if (!storageReady) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(readIds));
+      window.localStorage.setItem(READ_KEY, JSON.stringify(readIds));
+      window.localStorage.setItem(ARCHIVED_KEY, JSON.stringify(archivedIds));
+      window.localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminderIds));
+      window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
     } catch {
-      // Read state remains available for the current session.
+      // The panel remains usable when browser storage is blocked.
     }
-  }, [readIds, storageReady]);
+  }, [archivedIds, preferences, readIds, reminderIds, storageReady]);
 
   useEffect(() => {
     if (!panelOpen) return;
     const frame = window.requestAnimationFrame(() => {
-      const firstUnreadIndex = allItems.findIndex((item) => !readIdsRef.current.includes(item.id));
+      const firstUnreadIndex = visibleItems.findIndex((item) => !readIds.includes(item.id));
       itemRefs.current[firstUnreadIndex >= 0 ? firstUnreadIndex : 0]?.focus();
     });
     const mobile = window.matchMedia("(max-width: 640px)").matches;
@@ -142,10 +298,8 @@ export function NotificationCenter() {
     };
   }, [panelOpen]);
 
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-    };
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
   }, []);
 
   const closePanel = (restoreFocus = true) => {
@@ -160,23 +314,40 @@ export function NotificationCenter() {
   };
 
   const openPanel = () => {
+    setProfileSession(readProfileSession());
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     setMounted(true);
     setClosing(false);
-    setAnnouncement(
-      unreadCount > 0
-        ? `Notifications opened. ${unreadCount} unread update${unreadCount === 1 ? "" : "s"}.`
-        : "Notifications opened. You are all caught up.",
-    );
-  };
-
-  const togglePanel = () => {
-    if (panelOpen) closePanel();
-    else openPanel();
+    setAnnouncement(unreadCount ? `Notifications opened. ${unreadCount} unread update${unreadCount === 1 ? "" : "s"}.` : "Notifications opened. You are all caught up.");
   };
 
   const markRead = (ids: string[]) => {
     setReadIds((current) => Array.from(new Set([...current, ...ids])));
+  };
+
+  const archive = (id: string) => {
+    setArchivedIds((current) => Array.from(new Set([...current, id])));
+    setExpandedIds((current) => current.filter((itemId) => itemId !== id));
+    setAnnouncement("Notification archived.");
+  };
+
+  const toggleReminder = (id: string) => {
+    setReminderIds((current) => current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]);
+    setAnnouncement(reminderIds.includes(id) ? "Reminder removed." : "Reminder set for this drop.");
+  };
+
+  const handleItemAction = (item: NotificationItem) => {
+    markRead([item.id]);
+    if (item.actionType === "reminder") {
+      toggleReminder(item.id);
+      return;
+    }
+    if (item.actionHref?.startsWith("#")) {
+      closePanel(false);
+      window.location.hash = item.actionHref.slice(1);
+      return;
+    }
+    if (item.actionHref) window.open(item.actionHref, "_blank", "noopener,noreferrer");
   };
 
   const focusItem = (index: number) => {
@@ -199,23 +370,16 @@ export function NotificationCenter() {
     }
     if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
       event.preventDefault();
-      focusItem(activeIndex <= 0 ? allItems.length - 1 : activeIndex - 1);
+      focusItem(activeIndex <= 0 ? visibleItems.length - 1 : activeIndex - 1);
       return;
     }
-    if (event.key === "Home") {
+    if (event.key === "Home" || event.key === "End") {
       event.preventDefault();
-      focusItem(0);
-      return;
-    }
-    if (event.key === "End") {
-      event.preventDefault();
-      focusItem(allItems.length - 1);
+      focusItem(event.key === "Home" ? 0 : visibleItems.length - 1);
       return;
     }
     if (event.key === "Tab") {
-      const focusable = Array.from(
-        panelRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [],
-      );
+      const focusable = Array.from(panelRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled), a") ?? []);
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -229,6 +393,29 @@ export function NotificationCenter() {
     }
   };
 
+  const handlePointerDown = (event: ReactPointerEvent<HTMLElement>, id: string) => {
+    if ((event.target as HTMLElement).closest("button, a")) return;
+    setSwipe({ id, pointerId: event.pointerId, startX: event.clientX, deltaX: 0 });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    setSwipe({ ...swipe, deltaX: event.clientX - swipe.startX });
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    if (swipe.deltaX <= -90) archive(swipe.id);
+    else if (swipe.deltaX >= 90) markRead([swipe.id]);
+    setSwipe(null);
+  };
+
+  const goToProfile = () => {
+    closePanel(false);
+    window.location.hash = "profile";
+  };
+
   return (
     <div className="notification-center">
       <button
@@ -238,7 +425,7 @@ export function NotificationCenter() {
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={panelOpen}
         aria-controls="reelroom-notification-panel"
-        onClick={togglePanel}
+        onClick={() => panelOpen ? closePanel() : openPanel()}
       >
         <Bell className="notification-center-trigger-icon" aria-hidden="true" />
         <span>Notification</span>
@@ -248,13 +435,7 @@ export function NotificationCenter() {
 
       {mounted ? (
         <div className="notification-center-layer">
-          <button
-            type="button"
-            className="notification-center-backdrop"
-            aria-label="Close notifications"
-            tabIndex={-1}
-            onClick={() => closePanel(false)}
-          />
+          <button type="button" className="notification-center-backdrop" aria-label="Close notifications" tabIndex={-1} onClick={() => closePanel(false)} />
           <section
             ref={panelRef}
             id="reelroom-notification-panel"
@@ -266,19 +447,14 @@ export function NotificationCenter() {
           >
             <div className="notification-center-heading">
               <div>
-                <p className="notification-center-kicker">Quiet updates</p>
-                <h2 id="reelroom-notification-title">Notification desk</h2>
+                <p className="notification-center-kicker">{profileSession ? "Personal signal" : "Guest preview"}</p>
+                <h2 id="reelroom-notification-title">{profileSession ? "Your notification desk" : "A little something"}</h2>
                 <p className="notification-center-subtitle">
-                  {unreadCount ? `${unreadCount} new update${unreadCount === 1 ? "" : "s"} across your shelves.` : "Everything is caught up."}
+                  {profileSession ? `${unreadCount || "No"} new signal${unreadCount === 1 ? "" : "s"} for ${profileSession.name.split(" ")[0]}.` : "A calm preview of what Reelscape keeps an eye on."}
                 </p>
               </div>
               <div className="notification-center-heading-actions">
-                <button
-                  type="button"
-                  className="notification-center-mark-all"
-                  onClick={() => markRead(allItems.map((item) => item.id))}
-                  disabled={unreadCount === 0}
-                >
+                <button type="button" className="notification-center-mark-all" onClick={() => markRead(visibleItems.map((item) => item.id))} disabled={unreadCount === 0}>
                   <Check aria-hidden="true" /> Mark all read
                 </button>
                 <button type="button" className="notification-center-close" aria-label="Close notifications" onClick={() => closePanel()}>
@@ -287,65 +463,105 @@ export function NotificationCenter() {
               </div>
             </div>
 
+            {!profileSession ? (
+              <div className="notification-center-guest-cta">
+                <div><strong>Make it yours.</strong><span>Save films, get the right reminders, and let the soundtrack follow you.</span></div>
+                <button type="button" onClick={goToProfile}>Join Reelscape <ChevronRight aria-hidden="true" /></button>
+              </div>
+            ) : null}
+
             <div className="notification-center-scroll" role="list" aria-label="Notification groups">
-              {notificationGroups.map((group) => {
+              {visibleItems.length ? groups.map((group) => {
+                const items = group.items.filter((item) => !archivedIds.includes(item.id));
+                if (!items.length) return null;
                 const Icon = group.icon;
-                const groupUnread = group.items.filter((item) => !readIds.includes(item.id)).length;
+                const groupUnread = items.filter((item) => !readIds.includes(item.id)).length;
                 return (
-                  <section
-                    key={group.id}
-                    className="notification-center-group"
-                    style={{ "--notification-accent": group.accent } as CSSProperties}
-                    aria-labelledby={`${group.id}-title`}
-                  >
+                  <section key={group.id} className="notification-center-group" style={{ "--notification-accent": group.accent } as CSSProperties} aria-labelledby={`${group.id}-title`}>
                     <div className="notification-center-group-heading">
                       <div className="notification-center-source-icon"><Icon aria-hidden="true" /></div>
-                      <div>
-                        <h3 id={`${group.id}-title`}>{group.label}</h3>
-                        <p>{group.meta}</p>
-                      </div>
-                      <span className="notification-center-group-count" aria-label={`${groupUnread} unread in ${group.label}`}>
-                        {groupUnread || group.items.length}
-                      </span>
+                      <div><h3 id={`${group.id}-title`}>{group.label}</h3><p>{group.meta}</p></div>
+                      <span className="notification-center-group-count" aria-label={`${groupUnread} unread in ${group.label}`}>{groupUnread || items.length}</span>
                     </div>
                     <div className="notification-center-items">
-                      {group.items.map((item) => {
+                      {items.map((item) => {
                         const isRead = readIds.includes(item.id);
-                        const itemIndex = allItems.findIndex((candidate) => candidate.id === item.id);
+                        const isExpanded = expandedIds.includes(item.id);
+                        const isReminderSet = reminderIds.includes(item.id);
+                        const itemIndex = visibleItems.findIndex((candidate) => candidate.id === item.id);
+                        const currentSwipe = swipe?.id === item.id ? swipe.deltaX : 0;
                         return (
-                          <article key={item.id} className="notification-center-item" data-unread={!isRead} role="listitem">
+                          <article
+                            key={item.id}
+                            className={`notification-center-item ${swipe?.id === item.id ? "notification-center-item-swiping" : ""}`}
+                            data-unread={!isRead}
+                            data-priority={item.priority || "low"}
+                            role="listitem"
+                            style={{ transform: currentSwipe ? `translateX(${currentSwipe}px)` : undefined }}
+                            onPointerDown={(event) => handlePointerDown(event, item.id)}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={() => setSwipe(null)}
+                          >
                             <button
                               ref={(node) => { itemRefs.current[itemIndex] = node; }}
                               type="button"
                               className="notification-center-item-main"
-                              onClick={() => markRead([item.id])}
+                              onClick={() => {
+                                markRead([item.id]);
+                                setExpandedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id]);
+                              }}
+                              aria-expanded={isExpanded}
                               aria-label={`${item.title}${isRead ? ", read" : ", unread"}`}
                             >
+                              <img className="notification-center-item-artwork" src={item.artwork} alt="" />
                               <span className="notification-center-item-status" aria-hidden="true" />
                               <span className="notification-center-item-copy">
+                                <span className="notification-center-item-eyebrow">{item.eyebrow}</span>
                                 <strong>{item.title}</strong>
-                                <span>{item.detail}</span>
                                 <time><Clock3 aria-hidden="true" /> {item.age}</time>
                               </span>
-                              <ChevronRight className="notification-center-item-chevron" aria-hidden="true" />
+                              <ChevronDown className={`notification-center-item-chevron ${isExpanded ? "notification-center-item-chevron-open" : ""}`} aria-hidden="true" />
                             </button>
-                            <button
-                              type="button"
-                              className="notification-center-item-read"
-                              onClick={() => markRead([item.id])}
-                              disabled={isRead}
-                            >
-                              {isRead ? "Read" : "Mark as read"}
-                            </button>
+                            <div className={`notification-center-item-reveal ${isExpanded ? "notification-center-item-reveal-open" : ""}`} aria-hidden={!isExpanded}>
+                              <div className="notification-center-item-reveal-inner">
+                                <p>{item.detail}</p>
+                                <div className="notification-center-item-actions">
+                                  <button type="button" className="notification-center-item-primary" onClick={() => handleItemAction(item)}>
+                                    {item.actionType === "reminder" ? <CalendarDays aria-hidden="true" /> : item.actionHref?.includes("spotify") ? <Music2 aria-hidden="true" /> : <Play aria-hidden="true" />}
+                                    {item.actionType === "reminder" && isReminderSet ? "Reminder set" : item.actionLabel}
+                                  </button>
+                                  <button type="button" className="notification-center-item-action" onClick={() => markRead([item.id])} disabled={isRead}>{isRead ? "Read" : "Mark as read"}</button>
+                                  <button type="button" className="notification-center-item-action notification-center-item-archive" onClick={() => archive(item.id)}><Archive aria-hidden="true" /> Archive</button>
+                                </div>
+                              </div>
+                            </div>
                           </article>
                         );
                       })}
                     </div>
                   </section>
                 );
-              })}
+              }) : (
+                <div className="notification-center-empty"><Check aria-hidden="true" /><strong>Nothing waiting here.</strong><span>Archived updates will stay out of your way.</span></div>
+              )}
             </div>
-            <p className="notification-center-footer">Your read state stays on this device.</p>
+
+            <div className="notification-center-preferences">
+              <button type="button" className="notification-center-preferences-trigger" onClick={() => setPreferencesOpen((open) => !open)} aria-expanded={preferencesOpen}>
+                <SlidersHorizontal aria-hidden="true" /> Tune preferences <ChevronDown className={preferencesOpen ? "notification-center-preferences-chevron-open" : ""} aria-hidden="true" />
+              </button>
+              <div className={`notification-center-preferences-panel ${preferencesOpen ? "notification-center-preferences-panel-open" : ""}`} aria-hidden={!preferencesOpen}>
+                <p>Choose the signals you want to keep close.</p>
+                <div>
+                  {["Film drops", "Soundtracks", "Ticket reminders"].map((preference) => {
+                    const enabled = preferences.includes(preference);
+                    return <button key={preference} type="button" className={enabled ? "notification-preference-active" : ""} onClick={() => setPreferences((current) => enabled ? current.filter((value) => value !== preference) : [...current, preference])}><span aria-hidden="true">{enabled ? "✓" : ""}</span>{preference}</button>;
+                  })}
+                </div>
+              </div>
+            </div>
+            <p className="notification-center-footer">{profileSession ? "Personalized to your saved films, songs, and screenings." : "Swipe right to read · swipe left to archive"}</p>
           </section>
         </div>
       ) : null}

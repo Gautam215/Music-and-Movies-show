@@ -180,6 +180,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
       .replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Reelscape member";
     const nextSession = { name, email };
     window.sessionStorage.setItem(sessionKey, JSON.stringify(nextSession));
+    window.dispatchEvent(new Event("reelroom-profile-session"));
     setPassword("");
     onLogin(nextSession);
   };
@@ -259,6 +260,7 @@ export function ProfileExperience() {
 
   const logout = () => {
     window.sessionStorage.removeItem(sessionKey);
+    window.dispatchEvent(new Event("reelroom-profile-session"));
     setSession(null);
   };
 
