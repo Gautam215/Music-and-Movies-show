@@ -345,6 +345,16 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   58% { opacity: .55; max-height: 15rem; transform: translateY(-.15rem) scaleY(.42); }
   100% { opacity: 0; max-height: 0; transform: translateY(-.35rem) scaleY(0); }
 }
+@keyframes notification-panel-mobile-in {
+  0% { opacity: 0; max-height: 0; transform: translateY(1.2rem) scaleY(.72); }
+  72% { opacity: 1; max-height: 100dvh; transform: translateY(-.1rem) scaleY(1.02); }
+  100% { opacity: 1; max-height: 100dvh; transform: translateY(0) scaleY(1); }
+}
+@keyframes notification-panel-mobile-out {
+  0% { opacity: 1; max-height: 100dvh; transform: translateY(0) scaleY(1); }
+  58% { opacity: .55; max-height: 15rem; transform: translateY(.1rem) scaleY(.42); }
+  100% { opacity: 0; max-height: 0; transform: translateY(.35rem) scaleY(0); }
+}
 .notification-center { position: relative; }
 .notification-center-trigger {
   display: inline-flex !important;
@@ -493,8 +503,11 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   .notification-center-layer { position: fixed; inset: 0; z-index: 80; }
   .notification-center-backdrop { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; border-radius: 0; background: rgba(3, 4, 8, .62); backdrop-filter: blur(10px); padding: 0 !important; }
   .notification-center-panel { position: absolute; inset: 0; width: 100%; max-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; transform-origin: center bottom; }
+  .notification-center-panel-opening { animation-name: notification-panel-mobile-in; }
+  .notification-center-panel-closing { animation-name: notification-panel-mobile-out; }
   .notification-center-heading { padding: max(1rem, env(safe-area-inset-top)) 1rem 1rem; }
   .notification-center-scroll { max-height: none; flex: 1; padding: .65rem .65rem .4rem; }
+  .notification-center-item-read { max-width: 4.4rem; margin-right: .2rem; line-height: 1.15; white-space: normal; }
   .notification-center-footer { padding-bottom: max(.9rem, env(safe-area-inset-bottom)); }
 }
 .reelroom-app header > .ml-auto { display: none !important; }
