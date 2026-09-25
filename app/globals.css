@@ -604,7 +604,7 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
     justify-content: space-between;
     gap: 0;
   }
-  .reelroom-floating-nav > .notification-center { display: flex; min-width: 0; flex: 1; }
+  .reelroom-floating-nav > .notification-center { display: flex; min-width: 0; flex: 1.35; }
   .reelroom-floating-nav a,
   .reelroom-floating-nav button {
     min-width: 0;
@@ -614,7 +614,7 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
     font-size: .56rem;
   }
   .reelroom-floating-nav-icon { width: .76rem; height: .76rem; }
-  .notification-center-trigger { min-width: 0 !important; gap: .2rem; }
+  .notification-center-trigger { min-width: 0 !important; gap: .12rem; font-size: .48rem !important; letter-spacing: -.015em; }
   .notification-center-trigger-icon { width: .82rem; height: .82rem; }
   .notification-center-layer { inset: 0; z-index: 80; }
   .notification-center-backdrop { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; border-radius: 0; background: rgba(3, 4, 8, .62); backdrop-filter: blur(10px); padding: 0 !important; }
