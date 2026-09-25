@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#090b12"/>
+      <stop offset="0.52" stop-color="#10121d"/>
+      <stop offset="1" stop-color="#07080d"/>
+    </linearGradient>
+    <radialGradient id="violet" cx="18%" cy="38%" r="68%">
+      <stop offset="0" stop-color="#7653a8" stop-opacity=".5"/>
+      <stop offset=".42" stop-color="#342854" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#111323" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="amber" cx="78%" cy="42%" r="52%">
+      <stop offset="0" stop-color="#b98246" stop-opacity=".34"/>
+      <stop offset=".46" stop-color="#6c4b39" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#0a0b10" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <rect width="1600" height="1000" fill="url(#violet)"/>
+  <rect width="1600" height="1000" fill="url(#amber)"/>
+  <ellipse cx="370" cy="250" rx="300" ry="190" fill="#4f3d86" opacity=".16" filter="url(#blur)"/>
+  <ellipse cx="1300" cy="700" rx="340" ry="220" fill="#a16846" opacity=".12" filter="url(#blur)"/>
+  <path d="M-80 675 C170 480 310 865 555 632 S934 315 1182 555 S1450 785 1680 570" fill="none" stroke="#c08a55" stroke-opacity=".42" stroke-width="5" filter="url(#soft)"/>
+  <path d="M-120 610 C115 420 325 775 545 574 S900 300 1150 505 S1435 730 1710 500" fill="none" stroke="#a27bd0" stroke-opacity=".38" stroke-width="4" filter="url(#soft)"/>
+  <path d="M-80 760 C190 590 350 930 610 720 S954 460 1195 690 S1460 870 1690 690" fill="none" stroke="#78a0d6" stroke-opacity=".32" stroke-width="3" filter="url(#soft)"/>
+  <path d="M-70 675 C170 480 310 865 555 632 S934 315 1182 555 S1450 785 1680 570" fill="none" stroke="#e8b36b" stroke-opacity=".15" stroke-width="1.5"/>
+  <path d="M-120 610 C115 420 325 775 545 574 S900 300 1150 505 S1435 730 1710 500" fill="none" stroke="#d9b9ff" stroke-opacity=".12" stroke-width="1.5"/>
+  <circle cx="1120" cy="210" r="3" fill="#f1d2a1" opacity=".55"/>
+  <circle cx="1260" cy="300" r="2" fill="#d6c7f2" opacity=".45"/>
+  <circle cx="420" cy="780" r="2" fill="#d6c7f2" opacity=".35"/>
+</svg>
