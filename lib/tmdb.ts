@@ -183,6 +183,56 @@ function releaseTimestamp(value?: string) {
   return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
 }
 
+export async function getTopReelMovies(): Promise<Movie[] | null> {
+  const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
+  if (!token) return null;
+
+  const today = new Date();
+  const todayValue = today.toISOString().slice(0, 10);
+  const recentStart = new Date(today);
+  recentStart.setUTCMonth(recentStart.getUTCMonth() - 18);
+  const params = new URLSearchParams({
+    language: "en-US",
+    region: "US",
+    sort_by: "vote_average.desc",
+    include_adult: "false",
+    include_video: "false",
+    page: "1",
+    "primary_release_date.gte": recentStart.toISOString().slice(0, 10),
+    "primary_release_date.lte": todayValue,
+    "vote_count.gte": "25",
+    with_release_type: "2|3",
+  });
+
+  try {
+    const response = await fetch(`${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as TmdbResponse;
+    const candidates = (data.results ?? [])
+      .filter((movie) => {
+        const release = releaseTimestamp(movie.release_date);
+        return Number.isFinite(release) && release <= Date.parse(`${todayValue}T00:00:00Z`);
+      })
+      .sort((a, b) => {
+        const ratingDifference = (b.vote_average ?? 0) - (a.vote_average ?? 0);
+        if (ratingDifference !== 0) return ratingDifference;
+        const voteDifference = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+        return voteDifference || releaseTimestamp(b.release_date) - releaseTimestamp(a.release_date);
+      })
+      .slice(0, 10);
+
+    return candidates.length === 10
+      ? candidates.map((movie, index) => mapMovie(movie, index, "trending"))
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getMovieCommercialDetails(movieId: number, token: string) {
   const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US`, {
     headers: { Authorization: `Bearer ${token}` },

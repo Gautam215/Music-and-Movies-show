@@ -843,6 +843,11 @@ body:has(.reelroom-app[data-background="black-hole"]) .home-page-content > secti
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: clamp(1.5rem, 3vw, 2.5rem) clamp(.75rem, 1.5vw, 1.25rem);
 }
+.reelroom-movie-grid-shell { position: relative; min-width: 0; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+.reelroom-movie-grid-shell::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.reelroom-scrollbar { position: absolute; inset-inline: 0; bottom: -.45rem; height: 3px; pointer-events: none; }
+.reelroom-scrollbar > span { position: absolute; top: 0; height: 100%; border-radius: 999px; background: hsl(var(--ink) / .28); opacity: 0; transition: opacity 260ms ease; }
+.reelroom-scrollbar-visible > span { opacity: 1; }
 .reelroom-movie-card { min-width: 0; }
 .reelroom-note-row {
   display: grid;
@@ -864,7 +869,13 @@ body:has(.reelroom-app[data-background="black-hole"]) .reelroom-arrow-glass:hove
 body:has(.reelroom-app[data-background="black-hole"]) [aria-label="Black hole artwork"] h1 { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0; }
 
 @media (max-width: 767px) {
-  .reelroom-movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem .85rem; }
+  .reelroom-movie-grid {
+    grid-template-columns: repeat(5, minmax(8.5rem, 1fr));
+    grid-template-rows: repeat(2, minmax(0, auto));
+    min-width: 45rem;
+    gap: 1.5rem .85rem;
+  }
+  .reelroom-movie-grid-shell { overflow-x: auto; padding-bottom: .7rem; }
   .reelroom-reel-preview { padding: 1rem; }
   .reelroom-stream-top { height: 38%; padding-inline: .75rem; }
   .reelroom-stream-details { width: 100%; max-width: none; }

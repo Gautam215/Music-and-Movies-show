@@ -467,6 +467,45 @@ function CurrentReelSection({
   onOpen: (movie: Movie) => void;
   onViewAll: () => void;
 }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const scrollResetRef = useRef<number | null>(null);
+  const [isGridScrolling, setIsGridScrolling] = useState(false);
+  const [scrollbar, setScrollbar] = useState({ overflowing: false, width: 100, left: 0 });
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const updateScrollbar = () => {
+      const maxScroll = grid.scrollWidth - grid.clientWidth;
+      if (maxScroll <= 0) {
+        setScrollbar({ overflowing: false, width: 100, left: 0 });
+        return;
+      }
+
+      const width = Math.max((grid.clientWidth / grid.scrollWidth) * 100, 18);
+      const left = (grid.scrollLeft / maxScroll) * (100 - width);
+      setScrollbar({ overflowing: true, width, left });
+    };
+
+    const handleScroll = () => {
+      updateScrollbar();
+      setIsGridScrolling(true);
+      if (scrollResetRef.current !== null) window.clearTimeout(scrollResetRef.current);
+      scrollResetRef.current = window.setTimeout(() => setIsGridScrolling(false), 700);
+    };
+
+    updateScrollbar();
+    grid.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateScrollbar);
+
+    return () => {
+      grid.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateScrollbar);
+      if (scrollResetRef.current !== null) window.clearTimeout(scrollResetRef.current);
+    };
+  }, []);
+
   return (
     <section className="relative space-y-7" aria-live="polite">
         <div className="flex items-end justify-between gap-4">
@@ -486,44 +525,51 @@ function CurrentReelSection({
             View all films ↗
           </button>
         </div>
-        <div className="reelroom-movie-grid" aria-label="Current films">
-          {shelfMovies.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onOpen(item)}
-              onMouseEnter={() => onActivate(item)}
-              onFocus={() => onActivate(item)}
-              style={{ "--reelroom-float-delay": `${(index % 6) * -0.35}s` } as CSSProperties}
-              className={cn(
-                "reelroom-movie-card group text-left",
-                item.id === activeMovie.id && "reelroom-movie-card-active",
-              )}
-            >
-              <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl">
-                <img
-                  src={item.poster}
-                  alt={`${item.title} poster`}
-                  className="size-full object-cover transition duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent opacity-80" />
-                <span className="absolute inset-x-3 bottom-3 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
-                  {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
-                </span>
-              </div>
-              <strong
+        <div ref={gridRef} className="reelroom-movie-grid-shell">
+          <div className="reelroom-movie-grid" aria-label="Current films">
+            {shelfMovies.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onOpen(item)}
+                onMouseEnter={() => onActivate(item)}
+                onFocus={() => onActivate(item)}
+                style={{ "--reelroom-float-delay": `${(index % 6) * -0.35}s` } as CSSProperties}
                 className={cn(
-                  "mt-3 block truncate font-display text-sm font-semibold",
-                  item.id === activeMovie.id ? "text-amber" : "text-ink",
+                  "reelroom-movie-card group text-left",
+                  item.id === activeMovie.id && "reelroom-movie-card-active",
                 )}
               >
-                {item.title}
-              </strong>
-              <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
-                {item.release} · {item.rating === "—" ? "NR" : `★ ${item.rating}`}
-              </span>
-            </button>
-          ))}
+                <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl">
+                  <img
+                    src={item.poster}
+                    alt={`${item.title} poster`}
+                    className="size-full object-cover transition duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent opacity-80" />
+                  <span className="absolute inset-x-3 bottom-3 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
+                    {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
+                  </span>
+                </div>
+                <strong
+                  className={cn(
+                    "mt-3 block truncate font-display text-sm font-semibold",
+                    item.id === activeMovie.id ? "text-amber" : "text-ink",
+                  )}
+                >
+                  {item.title}
+                </strong>
+                <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
+                  {item.release} · {item.rating === "—" ? "NR" : `★ ${item.rating}`}
+                </span>
+              </button>
+            ))}
+          </div>
+          {scrollbar.overflowing && (
+            <div className={cn("reelroom-scrollbar", isGridScrolling && "reelroom-scrollbar-visible")} aria-hidden="true">
+              <span style={{ width: `${scrollbar.width}%`, left: `${scrollbar.left}%` }} />
+            </div>
+          )}
         </div>
         <div className="relative">
           <div key={activeMovie.id} className="reelroom-reel-preview">
