@@ -72,46 +72,80 @@ export async function GET(request: Request) {
 
   const spotifyFetch = (url: URL | string) =>
     fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${accessToken ?? ""}` },
       cache: "no-store",
     });
 
-  let playlistsResponse = await spotifyFetch("https://api.spotify.com/v1/me/playlists?limit=50");
-  if (playlistsResponse.status === 401 && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-    if (accessToken) playlistsResponse = await spotifyFetch("https://api.spotify.com/v1/me/playlists?limit=50");
+  let playlistsResponse: Response | null = null;
+  let playlistsPayload: { items?: SpotifyPlaylist[]; next?: string | null } = {};
+  let playlist: SpotifyPlaylist | undefined;
+  let nextPlaylistsUrl: string | null = "https://api.spotify.com/v1/me/playlists?limit=50";
+  let refreshedAfter401 = false;
+
+  for (let page = 0; page < 10 && nextPlaylistsUrl && !playlist; page += 1) {
+    playlistsResponse = await spotifyFetch(nextPlaylistsUrl);
+    if (playlistsResponse.status === 401 && refreshToken && !refreshedAfter401) {
+      refreshedToken = await refreshSpotifyToken(refreshToken);
+      accessToken = refreshedToken?.access_token;
+      refreshedAfter401 = true;
+      if (accessToken) {
+        page -= 1;
+        continue;
+      }
+    }
+    if (!playlistsResponse.ok) break;
+    playlistsPayload = (await playlistsResponse.json()) as typeof playlistsPayload;
+    playlist = (playlistsPayload.items ?? []).find(
+      (item) => item.name.trim().toLowerCase() === playlistName.toLowerCase(),
+    );
+    nextPlaylistsUrl = playlistsPayload.next ?? null;
   }
-  if (!playlistsResponse.ok) {
-    const message = playlistsResponse.status === 403
+
+  if (!playlistsResponse?.ok) {
+    const message = playlistsResponse?.status === 403
       ? "Spotify playlist access needs approval. Reconnect Spotify to continue."
       : "Spotify playlists could not be loaded.";
     return setRefreshedCookies(
-      NextResponse.json({ error: message }, { status: playlistsResponse.status === 403 ? 403 : 502 }),
+      NextResponse.json(
+        { error: message, needsReauth: playlistsResponse?.status === 403 },
+        { status: playlistsResponse?.status === 403 ? 403 : 502 },
+      ),
       refreshedToken,
     );
   }
 
-  const playlistsPayload = (await playlistsResponse.json()) as {
-    items?: SpotifyPlaylist[];
-    next?: string | null;
-  };
-  const playlist = (playlistsPayload.items ?? []).find(
-    (item) => item.name.trim().toLowerCase() === playlistName.toLowerCase(),
-  );
   if (!playlist) {
     return setRefreshedCookies(
-      NextResponse.json({ error: `Spotify playlist “${playlistName}” was not found.` }, { status: 404 }),
+      NextResponse.json(
+        {
+          error: `Spotify playlist “${playlistName}” was not found in the visible playlists. If it is private, reconnect Spotify to grant playlist access.`,
+          needsReauth: true,
+        },
+        { status: 404 },
+      ),
       refreshedToken,
     );
   }
 
   const itemsUrl = new URL(`https://api.spotify.com/v1/playlists/${playlist.id}/items`);
   itemsUrl.searchParams.set("limit", "50");
-  const itemsResponse = await spotifyFetch(itemsUrl);
+  let itemsResponse = await spotifyFetch(itemsUrl);
+  if (itemsResponse.status === 401 && refreshToken) {
+    refreshedToken = await refreshSpotifyToken(refreshToken);
+    accessToken = refreshedToken?.access_token;
+    if (accessToken) itemsResponse = await spotifyFetch(itemsUrl);
+  }
   if (!itemsResponse.ok) {
     return setRefreshedCookies(
-      NextResponse.json({ error: "Tracks from this Spotify playlist could not be loaded." }, { status: 502 }),
+      NextResponse.json(
+        {
+          error: itemsResponse.status === 403
+            ? "Spotify playlist tracks need permission. Reconnect Spotify to continue."
+            : "Tracks from this Spotify playlist could not be loaded.",
+          needsReauth: itemsResponse.status === 403,
+        },
+        { status: itemsResponse.status === 403 ? 403 : 502 },
+      ),
       refreshedToken,
     );
   }
