@@ -133,8 +133,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes reelroom-backdrop-in {
+  from { opacity: 0; transform: scale(1.06); filter: blur(30px) saturate(.8); }
+  to { opacity: .72; transform: scale(1); filter: blur(22px) saturate(1.2); }
+}
+
 .reelroom-more-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: bottom left; }
 .reelroom-header-menu { animation: reelroom-menu-in .48s cubic-bezier(.16, 1.35, .3, 1) both; transform-origin: top right; }
+.reelroom-reel-backdrop { animation: reelroom-backdrop-in .72s ease-out both; }
 
 /* Liquid-glass treatment is reserved for navigation and floating controls. */
 aside.sticky {
