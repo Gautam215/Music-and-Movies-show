@@ -33,11 +33,9 @@ export function FloatingNavigation() {
 
   if (pathname !== "/") return null;
 
-  const visibleItems = items.filter(([id]) => id !== activePage);
-
   return (
     <nav className="reelroom-floating-nav" aria-label="Primary navigation">
-      {visibleItems.map(([id, label, href]) => {
+      {items.map(([id, label, href]) => {
         if (!href) {
           return (
             <button
@@ -50,7 +48,12 @@ export function FloatingNavigation() {
             </button>
           );
         }
-        return <a key={id} href={href}>{label}</a>;
+        return (
+          <a key={id} href={href} data-active={id === activePage}>
+            {label}
+            <span className="reelroom-floating-nav-dot" aria-hidden="true" />
+          </a>
+        );
       })}
       {notificationsOpen ? (
         <div className="reelroom-floating-notifications" role="status">
