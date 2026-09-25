@@ -415,48 +415,69 @@ function PosterCard({
   );
 }
 
-function FeaturedScreening({ item, onOpen }: { item: Movie; onOpen: (item: Movie) => void }) {
+function FeaturedScreening({
+  item,
+  onOpen,
+  onBook,
+}: {
+  item: Movie;
+  onOpen: (item: Movie) => void;
+  onBook: () => void;
+}) {
   return (
     <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
-      <div className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border bg-surface shadow-cinematic md:min-h-[31rem]">
-        <img
-          src={item.poster}
-          alt={`${item.title} poster`}
-          className="size-full object-cover transition duration-700 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-canvas/10 to-transparent" />
-        <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
-          Featured event
-        </span>
+      <div>
+        <div className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border bg-surface shadow-cinematic md:min-h-[31rem]">
+          <img
+            src={item.poster}
+            alt={`${item.title} poster`}
+            className="size-full object-cover transition duration-700 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-canvas/10 to-transparent" />
+          <span className="absolute left-4 top-4 rounded-full border border-amber/50 bg-canvas/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.14em] text-amber backdrop-blur">
+            Featured event
+          </span>
+        </div>
+        <div className="px-1 pt-4">
+          <h2 className="font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
+            {item.title}
+          </h2>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
+            <span className="flex items-center gap-1.5 text-amber">
+              <Clock3 className="size-3" /> {item.release}
+            </span>
+            <span className="text-amber">•</span>
+            <span>★ {item.rating}</span>
+            <span className="text-amber">•</span>
+            <span>{item.meta}</span>
+            <span className="text-amber">•</span>
+            <span>Approx. ₹{item.price}</span>
+          </div>
+        </div>
       </div>
       <div className="flex flex-col justify-center py-2 md:py-8">
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-          First Screening
+          Featured event
         </div>
-        <h2 className="mt-4 max-w-xl font-display text-4xl font-semibold leading-[.94] tracking-[-.07em] text-ink sm:text-5xl md:text-6xl">
-          {item.title}
-        </h2>
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink-2">
-          <span className="flex items-center gap-1.5 text-amber">
-            <Clock3 className="size-3" /> {item.release}
-          </span>
-          <span className="text-amber">•</span>
-          <span>★ {item.rating}</span>
-          <span className="text-amber">•</span>
-          <span>{item.meta}</span>
-          <span className="text-amber">•</span>
-          <span>Approx. ₹{item.price}</span>
-        </div>
-        <p className="mt-5 max-w-xl text-sm leading-6 text-ink-2">
-          {item.synopsis}
+        <h1 className="mt-4 max-w-xl font-display text-5xl font-semibold leading-[.91] tracking-[-.08em] text-ink sm:text-6xl md:text-7xl">
+          Your First Screening
+        </h1>
+        <p className="mt-5 max-w-xl font-display text-2xl font-medium leading-[1.05] tracking-[-.05em] text-ink sm:text-3xl">
+          Don&apos;t Just Watch. Be Part of It. The Journey Starts Here.
         </p>
-        <button
-          type="button"
-          onClick={() => onOpen(item)}
-          className="reelroom-action-button mt-4 inline-flex items-center gap-2 rounded-full border border-amber/60 bg-ink/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition"
-        >
-          See event details <ArrowRight className="size-3.5" />
-        </button>
+        <p className="mt-5 max-w-xl text-sm leading-6 text-ink-2">
+          Get behind-the-scenes access to the people, process, and stories that
+          make every screening more than a movie. Discover what happens before
+          the lights go down and stay for the conversation after.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => onOpen(item)}>
+            See Event Details <ArrowRight className="size-4" />
+          </Button>
+          <Button variant="ghost" onClick={onBook}>
+            Book Ticket
+          </Button>
+        </div>
       </div>
     </article>
   );
@@ -1048,7 +1069,11 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       spinSpeed={0.36}
     >
       <div className="relative z-10 flex min-h-[44rem] items-center p-4 sm:min-h-[42rem] sm:p-6 md:min-h-[38rem] md:p-8 lg:min-h-[34rem] lg:p-8">
-        <FeaturedScreening item={heroMovie} onOpen={setSelected} />
+        <FeaturedScreening
+          item={heroMovie}
+          onOpen={setSelected}
+          onBook={() => setPage("tickets")}
+        />
       </div>
     </BlackHoleHeroSection>
   );
