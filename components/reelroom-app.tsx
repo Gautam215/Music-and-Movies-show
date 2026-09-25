@@ -699,7 +699,15 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
           songs?: Song[];
         } | null;
         if (!response.ok) return [];
-        return payload?.songs?.slice(0, 2) ?? [];
+        const seen = new Set<string>();
+        return (payload?.songs ?? [])
+          .filter((song) => {
+            const key = song.id ?? `${song.title}:${song.artist}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 2);
       })
       .then((songs) => {
         if (!controller.signal.aborted) setSelectedSoundtrack(songs);
