@@ -5,6 +5,7 @@ export const SPOTIFY_POPUP_COOKIE = "spotify_oauth_popup";
 export const SPOTIFY_CODE_VERIFIER_COOKIE = "spotify_code_verifier";
 export const SPOTIFY_ACCESS_COOKIE = "spotify_access_token";
 export const SPOTIFY_REFRESH_COOKIE = "spotify_refresh_token";
+const SPOTIFY_TOKEN_TIMEOUT_MS = 10_000;
 
 export function spotifyCookieOptions(maxAge: number) {
   return {
@@ -48,50 +49,60 @@ export async function exchangeSpotifyCode(
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   if (!clientId) return null;
 
-  const response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: clientId,
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier,
-    }),
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(SPOTIFY_TOKEN_TIMEOUT_MS),
+    });
 
-  if (!response.ok) return null;
-  return (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
+    if (!response.ok) return null;
+    return (await response.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function refreshSpotifyToken(refreshToken: string) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   if (!clientId) return null;
 
-  const response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: clientId,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(SPOTIFY_TOKEN_TIMEOUT_MS),
+    });
 
-  if (!response.ok) return null;
-  return (await response.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
+    if (!response.ok) return null;
+    return (await response.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+  } catch {
+    return null;
+  }
 }
