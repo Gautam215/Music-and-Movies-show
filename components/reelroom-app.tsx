@@ -702,7 +702,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         const seen = new Set<string>();
         return (payload?.songs ?? [])
           .filter((song) => {
-            const key = song.id ?? `${song.title}:${song.artist}`;
+            const key = `${song.title.trim().toLowerCase()}:${song.artist.trim().toLowerCase()}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
