@@ -237,6 +237,8 @@ export function NotificationCenter() {
   const panelRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const closeTimerRef = useRef<number | null>(null);
+  const swipeRef = useRef<SwipeState>(null);
+  const swipeTriggeredRef = useRef(false);
   const [profileSession, setProfileSession] = useState<ProfileSession | null>(null);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
@@ -404,19 +406,31 @@ export function NotificationCenter() {
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLElement>, id: string) => {
     if ((event.target as HTMLElement).closest(".notification-center-item-actions")) return;
-    setSwipe({ id, pointerId: event.pointerId, startX: event.clientX, deltaX: 0 });
+    const nextSwipe = { id, pointerId: event.pointerId, startX: event.clientX, deltaX: 0 };
+    swipeRef.current = nextSwipe;
+    setSwipe(nextSwipe);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!swipe || swipe.pointerId !== event.pointerId) return;
-    setSwipe({ ...swipe, deltaX: event.clientX - swipe.startX });
+    const currentSwipe = swipeRef.current;
+    if (!currentSwipe || currentSwipe.pointerId !== event.pointerId) return;
+    const nextSwipe = { ...currentSwipe, deltaX: event.clientX - currentSwipe.startX };
+    swipeRef.current = nextSwipe;
+    setSwipe(nextSwipe);
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!swipe || swipe.pointerId !== event.pointerId) return;
-    if (swipe.deltaX <= -90) archive(swipe.id);
-    else if (swipe.deltaX >= 90) markRead([swipe.id]);
+    const currentSwipe = swipeRef.current;
+    if (!currentSwipe || currentSwipe.pointerId !== event.pointerId) return;
+    if (currentSwipe.deltaX <= -90) {
+      swipeTriggeredRef.current = true;
+      archive(currentSwipe.id);
+    } else if (currentSwipe.deltaX >= 90) {
+      swipeTriggeredRef.current = true;
+      markRead([currentSwipe.id]);
+    }
+    swipeRef.current = null;
     setSwipe(null);
   };
 
@@ -510,13 +524,17 @@ export function NotificationCenter() {
                             onPointerDown={(event) => handlePointerDown(event, item.id)}
                             onPointerMove={handlePointerMove}
                             onPointerUp={handlePointerUp}
-                            onPointerCancel={() => setSwipe(null)}
+                            onPointerCancel={() => { swipeRef.current = null; setSwipe(null); }}
                           >
                             <button
                               ref={(node) => { itemRefs.current[itemIndex] = node; }}
                               type="button"
                               className="notification-center-item-main"
                               onClick={() => {
+                                if (swipeTriggeredRef.current) {
+                                  swipeTriggeredRef.current = false;
+                                  return;
+                                }
                                 markRead([item.id]);
                                 setExpandedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id]);
                               }}
