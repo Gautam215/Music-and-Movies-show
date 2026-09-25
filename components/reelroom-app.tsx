@@ -583,6 +583,8 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>([]);
+  const [selectedSoundtrack, setSelectedSoundtrack] = useState<Song[]>([]);
+  const [soundtrackLoading, setSoundtrackLoading] = useState(false);
   const [spotifyPlaylistName, setSpotifyPlaylistName] = useState("Hehe");
   const [spotifyPlaylistLoading, setSpotifyPlaylistLoading] = useState(false);
   const [spotifyPlaylistError, setSpotifyPlaylistError] = useState<string | null>(null);
@@ -611,6 +613,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const spotifyDeviceIdRef = useRef<string | null>(null);
   const spotifySearchInputRef = useRef<HTMLInputElement>(null);
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
+  const soundtrackAbortRef = useRef<AbortController | null>(null);
   const spotifyAuthWindowRef = useRef<Window | null>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
@@ -676,6 +679,47 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
       document.removeEventListener("visibilitychange", loadPlaylist);
     };
   }, [spotifyConnected]);
+
+  useEffect(() => {
+    soundtrackAbortRef.current?.abort();
+    setSelectedSoundtrack([]);
+    setSoundtrackLoading(false);
+    if (!selected) return;
+
+    const controller = new AbortController();
+    soundtrackAbortRef.current = controller;
+    setSoundtrackLoading(true);
+
+    fetch(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=2`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as {
+          songs?: Song[];
+        } | null;
+        if (!response.ok) return [];
+        return payload?.songs?.slice(0, 2) ?? [];
+      })
+      .then((songs) => {
+        if (!controller.signal.aborted) setSelectedSoundtrack(songs);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setSoundtrackLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selected]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelected(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [selected]);
 
   useEffect(() => {
     if (!spotifyConnected && !spotifyConnecting) return;
@@ -1046,6 +1090,40 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   const announce = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
+  };
+  const shareMovie = async (movie: Movie) => {
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: `${movie.title} · Reelscape`,
+      text: `Take a look at ${movie.title} on Reelscape.`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        announce("Movie shared.");
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        announce("Movie link copied.");
+        return;
+      }
+      const input = document.createElement("textarea");
+      input.value = shareUrl;
+      input.setAttribute("readonly", "true");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+      announce("Movie link copied.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      announce("Sharing is unavailable right now.");
+    }
   };
   const connectSpotify = () => {
     if (spotifyConnecting) return;
@@ -2602,125 +2680,150 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     login: loginPage,
     admin: adminPage,
   }[page];
-  const selectedSoundtrack = selected ? spotifyCatalog.slice(0, 2) : [];
   const detailModal = selected ? (
     <div
-      className="fixed inset-0 z-40 grid place-items-center bg-canvas/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-40 grid place-items-center bg-canvas/85 p-0 backdrop-blur-md sm:p-4"
       onClick={() => setSelected(null)}
     >
       <div
+        className="group relative max-h-[94vh] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-none border border-border bg-surface shadow-cinematic sm:rounded-[1.75rem]"
         role="dialog"
         aria-modal="true"
         aria-label={`${selected.title} details`}
-        className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-border bg-surface shadow-cinematic"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-              Movie detail / {selected.status}
-            </div>
-            <h2 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.06em] text-ink">
-              {selected.title}
-            </h2>
-          </div>
+        <div className="relative isolate min-h-[35rem] overflow-hidden sm:min-h-[32rem]">
+          <img
+            src={selected.backdrop}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-[-2rem] size-[calc(100%+4rem)] object-cover blur-2xl opacity-75"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,7,11,.12),rgba(6,7,11,.7)_50%,rgba(6,7,11,.98))]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-canvas/70 via-transparent to-canvas/35" />
           <button
+            type="button"
             onClick={() => setSelected(null)}
-            className="grid size-9 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-2"
+            className="absolute right-4 top-4 z-20 grid size-10 place-items-center rounded-full border border-white/20 bg-canvas/45 text-white opacity-100 shadow-lg backdrop-blur-md transition duration-300 hover:bg-canvas/70 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
             aria-label="Close movie details"
           >
             <X className="size-4" />
           </button>
-        </div>
-        <div className="grid gap-6 p-5 md:grid-cols-[10rem_1fr]">
-          <img
-            src={selected.poster}
-            alt={`${selected.title} poster`}
-            className="aspect-[2/2.8] w-full rounded-xl object-cover"
-          />
-          <div>
-            <div className="flex flex-wrap gap-3 font-mono text-[10px] text-muted">
-              <span>{selected.meta}</span>
-              <span>★ {selected.rating}</span>
-              <span>{selected.genres.join(" · ")}</span>
+          <div className="relative z-10 flex min-h-[35rem] flex-col sm:min-h-[32rem]">
+            <div className="flex items-center justify-between gap-4 p-5 sm:p-8">
+              <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[.16em] text-white/65">
+                <span className="rounded-full border border-amber/50 bg-canvas/35 px-3 py-1.5 text-amber backdrop-blur-md">
+                  {selected.status === "UPCOMING" ? "Upcoming" : "Feature"}
+                </span>
+                <span className="hidden sm:inline">Reelscape / screening notes</span>
+              </div>
             </div>
-            <p className="mt-4 text-sm leading-7 text-ink-2">
-              {selected.synopsis}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setSelected(null);
-                  setPage("tickets");
-                }}
-              >
-                Book tickets <ArrowRight className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => toggleFavorite(selected.id)}
-              >
-                <Heart
-                  className={cn(
-                    "size-4",
-                    favorites.includes(selected.id) && "fill-amber text-amber",
-                  )}
-                />{" "}
-                {favorites.includes(selected.id) ? "Saved" : "Save film"}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => announce("Share link copied for this demo.")}
-              >
-                <Share2 className="size-4" /> Share
-              </Button>
-            </div>
-          </div>
-          <div className="md:col-span-2 border-t border-border pt-5">
-            <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-              Original soundtrack
-            </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {selectedSoundtrack.length ? selectedSoundtrack.map((song) => (
-                  <div
-                    key={song.title}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-surface-2 p-2"
-                  >
-                    <img
-                      src={song.art}
-                      alt=""
-                      className="size-10 rounded object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <strong className="block truncate text-xs text-ink">
-                        {song.title}
-                      </strong>
-                      <span className="block truncate text-[10px] text-muted">
-                        {song.artist}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void toggleSpotifySong(song)}
-                      className="grid size-7 place-items-center rounded-full bg-amber text-canvas"
-                      aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
-                    >
-                      {isSongPlaying(song) ? (
-                        "Ⅱ"
-                      ) : (
-                        <Play className="size-3 fill-current" />
-                      )}
-                    </button>
-                  </div>
-                )) : (
-                <p className="text-xs leading-5 text-muted">
-            No tracks match this filter.
+            <div className="mt-auto grid gap-6 p-5 sm:p-8 md:grid-cols-[13rem_minmax(0,1fr)] md:items-end">
+              <img
+                src={selected.poster}
+                alt={`${selected.title} poster`}
+                className="aspect-[2/2.8] w-36 rounded-xl object-cover shadow-2xl ring-1 ring-white/15 md:w-full"
+              />
+              <div className="max-w-2xl">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[.08em] text-white/65">
+                  <span>{selected.release}</span>
+                  <span className="text-amber">•</span>
+                  <span>★ {selected.rating}</span>
+                  <span className="text-amber">•</span>
+                  <span>{selected.meta}</span>
+                </div>
+                <h2 className="mt-3 font-display text-4xl font-semibold leading-[.92] tracking-[-.08em] text-white sm:text-5xl md:text-6xl">
+                  {selected.title}
+                </h2>
+                <p className="mt-5 max-w-xl text-sm leading-6 text-white/75">
+                  {selected.synopsis}
                 </p>
-              )}
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setSelected(null);
+                      setPage("tickets");
+                    }}
+                  >
+                    Book tickets <ArrowRight className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+                    onClick={() => toggleFavorite(selected.id)}
+                  >
+                    <Heart
+                      className={cn(
+                        "size-4",
+                        favorites.includes(selected.id) && "fill-amber text-amber",
+                      )}
+                    />{" "}
+                    {favorites.includes(selected.id) ? "Saved" : "Save film"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+                    onClick={() => void shareMovie(selected)}
+                  >
+                    <Share2 className="size-4" /> Share
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        {!soundtrackLoading && selectedSoundtrack.length ? (
+          <section className="border-t border-border bg-surface p-5 sm:p-8">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+                  Soundtrack
+                </div>
+                <h3 className="mt-2 font-display text-2xl font-semibold tracking-[-.06em] text-ink">
+                  Songs for the closing credits
+                </h3>
+              </div>
+              <span className="hidden font-mono text-[10px] uppercase tracking-[.12em] text-muted sm:inline">
+                Spotify picks
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {selectedSoundtrack.map((song) => (
+                <div
+                  key={song.id ?? `${song.title}-${song.artist}`}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
+                >
+                  <img
+                    src={song.art || selected.poster}
+                    alt={`${song.title} artwork`}
+                    className="size-12 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-xs text-ink">
+                      {song.title}
+                    </strong>
+                    <span className="mt-1 block truncate text-[10px] text-muted">
+                      {song.artist} · {song.duration}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleSpotifySong(song)}
+                    className="grid size-8 shrink-0 place-items-center rounded-full bg-amber text-canvas transition hover:scale-105"
+                    aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
+                  >
+                    {isSongPlaying(song) ? (
+                      "Ⅱ"
+                    ) : (
+                      <Play className="size-3 fill-current" />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   ) : null;
