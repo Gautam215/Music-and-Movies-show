@@ -293,8 +293,6 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
     page: "1",
     "primary_release_date.gte": todayValue,
     "primary_release_date.lte": nextYear.toISOString().slice(0, 10),
-    with_release_type: "2|3",
-    "vote_count.gte": "5",
   });
 
   try {
@@ -355,8 +353,8 @@ const getDailyMovieUpdatesCached = unstable_cache(
       comingSoon: comingSoon ?? [],
     };
   },
-  ["reelscape-daily-movie-updates-v2"],
-  { revalidate: 86_400, tags: ["reelscape-daily-movie-updates-v2"] },
+  ["reelscape-daily-movie-updates-v3"],
+  { revalidate: 86_400, tags: ["reelscape-daily-movie-updates-v3"] },
 );
 
 export async function getDailyMovieUpdates() {
