@@ -12,6 +12,7 @@ import {
   Disc3,
   EllipsisVertical,
   Film,
+  Headphones,
   Heart,
   Home,
   LogIn,
@@ -21,10 +22,15 @@ import {
   Play,
   FastForward,
   Rewind,
+  Repeat,
   Search,
   Share2,
+  Shuffle,
+  SkipBack,
+  SkipForward,
   Ticket,
   UserRound,
+  Volume2,
   X,
 } from "lucide-react";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
@@ -1185,6 +1191,24 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
     "--soundtrack-glow-three": soundtrackColors[2],
   } as CSSProperties;
 
+  const activeSong =
+    filteredSongs.find((song) => song.spotifyUri === spotifyTrackUri) ??
+    filteredSongs[0] ??
+    null;
+  const activeTrackId =
+    activeSong?.spotifyUri?.split(":").pop() ??
+    activeSong?.spotifyUrl?.split("/track/")[1]?.split("?")[0];
+  const playbackProgress = spotifyDurationMs
+    ? Math.min((spotifyPositionMs / spotifyDurationMs) * 100, 100)
+    : 0;
+  const startListening = () => {
+    if (activeSong) {
+      void toggleSpotifySong(activeSong);
+      return;
+    }
+    connectSpotify();
+  };
+
   const hero = (
     <section className="relative min-h-[30rem] overflow-hidden rounded-2xl border border-border bg-[linear-gradient(90deg,rgba(8,11,18,.98),rgba(8,11,18,.64),rgba(8,11,18,.1)),url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85')] bg-cover bg-center p-7 shadow-cinematic md:min-h-[34rem] md:p-10">
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas/90 to-transparent" />
@@ -1533,105 +1557,219 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
   );
 
   const songsPage = (
-    <div
-      className="reelroom-soundtrack-page space-y-5"
-      style={soundtrackAtmosphereStyle}
-    >
-      <section className="relative min-h-[30rem] overflow-hidden rounded-[1.5rem] border border-white/[.12] bg-[#070a0f] px-4 py-6 shadow-[0_24px_70px_rgba(0,0,0,.38)] sm:min-h-[31rem] sm:rounded-[1.75rem] sm:px-6 sm:py-7">
-        <SpotifyWaveform className="absolute inset-0" />
+    <div className="reelroom-soundtrack-page space-y-5" style={soundtrackAtmosphereStyle}>
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/[.16] bg-[#08090b] shadow-[0_40px_120px_rgba(0,0,0,.38)]">
         <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(90deg, rgba(7, 10, 15, .98) 0%, rgba(7, 10, 15, .82) 27%, rgba(7, 10, 15, .24) 68%, rgba(7, 10, 15, .48) 100%), linear-gradient(180deg, rgba(7, 10, 15, .18), transparent 38%, rgba(7, 10, 15, .92) 100%)",
-          }}
+          className="absolute inset-0 scale-105 bg-cover bg-center opacity-25 blur-[1px]"
+          style={{ backgroundImage: "url('/listen-app-background.png')" }}
           aria-hidden="true"
         />
-        <div className="relative z-10 flex min-h-[26rem] flex-col justify-between gap-7 sm:min-h-[27rem]">
-          <div>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="max-w-2xl">
-                <span className="reelroom-soundtrack-eyebrow font-mono text-[10px] uppercase tracking-[.2em] text-muted">
-                  Songs / live signal
-                </span>
-                <h1 className="reelroom-soundtrack-title mt-3 max-w-xl text-4xl leading-[.88] text-ink sm:text-6xl">
-                  The soundtrack
+        <div
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,9,11,.98)_0%,rgba(8,9,11,.86)_36%,rgba(8,9,11,.42)_72%,rgba(8,9,11,.7)_100%),linear-gradient(180deg,rgba(8,9,11,.4),rgba(8,9,11,.94))]"
+          aria-hidden="true"
+        />
+        <SpotifyWaveform className="absolute inset-0 opacity-35" />
+
+        <div className="relative z-10 grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.15fr_.85fr] lg:gap-14 lg:p-12">
+          <div className="flex min-w-0 flex-col justify-between gap-10">
+            <div className="space-y-5">
+              <span className="inline-flex w-fit rounded-full border border-white/15 bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.24em] text-ink-2 backdrop-blur">
+                listen app
+              </span>
+              <div className="space-y-4">
+                <h1 className="max-w-2xl text-5xl font-semibold leading-[.9] tracking-[-.075em] text-ink sm:text-6xl lg:text-7xl">
+                  Sound that feels like a private concert
                 </h1>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 sm:pt-1">
-                <button
-                  type="button"
-                  onClick={() => setSpotifySearchOpen((open) => !open)}
-                  aria-expanded={spotifySearchOpen}
-                  aria-controls="spotify-search-panel"
-                  aria-label={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
-                  title={spotifySearchOpen ? "Close Spotify search" : "Search Spotify"}
-                  className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 shadow-[0_8px_20px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
-                >
-                  {spotifySearchOpen ? <X className="size-4" /> : <Search className="size-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={spotifyConnected ? undefined : connectSpotify}
-                  disabled={spotifyConnected ? !spotifyReady : spotifyConnecting}
-                  className="reelroom-soundtrack-connect rounded-full border border-amber/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[.08em] text-ink transition hover:border-amber disabled:cursor-wait disabled:opacity-60"
-                >
-                  {spotifyConnected
-                    ? spotifyReady
-                      ? "Spotify connected"
-                      : "Connecting..."
-                    : spotifyConnecting
-                      ? "Opening Spotify..."
-                      : "Connect Spotify"}
-                </button>
+                <p className="max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg">
+                  Recommended tracks for the scene, synced from your {spotifyPlaylistName} playlist and ready for the next frame.
+                </p>
               </div>
             </div>
-            <p className="mt-4 max-w-lg text-sm leading-6 text-ink-2">
-              Music for the scenes that stay with you. Move through the signal,
-              then preview the original score attached to every film in the reel.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex items-end gap-6">
-              <div>
-                <span className="block font-mono text-[9px] uppercase tracking-[.16em] text-muted">
-                  Pointer reactive
-                </span>
-                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[.12em] text-ink-2">
-                  03 / layered frequencies
-                </span>
-              </div>
-              <div>
-                <span className="block font-mono text-[9px] uppercase tracking-[.16em] text-muted">
-                  {spotifyPlaylistName} playlist
-                </span>
-                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[.12em] text-ink-2">
-                  {spotifyPlaylistLoading ? "Syncing tracks" : `${filteredSongs.length} recommended`}
-                </span>
-              </div>
+
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={startListening}
+                className="h-12 rounded-full px-8 text-sm"
+              >
+                {activeSong ? (spotifyPaused ? "Start listening" : "Now playing") : "Connect Spotify"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
+                className="h-12 rounded-full px-8 text-sm hover:bg-white/[.06]"
+              >
+                View playlist
+              </Button>
             </div>
-            <div className="text-right">
-              <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-muted">
-                Player status
-              </span>
-              <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.12em] text-ink-2">
-                {spotifyStatus}
-              </span>
+
+            <div className="rounded-3xl border border-white/[.12] bg-black/20 p-6 backdrop-blur-xl">
+              <div className="mb-4 flex size-10 items-center justify-center rounded-full border border-white/[.16] bg-white/[.08] text-ink-2">
+                <Headphones className="size-4" />
+              </div>
+              <h2 className="text-lg font-semibold text-ink">{spotifyPlaylistName} / recommended</h2>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-2">
+                {spotifyPlaylistLoading
+                  ? "Syncing the tracks attached to this scene..."
+                  : spotifyConnected
+                    ? `${filteredSongs.length} tracks from Recommended tracks for the scene.`
+                    : "Connect Spotify to load the recommended tracks for this scene."}
+              </p>
             </div>
           </div>
-          {spotifyError || visiblePlaylistError ? (
-            <div className="relative flex flex-wrap items-center gap-3">
-              <p className="max-w-xl text-xs text-amber">{spotifyError ?? visiblePlaylistError}</p>
-              {visiblePlaylistError ? (
+
+          <div className="min-w-0 space-y-5">
+            <div className="rounded-[2rem] border border-white/[.12] bg-black/45 p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
+              <div className="flex items-start gap-4">
+                <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/[.15] bg-gradient-to-br from-white/35 via-white/10 to-transparent sm:size-24">
+                  {activeSong?.art ? (
+                    <img src={activeSong.art} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="grid size-full place-items-center text-2xl font-semibold text-white/50">♪</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-[10px] uppercase tracking-[.3em] text-ink-2">Now playing</p>
+                      <h2 className="mt-2 truncate text-2xl font-semibold tracking-[-.05em] text-ink">
+                        {activeSong?.title ?? "Choose a recommended track"}
+                      </h2>
+                      <p className="truncate text-sm text-ink-2">
+                        {activeSong ? `${activeSong.artist} · ${activeSong.movie}` : "Spotify / Hehe"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Save current track"
+                      onClick={() => activeSong && announce("Saved to your scene shortlist.")}
+                      className="grid size-10 shrink-0 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                    >
+                      <Heart className="size-4" />
+                    </button>
+                  </div>
+                  {activeSong?.spotifyUrl ? (
+                    <a
+                      href={activeSong.spotifyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex rounded-full border border-white/[.15] bg-white/[.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[.2em] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                    >
+                      Open in Spotify
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-7">
+                <div className="flex items-center justify-between text-xs font-medium tracking-wide text-ink-2">
+                  <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
+                  <span>{activeSong?.duration ?? "--:--"}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[.1]">
+                  <div className="h-full rounded-full bg-gradient-to-r from-ink to-ink-2 transition-[width]" style={{ width: `${playbackProgress}%` }} />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-7">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Play a random recommended track"
+                    onClick={() => {
+                      if (!filteredSongs.length) {
+                        startListening();
+                        return;
+                      }
+                      void toggleSpotifySong(filteredSongs[Math.floor(Math.random() * filteredSongs.length)]);
+                    }}
+                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                  >
+                    <Shuffle className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Rewind 10 seconds"
+                    onClick={() => void seekSpotify(-10_000)}
+                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                  >
+                    <SkipBack className="size-4" />
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={connectSpotify}
-                  className="font-mono text-[10px] uppercase tracking-[.1em] text-ink underline decoration-amber/70 underline-offset-4"
+                  aria-label={spotifyPaused ? "Play current track" : "Pause current track"}
+                  onClick={() => {
+                    if (!activeSong) {
+                      connectSpotify();
+                      return;
+                    }
+                    if (spotifyTrackUri === activeSong.spotifyUri) void toggleSpotifyPlayback();
+                    else void toggleSpotifySong(activeSong);
+                  }}
+                  className="grid size-14 place-items-center rounded-full bg-ink text-canvas shadow-[0_10px_30px_rgba(255,255,255,.12)] transition hover:scale-105"
                 >
-                  Reconnect Spotify
+                  {spotifyPaused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
                 </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Fast-forward 10 seconds"
+                    onClick={() => void seekSpotify(10_000)}
+                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                  >
+                    <SkipForward className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Repeat track"
+                    onClick={() => announce("Repeat is controlled by your Spotify player.")}
+                    className="hidden size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink sm:grid"
+                  >
+                    <Repeat className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Spotify volume"
+                    onClick={() => announce("Volume is controlled by Spotify.")}
+                    className="grid size-10 place-items-center rounded-full border border-white/[.14] bg-white/[.04] text-ink-2 transition hover:border-white/35 hover:text-ink"
+                  >
+                    <Volume2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              {activeTrackId ? (
+                <div className="mt-8 overflow-hidden rounded-3xl border border-white/[.12] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,.35)]">
+                  <iframe
+                    className="h-[152px] w-full"
+                    src={`https://open.spotify.com/embed/track/${activeTrackId}?utm_source=generator`}
+                    title={`${activeSong?.title ?? "Spotify track"} - Spotify`}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                  />
+                </div>
               ) : null}
             </div>
-          ) : null}
+
+            {spotifyError || visiblePlaylistError ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber/30 bg-amber/[.08] px-4 py-3">
+                <p className="max-w-xl text-xs text-amber">{spotifyError ?? visiblePlaylistError}</p>
+                {visiblePlaylistError ? (
+                  <button type="button" onClick={connectSpotify} className="font-mono text-[10px] uppercase tracking-[.1em] text-ink underline decoration-amber/70 underline-offset-4">
+                    Reconnect Spotify
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -1734,7 +1872,7 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-2 shadow-cinematic backdrop-blur-xl sm:p-3">
+      <section id="reelroom-recommended-tracks" className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-2 shadow-cinematic backdrop-blur-xl sm:p-3">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3 px-1 sm:px-2">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
@@ -1808,24 +1946,16 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
 
       {spotifyPlaylistLoading ? (
         <section className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-6 text-center shadow-cinematic backdrop-blur-xl">
-          <p className="font-mono text-[10px] uppercase tracking-[.16em] text-muted">
-            Syncing {spotifyPlaylistName} recommendations...
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[.16em] text-muted">Syncing {spotifyPlaylistName} recommendations...</p>
         </section>
       ) : filteredSongs.length ? (
         <section className="overflow-hidden rounded-[1.5rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl">
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[.1] px-4 py-3 sm:px-5">
             <div>
-              <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
-                {spotifyPlaylistName} / recommended
-              </span>
-              <h2 className="mt-1 font-display text-xl font-semibold tracking-[-.05em] text-ink">
-                Pick a track for the next scene.
-              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">Spotify / {spotifyPlaylistName}</span>
+              <h2 className="mt-1 font-display text-xl font-semibold tracking-[-.05em] text-ink">Recommended tracks for the scene.</h2>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-              Live playlist sync
-            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">{filteredSongs.length} tracks</span>
           </div>
           <div className="divide-y divide-white/[.08] px-2 sm:px-3">
             {filteredSongs.map((song, index) => (
