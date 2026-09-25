@@ -282,39 +282,114 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   z-index: 60;
   display: flex;
   align-items: center;
-  gap: .2rem;
-  padding: .35rem;
+  gap: .14rem;
+  min-height: 48px;
+  height: 50px;
+  padding: .22rem;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 999px;
   background: linear-gradient(145deg, rgba(36, 39, 49, .82), rgba(8, 10, 15, .72));
-  box-shadow: 0 18px 46px rgba(0, 0, 0, .34), inset 0 1px rgba(255, 255, 255, .14);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .34), 0 1px 0 rgba(255, 255, 255, .16) inset;
   backdrop-filter: blur(24px) saturate(1.45);
   transform: translateX(-50%);
+  transition: background 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
+  isolation: isolate;
+}
+.reelroom-floating-nav[data-contrast="light"] {
+  border-color: rgba(0, 0, 0, .14);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .88), rgba(237, 239, 243, .74));
+  box-shadow: 0 18px 46px rgba(21, 27, 38, .2), 0 1px 0 rgba(255, 255, 255, .85) inset;
+}
+.reelroom-floating-nav-active-pill {
+  position: absolute;
+  top: .22rem;
+  bottom: .22rem;
+  z-index: 0;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .18), inset 0 1px rgba(255, 255, 255, .14);
+  pointer-events: none;
+  transition: left 420ms cubic-bezier(.22, 1, .36, 1), width 420ms cubic-bezier(.22, 1, .36, 1), background 260ms ease, border-color 260ms ease;
+}
+.reelroom-floating-nav[data-contrast="light"] .reelroom-floating-nav-active-pill {
+  border-color: rgba(0, 0, 0, .08);
+  background: rgba(0, 0, 0, .07);
+  box-shadow: 0 5px 16px rgba(21, 27, 38, .12), inset 0 1px rgba(255, 255, 255, .72);
 }
 .reelroom-floating-nav a,
 .reelroom-floating-nav button {
   position: relative;
-  min-width: 4.5rem;
-  padding: .6rem .8rem .72rem;
+  z-index: 1;
+  display: inline-flex;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: .38rem;
+  padding: .46rem .72rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: rgba(255, 255, 255, .92);
-  font-size: .7rem;
-  font-weight: 500;
+  font-family: "SF Pro Text", Inter, system-ui, sans-serif;
+  font-size: .66rem;
+  font-weight: 520;
   letter-spacing: .01em;
   text-align: center;
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 220ms ease, color 220ms ease, transform 220ms ease;
+  transition: color 220ms ease, transform 150ms cubic-bezier(.2, .8, .2, 1), text-shadow 220ms ease;
 }
 .reelroom-floating-nav a:hover,
 .reelroom-floating-nav a:focus-visible,
 .reelroom-floating-nav button:hover,
 .reelroom-floating-nav button:focus-visible {
-  background: rgba(255, 255, 255, .1);
   color: rgba(255, 255, 255, .96);
-  transform: translateY(-1px);
+  text-shadow: 0 0 18px rgba(255, 255, 255, .42);
+  outline: none;
+}
+.reelroom-floating-nav a:hover::after,
+.reelroom-floating-nav button:hover::after,
+.reelroom-floating-nav a:focus-visible::after,
+.reelroom-floating-nav button:focus-visible::after {
+  opacity: 1;
+}
+.reelroom-floating-nav a:active,
+.reelroom-floating-nav button:active {
+  transform: scale(.94);
+}
+.reelroom-floating-nav[data-contrast="light"] a,
+.reelroom-floating-nav[data-contrast="light"] button {
+  color: rgba(18, 22, 29, .78);
+}
+.reelroom-floating-nav[data-contrast="light"] a:hover,
+.reelroom-floating-nav[data-contrast="light"] a:focus-visible,
+.reelroom-floating-nav[data-contrast="light"] button:hover,
+.reelroom-floating-nav[data-contrast="light"] button:focus-visible {
+  color: rgba(8, 11, 16, .98);
+  text-shadow: 0 0 18px rgba(0, 0, 0, .18);
+}
+.reelroom-floating-nav a::after,
+.reelroom-floating-nav button::after {
+  position: absolute;
+  inset: .2rem;
+  z-index: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, .16), transparent 68%);
+  content: "";
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.reelroom-floating-nav a > *,
+.reelroom-floating-nav button > * {
+  position: relative;
+  z-index: 1;
+}
+.reelroom-floating-nav-icon { width: .84rem; height: .84rem; flex: 0 0 auto; stroke-width: 1.8; }
+.reelroom-floating-nav[data-contrast="light"] a::after,
+.reelroom-floating-nav[data-contrast="light"] button::after {
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, .82), transparent 68%);
 }
 .reelroom-floating-notifications {
   position: absolute;
@@ -361,8 +436,9 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   justify-content: center;
   gap: .38rem;
   min-width: 6.3rem !important;
-  color: rgba(255, 255, 255, .92) !important;
+  color: rgba(255, 255, 255, .92);
 }
+.reelroom-floating-nav[data-contrast="light"] .notification-center-trigger { color: rgba(18, 22, 29, .78); }
 .notification-center-trigger-icon { width: .9rem; height: .9rem; }
 .notification-center-unread-dot {
   width: .38rem;
@@ -504,6 +580,7 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
 .reelroom-floating-nav a[data-active="true"] {
   color: #fff;
 }
+.reelroom-floating-nav[data-contrast="light"] a[data-active="true"] { color: #0b0e13; }
 .reelroom-floating-nav-dot {
   position: absolute;
   left: 50%;
@@ -520,19 +597,23 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   box-shadow: 0 0 10px rgba(255, 255, 255, .72);
   transform: translateX(-50%) scale(1);
 }
+.reelroom-floating-nav[data-contrast="light"] a[data-active="true"] .reelroom-floating-nav-dot { box-shadow: 0 0 10px rgba(0, 0, 0, .32); }
 @media (max-width: 480px) {
   .reelroom-floating-nav {
     width: calc(100% - 1.5rem);
     justify-content: space-between;
     gap: 0;
   }
+  .reelroom-floating-nav > .notification-center { display: flex; min-width: 0; flex: 1; }
   .reelroom-floating-nav a,
   .reelroom-floating-nav button {
     min-width: 0;
     flex: 1;
     padding-inline: .2rem;
-    font-size: .58rem;
+    gap: .22rem;
+    font-size: .56rem;
   }
+  .reelroom-floating-nav-icon { width: .76rem; height: .76rem; }
   .notification-center-trigger { min-width: 0 !important; gap: .2rem; }
   .notification-center-trigger-icon { width: .82rem; height: .82rem; }
   .notification-center-layer { inset: 0; z-index: 80; }
@@ -547,6 +628,21 @@ body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
   .notification-center-item-actions { flex-wrap: wrap; }
   .notification-center-item-archive { margin-left: 0; }
   .notification-center-footer { padding-bottom: max(.9rem, env(safe-area-inset-bottom)); }
+}
+@media (prefers-contrast: more) {
+  .reelroom-floating-nav { border-color: currentColor; box-shadow: 0 12px 30px rgba(0, 0, 0, .5); }
+  .reelroom-floating-nav-active-pill { border: 2px solid currentColor; background: transparent; box-shadow: none; }
+  .reelroom-floating-nav a,
+  .reelroom-floating-nav button { font-weight: 700; }
+}
+@media (forced-colors: active) {
+  .reelroom-floating-nav { border: 1px solid CanvasText; background: Canvas; color: CanvasText; backdrop-filter: none; }
+  .reelroom-floating-nav a,
+  .reelroom-floating-nav button { color: CanvasText; }
+  .reelroom-floating-nav-active-pill { border: 1px solid Highlight; background: Highlight; }
+  .reelroom-floating-nav a[data-active="true"] { color: HighlightText; }
+  .reelroom-floating-nav a::after,
+  .reelroom-floating-nav button::after { display: none; }
 }
 .reelroom-app header > .ml-auto { display: none !important; }
 
