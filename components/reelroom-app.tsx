@@ -2949,10 +2949,14 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
             id="main"
             className={cn(
               "w-full max-w-full min-w-0 pb-24 lg:pb-14",
-              page === "songs" ? "px-2 sm:px-3 lg:px-4" : "px-4 sm:px-6 lg:px-10",
+              page === "updates"
+                ? "reelroom-updates-main"
+                : page === "songs"
+                  ? "px-2 sm:px-3 lg:px-4"
+                  : "px-4 sm:px-6 lg:px-10",
             )}
           >
-          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40")}>
+          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "reelroom-updates-header")}>
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
                 <Film className="size-3.5 -rotate-45" />
@@ -3022,12 +3026,14 @@ export function ReelroomApp({ initialMovies }: { initialMovies?: Movie[] }) {
               </div>
             </div>
           </header>
-          <div className="animate-[page-in_.35s_ease_both]">{pageContent}</div>
+          <div className={cn("animate-[page-in_.35s_ease_both]", page === "updates" && "reelroom-updates-content")}>{pageContent}</div>
         </main>
       </div>
-      <footer className="w-full border-t border-border px-4 py-4 text-center font-mono text-[10px] text-ink-2 sm:px-6 lg:px-10">
-        Reelscape · Find your next screening
-      </footer>
+      {page !== "updates" ? (
+        <footer className="w-full border-t border-border px-4 py-4 text-center font-mono text-[10px] text-ink-2 sm:px-6 lg:px-10">
+          Reelscape · Find your next screening
+        </footer>
+      ) : null}
       {detailModal}
       {checkoutModal}
       {notice ? (

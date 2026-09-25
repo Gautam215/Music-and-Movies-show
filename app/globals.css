@@ -237,6 +237,38 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .updates-carousel-panel h2 { font-size: 2.5rem; }
 }
 
+body:has(.reelroom-app[data-page="updates"]) { background: #050608; }
+.reelroom-updates-main { position: relative; padding: 0 !important; }
+.reelroom-updates-header { position: absolute; inset: 0 0 auto; z-index: 20; padding-inline: 1.75rem; color: #f5f5f7; }
+.reelroom-updates-header .reelroom-desktop-nav-button,
+.reelroom-updates-header .reelroom-header-overflow > button { border-color: rgba(255, 255, 255, .22); color: rgba(255, 255, 255, .72); }
+.reelroom-updates-header .reelroom-desktop-nav-button:hover,
+.reelroom-updates-header .reelroom-header-overflow > button:hover { border-color: rgba(255, 255, 255, .5); color: #fff; }
+.reelroom-updates-content { min-height: 100svh; }
+.reelroom-updates-main .updates-carousel { min-height: 100svh; border: 0; border-radius: 0; box-shadow: none; }
+.reelroom-updates-main .updates-carousel-header { position: absolute; inset: 0 0 auto; z-index: 4; padding: 6.2rem 2.5rem 0; }
+.reelroom-updates-main .updates-carousel-layout { min-height: 100svh; grid-template-columns: minmax(0, 1fr) minmax(25rem, 34rem); }
+.reelroom-updates-main .updates-carousel-stage { min-height: 100svh; }
+.reelroom-updates-main .updates-carousel-panel { min-height: 100svh; padding: 7.5rem 2.5rem 2.5rem; }
+.reelroom-updates-main .updates-carousel-panel-poster { height: 14rem; }
+.reelroom-updates-main .updates-carousel-panel h2 { font-size: clamp(2.5rem, 4.5vw, 4.8rem); }
+.reelroom-updates-main .updates-carousel-center { width: 14rem; height: 14rem; }
+.reelroom-updates-main .updates-carousel-center strong { font-size: 4.5rem; }
+.reelroom-updates-main .updates-carousel-orbit { width: min(68%, 44rem); }
+@media (max-width: 1023px) {
+  .reelroom-updates-header { padding-inline: 1rem; }
+  .reelroom-updates-main .updates-carousel-header { padding: 6rem 1.25rem 0; }
+  .reelroom-updates-main .updates-carousel-layout { min-height: 100svh; }
+  .reelroom-updates-main .updates-carousel-stage { min-height: 72svh; }
+  .reelroom-updates-main .updates-carousel-panel { min-height: 0; padding: 2rem 1.25rem 2.5rem; }
+}
+@media (max-width: 640px) {
+  .reelroom-updates-main .updates-carousel-header { padding: 5.5rem 1rem 0; }
+  .reelroom-updates-main .updates-carousel-stage { min-height: 64svh; }
+  .reelroom-updates-main .updates-carousel-center { width: 9.5rem; height: 9.5rem; }
+  .reelroom-updates-main .updates-carousel-center strong { font-size: 3.2rem; }
+}
+
 /* Liquid-glass treatment is reserved for navigation and floating controls. */
 aside.sticky {
   background: linear-gradient(155deg, hsl(var(--surface) / .78), hsl(var(--canvas) / .58));
