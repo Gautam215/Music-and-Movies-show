@@ -1121,6 +1121,9 @@ export function ReelroomApp({
   }, [spotifySearchOpen]);
 
   const setPage = (nextPage: NavId) => {
+    setBooking(false);
+    setCheckoutClosing(false);
+    setCheckoutStatus("idle");
     setPageState(nextPage);
     if (typeof window === "undefined") return;
     const nextHash = nextPage === "home" ? "" : `#${nextPage}`;
@@ -1130,6 +1133,9 @@ export function ReelroomApp({
 
   useEffect(() => {
     const syncPage = () => {
+      setBooking(false);
+      setCheckoutClosing(false);
+      setCheckoutStatus("idle");
       setPageState(pageFromLocation());
       setRouteReady(true);
     };
