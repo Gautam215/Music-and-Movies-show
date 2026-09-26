@@ -14,6 +14,10 @@ export type Movie = {
   runtime?: number;
   production?: string;
   actors?: string[];
+  tmdbId?: number;
+  mediaType?: "movie" | "tv" | "anime";
+  trendScore?: number;
+  trendRegion?: string;
 };
 
 export type MovieUpdateFeeds = {

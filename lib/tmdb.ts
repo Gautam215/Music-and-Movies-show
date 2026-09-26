@@ -1,8 +1,11 @@
 import { unstable_cache } from "next/cache";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
+import { getViewingProfile, type ViewingProfile } from "@/lib/viewing-history";
 
 const TMDB_ENDPOINT = "https://api.themoviedb.org/3/trending/movie/week";
+const TMDB_TRENDING_ENDPOINT = "https://api.themoviedb.org/3/trending";
 const TMDB_UPCOMING_ENDPOINT = "https://api.themoviedb.org/3/discover/movie";
+const TMDB_TV_ENDPOINT = "https://api.themoviedb.org/3/discover/tv";
 const TMDB_MOVIE_ENDPOINT = "https://api.themoviedb.org/3/movie";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w780";
 const FALLBACK_POSTER = "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
@@ -29,10 +32,15 @@ const genres: Record<number, string> = {
 type TmdbMovie = {
   id: number;
   title?: string;
+  name?: string;
+  original_name?: string;
   overview?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
   release_date?: string;
+  first_air_date?: string;
+  media_type?: "movie" | "tv" | "person";
+  origin_country?: string[];
   vote_average?: number;
   vote_count?: number;
   popularity?: number;
@@ -75,15 +83,21 @@ function mapMovie(
   index: number,
   collection: "trending" | "upcoming" | "curated" = "trending",
   segment?: string,
+  mediaTypeOverride?: Movie["mediaType"],
 ): Movie {
-  const title = movie.title?.trim() || "Untitled screening";
+  const title = movie.title?.trim() || movie.name?.trim() || movie.original_name?.trim() || "Untitled screening";
   const movieGenres = (movie.genre_ids ?? []).map((id) => genres[id]).filter(Boolean);
   const price = 14 + Math.min(index, 4) * 2;
   const upcoming = collection === "upcoming";
-  const label = segment ? `${segment} · ` : "";
+  const mediaType = mediaTypeOverride ?? (movie.media_type === "tv" ? "tv" : "movie");
+  const label = segment ? `${segment} · ` : mediaType === "tv" ? "TV · " : "";
+  const releaseDate = movie.release_date || movie.first_air_date;
+  const finalGenres = mediaType === "anime" ? ["Anime", ...movieGenres] : movieGenres;
 
   return {
     id: `tmdb-${movie.id}`,
+    tmdbId: movie.id,
+    mediaType,
     title,
     meta: `${label}${movieGenres[0] ?? "Film"} · TMDB`,
     status: upcoming ? "UPCOMING" : "NOW PLAYING",
@@ -96,10 +110,95 @@ function mapMovie(
         ? "An upcoming feature selected from TMDB’s release calendar."
         : "A current audience favorite selected from TMDB’s popularity and rating signals."),
     showtimes: ["10:30 AM", "1:45 PM", "7:30 PM"],
-    genres: segment ? [segment, ...movieGenres] : movieGenres.length ? movieGenres : ["Film"],
-    release: formatRelease(movie.release_date, upcoming ? "Upcoming release" : "Trending now"),
+    genres: finalGenres.length ? finalGenres : ["Film"],
+    release: formatRelease(releaseDate, upcoming ? "Upcoming release" : "Trending now"),
     price,
+    trendScore: movie.popularity ?? movie.vote_average ?? 0,
   };
+}
+
+type TrendScope = { region?: string };
+
+async function fetchTrendEndpoint(path: string, token: string, params?: URLSearchParams) {
+  const url = new URL(path);
+  url.searchParams.set("language", "en-US");
+  params?.forEach((value, key) => url.searchParams.set(key, value));
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) return [] as TmdbMovie[];
+  const data = (await response.json()) as TmdbResponse;
+  return data.results ?? [];
+}
+
+async function fetchTrendCatalog(token: string, scope: TrendScope) {
+  const region = scope.region?.toUpperCase();
+  const movieParams = region ? new URLSearchParams({ region, sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1" }) : undefined;
+  const tvParams = region ? new URLSearchParams({ watch_region: region, sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1" }) : undefined;
+  const animeParams = new URLSearchParams({ with_genres: "16", with_origin_country: "JP", sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1", ...(region ? { watch_region: region } : {}) });
+  const [moviesResult, tvResult, animeResult] = await Promise.all([
+    fetchTrendEndpoint(region ? TMDB_UPCOMING_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/movie/week`, token, movieParams),
+    fetchTrendEndpoint(region ? TMDB_TV_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/tv/week`, token, tvParams),
+    fetchTrendEndpoint(TMDB_TV_ENDPOINT, token, animeParams),
+  ]);
+  const seen = new Set<string>();
+  const results: Movie[] = [];
+  const add = (items: TmdbMovie[], mediaType: Movie["mediaType"]) => {
+    items.forEach((item, index) => {
+      const key = `${mediaType}:${item.id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const mapped = mapMovie(item, results.length + index, "trending", mediaType === "anime" ? "Anime" : undefined, mediaType);
+      results.push({ ...mapped, trendRegion: region });
+    });
+  };
+  add(moviesResult, "movie");
+  add(tvResult, "tv");
+  add(animeResult, "anime");
+  return results
+    .sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0))
+    .slice(0, 30);
+}
+
+const getBiweeklyTrendCatalog = async (region?: string) => {
+  const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
+  if (!token) return null;
+  const cacheKey = region?.toUpperCase() || "GLOBAL";
+  const getCached = unstable_cache(
+    () => fetchTrendCatalog(token, { region }),
+    ["reelscape-biweekly-trending-v1", cacheKey],
+    { revalidate: 1_209_600, tags: ["reelscape-biweekly-trending-v1"] },
+  );
+  try {
+    const results = await getCached();
+    return results.length ? results : null;
+  } catch {
+    return null;
+  }
+};
+
+function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
+  return trends
+    .map((movie, index) => {
+      const genreScore = movie.genres.reduce((score, genre) => score + (profile.genreWeights.get(genre) ?? 0), 0);
+      const mediaScore = profile.mediaTypeWeights.get(movie.mediaType ?? "movie") ?? 0;
+      return { movie, score: (movie.trendScore ?? 0) + genreScore * 0.35 + mediaScore * 0.2 - index * 0.02 };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ movie }) => movie);
+}
+
+export async function getHomeTrending({ userId, region }: { userId?: string; region?: string }) {
+  const trends = await getBiweeklyTrendCatalog(region);
+  if (!trends) return null;
+  if (!userId) return trends.slice(0, 12);
+  try {
+    const profile = await getViewingProfile(userId);
+    return personalizeTrends(trends, profile).slice(0, 12);
+  } catch {
+    return trends.slice(0, 12);
+  }
 }
 
 export async function getTrendingMovies(): Promise<Movie[] | null> {
