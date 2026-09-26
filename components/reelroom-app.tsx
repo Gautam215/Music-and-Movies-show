@@ -747,7 +747,7 @@ export function ReelroomApp({
   dailyUpdates?: MovieUpdateFeeds;
 }) {
   const catalog = initialMovies?.length ? initialMovies : movies;
-  const heroCandidates = catalog.filter((item) => item.status === "UPCOMING");
+  const heroCandidates = catalog.length ? catalog : movies;
   const [heroIndex, setHeroIndex] = useState(0);
   const heroMovie = heroCandidates[heroIndex % Math.max(heroCandidates.length, 1)] ?? movies[0];
   const [page, setPageState] = useState<NavId>("home");
@@ -1378,6 +1378,22 @@ export function ReelroomApp({
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
   };
+  const openMovie = (movie: Movie) => {
+    setSelected(movie);
+    if (!movie.tmdbId || !movie.mediaType) return;
+    void fetch("/api/viewing-history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        tmdbId: movie.tmdbId,
+        mediaType: movie.mediaType,
+        title: movie.title,
+        genres: movie.genres,
+        region: movie.trendRegion,
+      }),
+    }).catch(() => undefined);
+  };
   const openCheckout = () => {
     setCheckoutClosing(false);
     setCheckoutStatus("idle");
@@ -1692,7 +1708,7 @@ export function ReelroomApp({
       city={preferredCity}
       shelfMovies={shelfMovies}
       onActivate={(movie) => setActiveReelMovieId(movie.id)}
-      onOpen={setSelected}
+       onOpen={openMovie}
       onViewAll={() => setPage("movies")}
     />
   );
@@ -1773,7 +1789,7 @@ export function ReelroomApp({
       <div className="relative z-10 flex min-h-[44rem] items-center p-4 sm:min-h-[42rem] sm:p-6 md:min-h-[38rem] md:p-8 lg:min-h-[34rem] lg:p-8">
         <FeaturedScreening
           item={heroMovie}
-          onOpen={setSelected}
+           onOpen={openMovie}
           onBook={() => setPage("tickets")}
         />
       </div>
@@ -1885,7 +1901,7 @@ export function ReelroomApp({
 
   const updatesWithWheel = (
     <div className="w-full">
-      <UpdatesCarousel moviesByCategory={updatesMoviesByCategory} onOpen={setSelected} />
+       <UpdatesCarousel moviesByCategory={updatesMoviesByCategory} onOpen={openMovie} />
     </div>
   );
   const loginPage = (
