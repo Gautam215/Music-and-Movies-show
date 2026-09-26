@@ -105,7 +105,7 @@ export function UpdatesCarousel({
   if (!selectedMovie) return null;
 
   return (
-    <section className="updates-carousel" aria-label="Upcoming 2026 movie updates">
+    <section className="updates-carousel" aria-label="Trending 2026 movie updates">
       <div className="updates-carousel-waves" aria-hidden="true">
         <span className="updates-wave updates-wave-one" />
         <span className="updates-wave updates-wave-two" />
@@ -162,8 +162,8 @@ export function UpdatesCarousel({
               </span>
             </button>
           ))}
-          <div className="updates-carousel-center" aria-hidden="true">
-            <span>Upcoming</span>
+            <div className="updates-carousel-center" aria-hidden="true">
+              <span>Trending</span>
             <strong>&apos;26</strong>
             <small>Tap a title to expand</small>
           </div>
