@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   const uri = body?.uri?.trim();
   const deviceId = body?.deviceId?.trim();
 
-  if (!uri?.startsWith("spotify:track:") || !deviceId) {
+  if (!uri?.startsWith("spotify:track:") || uri.length > 120 || !deviceId || deviceId.length > 200) {
     return NextResponse.json(
       { error: "A Spotify track and device are required." },
       { status: 400, headers: spotifyPrivateHeaders() },

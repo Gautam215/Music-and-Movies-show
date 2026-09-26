@@ -52,6 +52,7 @@ function setRefreshedCookies(
 
 export async function GET(request: Request) {
   const playlistName = new URL(request.url).searchParams.get("name")?.trim() || "Hehe";
+  if (playlistName.length > 120) return NextResponse.json({ error: "Playlist name is too long." }, { status: 400, headers: spotifyPrivateHeaders() });
   const tokenState = await getSpotifyServerToken();
   if (!tokenState.accessToken) {
     const response = NextResponse.json(

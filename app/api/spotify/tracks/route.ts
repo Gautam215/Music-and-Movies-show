@@ -31,9 +31,10 @@ export async function GET(request: Request) {
     );
   }
 
-  try {
-    const requestUrl = new URL(request.url);
-    const query = requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
+    try {
+      const requestUrl = new URL(request.url);
+      const query = requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
+      if (query.length > 120) return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
     const requestedLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
     const limit = Number.isFinite(requestedLimit)
       ? Math.min(Math.max(Math.floor(requestedLimit), 1), 20)

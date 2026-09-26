@@ -58,6 +58,10 @@ export async function createSession(userId: string) {
   const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
   const db = await getDatabase();
 
+  await db.collection<SessionDocument>("sessions").createIndex(
+    { expiresAt: 1 },
+    { expireAfterSeconds: 0 },
+  );
   await db.collection<SessionDocument>("sessions").insertOne({
     _id: randomUUID(),
     userId,
