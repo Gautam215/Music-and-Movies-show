@@ -96,6 +96,40 @@ type SpotifySession = {
   product?: string | null;
 };
 
+type CheckoutField = "name" | "email" | "cardNumber" | "expiry" | "cvc";
+type CheckoutStatus = "idle" | "loading" | "success";
+
+type CheckoutForm = Record<CheckoutField, string>;
+
+const emptyCheckoutErrors: Partial<Record<CheckoutField, string>> = {};
+const checkoutFields: CheckoutField[] = ["name", "email", "cardNumber", "expiry", "cvc"];
+
+function validateCheckoutField(field: CheckoutField, value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "Required";
+  if (field === "name" && trimmed.length < 2) return "Enter your full name";
+  if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return "Enter a valid email";
+  }
+  if (field === "cardNumber" && value.replace(/\s/g, "").length < 12) {
+    return "Enter a valid card number";
+  }
+  if (field === "expiry" && !/^(0[1-9]|1[0-2])\s?\/\s?\d{2}$/.test(trimmed)) {
+    return "Use MM / YY";
+  }
+  if (field === "cvc" && !/^\d{3,4}$/.test(trimmed)) return "Use 3 or 4 digits";
+  return "";
+}
+
+function formatCardNumber(value: string) {
+  return value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+function formatExpiry(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)} / ${digits.slice(2)}` : digits;
+}
+
 async function fetchSpotifySession() {
   const response = await fetchWithBackoff("/api/spotify/session", {
     cache: "no-store",
@@ -719,6 +753,18 @@ export function ReelroomApp({
   const [sharedSession, setSharedSession] = useState(false);
   const [sessionCopied, setSessionCopied] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [checkoutClosing, setCheckoutClosing] = useState(false);
+  const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
+  const [checkoutMethod, setCheckoutMethod] = useState<"card" | "apple" | "google">("card");
+  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
+    name: "Alex Kim",
+    email: "alex.kim@example.com",
+    cardNumber: "",
+    expiry: "",
+    cvc: "",
+  });
+  const [checkoutTouched, setCheckoutTouched] = useState<Partial<Record<CheckoutField, boolean>>>({});
+  const [checkoutErrors, setCheckoutErrors] = useState<Partial<Record<CheckoutField, string>>>(emptyCheckoutErrors);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>([]);
@@ -1261,6 +1307,73 @@ export function ReelroomApp({
   const announce = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
+  };
+  const openCheckout = () => {
+    setCheckoutClosing(false);
+    setCheckoutStatus("idle");
+    setCheckoutMethod("card");
+    setCheckoutTouched({});
+    setCheckoutErrors(emptyCheckoutErrors);
+    setBooking(true);
+  };
+  const closeCheckout = () => {
+    if (checkoutStatus === "loading") return;
+    setCheckoutClosing(true);
+    window.setTimeout(() => {
+      setCheckoutClosing(false);
+      setCheckoutStatus("idle");
+      setBooking(false);
+    }, 240);
+  };
+  const updateCheckoutField = (field: CheckoutField, rawValue: string) => {
+    const value = field === "cardNumber"
+      ? formatCardNumber(rawValue)
+      : field === "expiry"
+        ? formatExpiry(rawValue)
+        : field === "cvc"
+          ? rawValue.replace(/\D/g, "").slice(0, 4)
+          : rawValue;
+    setCheckoutForm((current) => ({ ...current, [field]: value }));
+    if (checkoutTouched[field]) {
+      setCheckoutErrors((current) => ({
+        ...current,
+        [field]: validateCheckoutField(field, value) || undefined,
+      }));
+    }
+  };
+  const touchCheckoutField = (field: CheckoutField) => {
+    setCheckoutTouched((current) => ({ ...current, [field]: true }));
+    setCheckoutErrors((current) => ({
+      ...current,
+      [field]: validateCheckoutField(field, checkoutForm[field]) || undefined,
+    }));
+  };
+  const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (checkoutMethod !== "card") {
+      announce("Express gateway API will be connected when the provider is supplied.");
+      return;
+    }
+    const nextErrors: Partial<Record<CheckoutField, string>> = {};
+    checkoutFields.forEach((field) => {
+      const error = validateCheckoutField(field, checkoutForm[field]);
+      if (error) nextErrors[field] = error;
+    });
+    setCheckoutTouched({ name: true, email: true, cardNumber: true, expiry: true, cvc: true });
+    setCheckoutErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    setCheckoutStatus("loading");
+    window.setTimeout(() => {
+      setCheckoutStatus("success");
+      window.setTimeout(() => {
+        setBooking(false);
+        setCheckoutStatus("idle");
+        setSelectedSeats([]);
+        announce("Booking confirmed. Ticket history is ready for Profile.");
+        setPage("profile");
+      }, 1500);
+    }, 900);
   };
   const shareMovie = async (movie: Movie) => {
     const shareUrl = window.location.href;
@@ -2296,6 +2409,9 @@ export function ReelroomApp({
   const bookingFee = selectedSeats.length ? 4.8 : 0;
   const groupDiscount = selectedSeats.length >= 4 ? -4.8 : 0;
   const ticketTotal = ticketSubtotal + bookingFee + groupDiscount;
+  const checkoutTax = Math.round(ticketSubtotal * 0.18 * 100) / 100;
+  const checkoutShipping = 0;
+  const checkoutTotal = ticketSubtotal + checkoutTax + checkoutShipping + bookingFee + groupDiscount;
   const chooseSmartGroup = () => {
     const rows = ["A", "B", "C", "D", "E"];
     const target = Math.min(Math.max(groupSize, 1), 6);
@@ -2549,7 +2665,7 @@ export function ReelroomApp({
             </div>
             <div className="mt-5 flex items-end justify-between border-t border-border pt-4"><span className="font-display text-base font-semibold text-ink">Total</span><strong className="font-display text-2xl tracking-[-.05em] text-amber">₹{ticketTotal.toFixed(2)}</strong></div>
             <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-[10px] leading-5 text-ink-2"><span className="mb-1 block font-mono uppercase tracking-[.1em] text-muted">Shared room</span>{sharedSession ? "You and 2 friends are choosing together." : "Invite friends to choose seats in the same room."}<button type="button" onClick={() => void shareBookingSession()} className="mt-2 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt"><Copy className="size-3" /> {sessionCopied ? "Link copied" : "Copy invite link"}</button></div>
-            <Button variant="primary" disabled={!selectedSeats.length} onClick={() => setBooking(true)} className="mt-5 w-full">{selectedSeats.length ? "Continue to checkout" : "Select your seats"}<ArrowRight className="size-4" /></Button>
+             <Button variant="primary" disabled={!selectedSeats.length} onClick={openCheckout} className="mt-5 w-full">{selectedSeats.length ? "Continue to checkout" : "Select your seats"}<ArrowRight className="size-4" /></Button>
             <p className="mt-3 flex items-start gap-2 text-[10px] leading-5 text-muted"><ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" /> Demo mode: payment is not processed. Production hands off to a PCI-compliant provider.</p>
           </aside>
         ) : null}
@@ -2950,62 +3066,270 @@ export function ReelroomApp({
     </div>
   ) : null;
   const checkoutModal = booking ? (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-canvas/80 p-4 backdrop-blur-md">
+    <div
+      className={cn(
+        "reelroom-checkout-backdrop fixed inset-0 z-40 overflow-y-auto bg-canvas/80 p-3 backdrop-blur-md sm:p-6",
+        checkoutClosing && "reelroom-checkout-backdrop-closing",
+      )}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeCheckout();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-cinematic"
+        aria-labelledby="checkout-title"
+        aria-describedby="checkout-description"
+        className={cn(
+          "reelroom-checkout-panel mx-auto my-2 w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/[.16] bg-[#10131d]/90 shadow-[0_32px_120px_rgba(0,0,0,.58)] backdrop-blur-2xl sm:my-6",
+          checkoutClosing && "reelroom-checkout-panel-closing",
+        )}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-              Checkout
+        {checkoutStatus === "success" ? (
+          <div className="grid min-h-[34rem] place-items-center p-8 text-center sm:p-14">
+            <div>
+              <div className="reelroom-checkout-success-mark mx-auto grid size-20 place-items-center rounded-full border border-mint/35 bg-mint/10 text-mint">
+                <Check className="size-9" />
+              </div>
+              <div className="mt-7 font-mono text-[10px] uppercase tracking-[.22em] text-mint">
+                Payment confirmed
+              </div>
+              <h2 id="checkout-title" className="mt-3 font-display text-4xl font-semibold tracking-[-.08em] text-ink sm:text-5xl">
+                Your seats are yours.
+              </h2>
+              <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-ink-2">
+                A confirmation is ready for {checkoutForm.email}. We&apos;ll keep the ticket in your Reelscape profile.
+              </p>
+              <div className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-4 py-2 font-mono text-[10px] uppercase tracking-[.1em] text-ink-2">
+                <Ticket className="size-3.5 text-amber" /> {ticketMovie.title} · {selectedDayOption.date}
+              </div>
             </div>
-            <h2 className="mt-2 font-display text-3xl font-semibold tracking-[-.06em] text-ink">
-              Almost at the credits.
-            </h2>
           </div>
-          <button
-            type="button"
-            onClick={() => setBooking(false)}
-            className="grid size-9 place-items-center rounded-full border border-border text-ink-2"
-            aria-label="Close checkout"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <p className="mt-5 text-sm leading-6 text-ink-2">
-          Payment details are handled by the configured provider. Your order
-          will be finalized only after signed payment confirmation.
-        </p>
-        <div className="mt-5 divide-y divide-border rounded-xl border border-border bg-surface-2 px-4">
-          <div className="flex justify-between py-4 text-xs">
-            <span className="text-muted">Contact</span>
-            <strong className="text-ink">alex.kim@example.com</strong>
-          </div>
-          <div className="flex justify-between py-4 text-xs">
-            <span className="text-muted">Payment</span>
-            <strong className="text-mint">Provider checkout</strong>
-          </div>
-            <div className="flex justify-between py-4 text-xs">
-              <span className="text-muted">Total</span>
-              <strong className="text-ink">
-               ₹{ticketTotal.toFixed(2)}
-              </strong>
-            </div>
-        </div>
-        <Button
-          variant="primary"
-          className="mt-5 w-full"
-          onClick={() => {
-            setBooking(false);
-            setSelectedSeats([]);
-            announce("Booking confirmed. Ticket history is ready for Profile.");
-            setPage("profile");
-          }}
-        >
-          <Check className="size-4" /> Confirm purchase
-        </Button>
+        ) : (
+          <>
+            <header className="flex items-start justify-between gap-6 border-b border-white/[.1] px-5 py-5 sm:px-8 sm:py-7">
+              <div>
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.2em] text-amber">
+                  <span className="grid size-5 place-items-center rounded-full border border-amber/40 bg-amber/10">03</span>
+                  Checkout / secure handoff
+                </div>
+                <h2 id="checkout-title" className="mt-3 font-display text-3xl font-semibold tracking-[-.07em] text-ink sm:text-4xl">
+                  Almost at the credits.
+                </h2>
+                <p id="checkout-description" className="mt-2 max-w-xl text-sm leading-6 text-ink-2">
+                  Finish with a few details. Your payment provider will receive the handoff only after you confirm.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCheckout}
+                className="reelroom-checkout-close grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.05] text-ink-2 transition hover:border-white/25 hover:bg-white/10 hover:text-ink"
+                aria-label="Close checkout"
+              >
+                <X className="size-4" />
+              </button>
+            </header>
+
+            <form onSubmit={submitCheckout} className="grid gap-0 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,.7fr)]">
+              <div className="min-w-0 space-y-6 p-5 sm:p-8">
+                <section aria-labelledby="express-title">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Fast lane</div>
+                      <h3 id="express-title" className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink">Express payment</h3>
+                    </div>
+                    <span className="font-mono text-[9px] uppercase tracking-[.12em] text-muted">Gateway API pending</span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {([
+                      ["apple", "Apple Pay", "Face ID / Touch ID"],
+                      ["google", "Google Pay", "Saved payment"],
+                    ] as const).map(([method, label, detail]) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setCheckoutMethod(method)}
+                        className={cn(
+                          "reelroom-express-button group flex min-h-[4.2rem] items-center justify-between gap-3 rounded-2xl border px-4 text-left transition",
+                          checkoutMethod === method ? "border-amber/65 bg-amber/[.12] text-ink" : "border-white/10 bg-white/[.045] text-ink-2 hover:border-white/25 hover:bg-white/[.08]",
+                        )}
+                      >
+                        <span>
+                          <strong className="block text-sm text-ink">{label}</strong>
+                          <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.08em] text-muted">{detail}</span>
+                        </span>
+                        <span className="rounded-full border border-white/10 px-2 py-1 font-mono text-[8px] uppercase tracking-[.08em] text-muted transition group-hover:border-amber/40 group-hover:text-amber">API later</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutMethod("card")}
+                    className={cn(
+                      "reelroom-payment-method mt-3 flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition",
+                      checkoutMethod === "card" ? "border-cobalt/60 bg-cobalt/[.1]" : "border-white/10 bg-white/[.035] hover:border-white/25",
+                    )}
+                  >
+                    <span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg bg-white text-[10px] font-bold text-[#182033]">CARD</span><span><strong className="block text-xs text-ink">Card details</strong><span className="mt-1 block text-[10px] text-muted">Secure provider handoff</span></span></span>
+                    <span className={cn("size-2 rounded-full", checkoutMethod === "card" ? "bg-cobalt shadow-[0_0_14px_rgba(94,121,255,.9)]" : "bg-white/15")} />
+                  </button>
+                </section>
+
+                <section className="border-t border-white/[.1] pt-6" aria-labelledby="details-title">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Minimal details</div>
+                      <h3 id="details-title" className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink">Ready when you are.</h3>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-mint"><Check className="size-3" /> autofill ready</span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label className="reelroom-checkout-field">
+                      <span>Full name</span>
+                      <input
+                        id="checkout-name"
+                        name="name"
+                        value={checkoutForm.name}
+                        onChange={(event) => updateCheckoutField("name", event.target.value)}
+                        onBlur={() => touchCheckoutField("name")}
+                        autoComplete="name"
+                        aria-invalid={Boolean(checkoutTouched.name && checkoutErrors.name)}
+                        className={cn(checkoutTouched.name && checkoutErrors.name && "reelroom-checkout-input-error")}
+                      />
+                      {checkoutTouched.name && checkoutErrors.name ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.name}</span> : null}
+                    </label>
+                    <label className="reelroom-checkout-field">
+                      <span>Email for confirmation</span>
+                      <input
+                        id="checkout-email"
+                        name="email"
+                        type="email"
+                        value={checkoutForm.email}
+                        onChange={(event) => updateCheckoutField("email", event.target.value)}
+                        onBlur={() => touchCheckoutField("email")}
+                        autoComplete="email"
+                        aria-invalid={Boolean(checkoutTouched.email && checkoutErrors.email)}
+                        className={cn(checkoutTouched.email && checkoutErrors.email && "reelroom-checkout-input-error")}
+                      />
+                      {checkoutTouched.email && checkoutErrors.email ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.email}</span> : null}
+                    </label>
+                  </div>
+
+                  {checkoutMethod === "card" ? (
+                    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[.035] p-4">
+                      <label className="reelroom-checkout-field">
+                        <span>Card number</span>
+                        <input
+                          id="checkout-card-number"
+                          name="cardNumber"
+                          inputMode="numeric"
+                          value={checkoutForm.cardNumber}
+                          onChange={(event) => updateCheckoutField("cardNumber", event.target.value)}
+                          onBlur={() => touchCheckoutField("cardNumber")}
+                          autoComplete="cc-number"
+                          placeholder="1234 5678 9012 3456"
+                          aria-invalid={Boolean(checkoutTouched.cardNumber && checkoutErrors.cardNumber)}
+                          className={cn(checkoutTouched.cardNumber && checkoutErrors.cardNumber && "reelroom-checkout-input-error")}
+                        />
+                        {checkoutTouched.cardNumber && checkoutErrors.cardNumber ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.cardNumber}</span> : null}
+                      </label>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <label className="reelroom-checkout-field">
+                          <span>Expiry</span>
+                          <input
+                            id="checkout-expiry"
+                            name="expiry"
+                            inputMode="numeric"
+                            value={checkoutForm.expiry}
+                            onChange={(event) => updateCheckoutField("expiry", event.target.value)}
+                            onBlur={() => touchCheckoutField("expiry")}
+                            autoComplete="cc-exp"
+                            placeholder="MM / YY"
+                            aria-invalid={Boolean(checkoutTouched.expiry && checkoutErrors.expiry)}
+                            className={cn(checkoutTouched.expiry && checkoutErrors.expiry && "reelroom-checkout-input-error")}
+                          />
+                          {checkoutTouched.expiry && checkoutErrors.expiry ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.expiry}</span> : null}
+                        </label>
+                        <label className="reelroom-checkout-field">
+                          <span>Security code</span>
+                          <input
+                            id="checkout-cvc"
+                            name="cvc"
+                            inputMode="numeric"
+                            value={checkoutForm.cvc}
+                            onChange={(event) => updateCheckoutField("cvc", event.target.value)}
+                            onBlur={() => touchCheckoutField("cvc")}
+                            autoComplete="cc-csc"
+                            placeholder="CVC"
+                            aria-invalid={Boolean(checkoutTouched.cvc && checkoutErrors.cvc)}
+                            className={cn(checkoutTouched.cvc && checkoutErrors.cvc && "reelroom-checkout-input-error")}
+                          />
+                          {checkoutTouched.cvc && checkoutErrors.cvc ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.cvc}</span> : null}
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber/25 bg-amber/[.07] p-4 text-xs leading-5 text-ink-2">
+                      <Sparkles className="mt-0.5 size-4 shrink-0 text-amber" />
+                      <span><strong className="text-ink">{checkoutMethod === "apple" ? "Apple Pay" : "Google Pay"} is ready for integration.</strong> The express gateway API will be connected in the next handoff. Switch to Card to complete this demo checkout.</span>
+                    </div>
+                  )}
+                </section>
+
+                <div className="grid gap-2 sm:grid-cols-3" aria-label="Security and trust signals">
+                  <div className="reelroom-trust-signal"><ShieldCheck className="size-4 text-mint" /><span>PCI-ready</span></div>
+                  <div className="reelroom-trust-signal"><Wifi className="size-4 text-mint" /><span>SSL secured</span></div>
+                  <div className="reelroom-trust-signal"><Check className="size-4 text-mint" /><span>Instant ticket</span></div>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={checkoutStatus === "loading"}
+                    className="reelroom-checkout-confirm inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#f4f0ff] px-5 text-sm font-bold text-[#151421] shadow-[0_14px_38px_rgba(244,240,255,.18)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_18px_48px_rgba(244,240,255,.28)] active:translate-y-0 disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {checkoutStatus === "loading" ? <><span className="reelroom-checkout-spinner" /> Verifying securely...</> : <><Check className="size-4" /> Confirm purchase <ArrowRight className="size-4" /></>}
+                  </button>
+                  <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[.1em] text-muted">Demo mode · no payment is processed</p>
+                </div>
+              </div>
+
+              <aside className="reelroom-checkout-summary order-first border-b border-white/[.1] bg-black/20 p-5 sm:p-8 lg:order-2 lg:border-b-0 lg:border-l lg:border-white/[.1]">
+                <div className="lg:sticky lg:top-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Your order</div>
+                    <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[.1em] text-mint"><Wifi className="size-3" /> live</span>
+                  </div>
+                  <div className="mt-5 flex gap-3 border-b border-white/[.1] pb-5">
+                    <img src={ticketMovie.poster} alt="" className="size-16 rounded-2xl object-cover" />
+                    <div className="min-w-0">
+                      <h3 className="truncate font-display text-xl font-semibold tracking-[-.06em] text-ink">{ticketMovie.title}</h3>
+                      <p className="mt-1 font-mono text-[10px] text-amber">{selectedDayOption.date} · {activeShowtime}</p>
+                      <p className="mt-1 text-[10px] text-muted">The Orpheum · Dolby Cinema</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-3 text-xs text-ink-2">
+                    <div className="flex justify-between gap-3"><span>Tickets · {selectedSeats.join(", ")}</span><strong className="text-ink">₹{ticketSubtotal.toFixed(2)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Tax</span><strong className="text-ink">₹{checkoutTax.toFixed(2)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Shipping</span><strong className="text-mint">Digital · ₹{checkoutShipping.toFixed(2)}</strong></div>
+                    <div className="flex justify-between gap-3"><span>Booking fee</span><strong className="text-ink">₹{bookingFee.toFixed(2)}</strong></div>
+                    {groupDiscount ? <div className="flex justify-between gap-3 text-mint"><span>Group saving</span><strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong></div> : null}
+                  </div>
+                  <div className="mt-6 flex items-end justify-between gap-3 border-t border-white/[.1] pt-5">
+                    <span className="font-display text-lg font-semibold tracking-[-.04em] text-ink">Total</span>
+                    <strong className="font-display text-3xl tracking-[-.07em] text-amber">₹{checkoutTotal.toFixed(2)}</strong>
+                  </div>
+                  <div className="mt-6 rounded-2xl border border-white/10 bg-white/[.045] p-4 text-[11px] leading-5 text-ink-2">
+                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.12em] text-mint"><ShieldCheck className="size-3.5" /> Your details stay private</div>
+                    <p className="mt-2">Only a signed confirmation is shared with the payment provider. Card details never touch Reelscape.</p>
+                  </div>
+                </div>
+              </aside>
+            </form>
+          </>
+        )}
       </div>
     </div>
   ) : null;

@@ -909,9 +909,35 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-eye-preview-line.rear { transform: translateX(-50%) rotate(-11deg); }
 .reelroom-order-summary { background: linear-gradient(145deg, hsl(var(--surface-2) / .74), hsl(var(--surface) / .48)); box-shadow: 0 26px 70px hsl(var(--canvas) / .24), inset 0 1px hsl(var(--ink) / .08); }
 .reelroom-booking-page button:focus-visible { outline: 2px solid hsl(var(--amber)); outline-offset: 3px; }
+
+@keyframes reelroom-checkout-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reelroom-checkout-panel-in { from { opacity: 0; transform: translateY(18px) scale(.97); filter: blur(6px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes reelroom-checkout-backdrop-out { to { opacity: 0; } }
+@keyframes reelroom-checkout-panel-out { to { opacity: 0; transform: translateY(12px) scale(.98); filter: blur(4px); } }
+@keyframes reelroom-checkout-success { 0% { opacity: 0; transform: scale(.72); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes reelroom-checkout-spin { to { transform: rotate(360deg); } }
+.reelroom-checkout-backdrop { isolation: isolate; animation: reelroom-checkout-backdrop-in .32s ease-out both; }
+.reelroom-checkout-panel { animation: reelroom-checkout-panel-in .48s cubic-bezier(.16, 1.2, .3, 1) both; }
+.reelroom-checkout-backdrop-closing { animation: reelroom-checkout-backdrop-out .24s ease-in both; }
+.reelroom-checkout-panel-closing { animation: reelroom-checkout-panel-out .24s ease-in both; }
+.reelroom-checkout-success-mark { animation: reelroom-checkout-success .7s cubic-bezier(.16, 1.35, .3, 1) both; box-shadow: 0 0 42px hsl(var(--mint) / .16), inset 0 1px hsl(var(--ink) / .12); }
+.reelroom-checkout-field { display: block; min-width: 0; }
+.reelroom-checkout-field > span { display: block; margin-bottom: .45rem; color: hsl(var(--ink-2)); font-family: "IBM Plex Mono", monospace; font-size: .58rem; letter-spacing: .1em; line-height: 1; text-transform: uppercase; }
+.reelroom-checkout-field input { width: 100%; height: 3rem; border: 1px solid rgba(255, 255, 255, .12); border-radius: .85rem; background: rgba(255, 255, 255, .055); padding: 0 .85rem; color: hsl(var(--ink)); font-size: .82rem; outline: none; transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease; }
+.reelroom-checkout-field input::placeholder { color: hsl(var(--muted)); }
+.reelroom-checkout-field input:hover { border-color: rgba(255, 255, 255, .24); background: rgba(255, 255, 255, .075); }
+.reelroom-checkout-field input:focus { border-color: hsl(var(--cobalt) / .8); background: rgba(94, 121, 255, .08); box-shadow: 0 0 0 3px hsl(var(--cobalt) / .12); }
+.reelroom-checkout-field input.reelroom-checkout-input-error { border-color: hsl(var(--amber) / .78); background: hsl(var(--amber) / .08); }
+.reelroom-checkout-error { display: block; margin-top: .4rem; color: hsl(var(--amber)); font-family: "IBM Plex Mono", monospace; font-size: .58rem; line-height: 1.2; }
+.reelroom-trust-signal { display: flex; align-items: center; gap: .5rem; min-height: 2.65rem; border: 1px solid rgba(255, 255, 255, .08); border-radius: .85rem; background: rgba(255, 255, 255, .035); padding: .65rem .7rem; color: hsl(var(--ink-2)); font-family: "IBM Plex Mono", monospace; font-size: .57rem; letter-spacing: .07em; text-transform: uppercase; }
+.reelroom-checkout-confirm:active { box-shadow: 0 8px 20px rgba(244, 240, 255, .16); }
+.reelroom-checkout-spinner { width: 1rem; height: 1rem; border: 2px solid rgba(21, 20, 33, .22); border-top-color: #151421; border-radius: 999px; animation: reelroom-checkout-spin .7s linear infinite; }
+.reelroom-checkout-summary { background: linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .018)); }
 @media (max-width: 639px) {
   .reelroom-seat-inspector { min-height: 0; }
   .reelroom-showtime-timeline { margin-inline: -0.25rem; }
+  .reelroom-checkout-panel { border-radius: 1.4rem; }
+  .reelroom-checkout-field input { height: 2.85rem; }
 }
 
 .reelroom-soundtrack-page {
