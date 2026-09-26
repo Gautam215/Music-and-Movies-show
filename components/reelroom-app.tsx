@@ -173,6 +173,25 @@ function requestSpotifySession(
   return request;
 }
 
+function recordUserSignal(signal: {
+  type: "favorite" | "booking" | "listen";
+  title: string;
+  tmdbId?: number;
+  mediaType?: Movie["mediaType"];
+  genres?: string[];
+  metadata?: Record<string, string>;
+}) {
+  return fetchWithBackoff("/api/user-signals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(signal),
+  }).then((response) => {
+    if (response.ok) window.dispatchEvent(new Event("reelroom-notifications-updated"));
+    return response;
+  }).catch(() => null);
+}
+
 function formatPlaybackTime(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
@@ -1355,12 +1374,22 @@ export function ReelroomApp({
 
   const filteredSongs = spotifyConnected ? spotifyCatalog : [];
   const visiblePlaylistError = spotifyConnected ? spotifyPlaylistError : null;
-  const toggleFavorite = (id: string) =>
-    setFavorites((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
+  const toggleFavorite = (id: string) => {
+    const movie = [...catalog, ...movies].find((item) => item.id === id);
+    const alreadySaved = favorites.includes(id);
+    if (!alreadySaved && movie) {
+      void recordUserSignal({
+        type: "favorite",
+        title: movie.title,
+        tmdbId: movie.tmdbId,
+        mediaType: movie.mediaType,
+        genres: movie.genres,
+      });
+    }
+    setFavorites((current) => {
+      return alreadySaved ? current.filter((item) => item !== id) : [...current, id];
+    });
+  };
   const announce = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 2400);
@@ -1439,6 +1468,14 @@ export function ReelroomApp({
     setCheckoutStatus("loading");
     window.setTimeout(() => {
       setCheckoutStatus("success");
+      void recordUserSignal({
+        type: "booking",
+        title: ticketMovie.title,
+        tmdbId: ticketMovie.tmdbId,
+        mediaType: ticketMovie.mediaType,
+        genres: ticketMovie.genres,
+        metadata: { date: selectedDayOption.date, showtime: activeShowtime },
+      });
       window.setTimeout(() => {
         setBooking(false);
         setCheckoutStatus("idle");
@@ -1579,6 +1616,11 @@ export function ReelroomApp({
       setSpotifyError(null);
       setSpotifyTrackUri(song.spotifyUri);
       setPlaying(song.title);
+      void recordUserSignal({
+        type: "listen",
+        title: song.title,
+        metadata: { artist: song.artist, movie: song.movie },
+      });
     } catch (error) {
       setSpotifyError(error instanceof Error ? error.message : "Spotify could not start this track.");
     }

@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { NotificationGroupData } from "@/lib/notification-recommendations";
 
 type ProfileSession = { name: string; email: string };
 
@@ -233,6 +234,18 @@ function readStringList(key: string) {
   }
 }
 
+const remoteIcons: Record<NotificationGroupData["icon"], LucideIcon> = {
+  film: Film,
+  flame: Flame,
+  music: Music2,
+  ticket: Ticket,
+  calendar: CalendarDays,
+};
+
+function mapRemoteGroups(groups: NotificationGroupData[]): NotificationGroup[] {
+  return groups.map((group) => ({ ...group, icon: remoteIcons[group.icon] }));
+}
+
 export function NotificationCenter() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -253,8 +266,9 @@ export function NotificationCenter() {
   const [announcement, setAnnouncement] = useState("");
   const [swipe, setSwipe] = useState<SwipeState>(null);
   const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+  const [remoteGroups, setRemoteGroups] = useState<NotificationGroup[] | null>(null);
 
-  const groups = profileSession ? memberGroups(profileSession.name) : guestGroups;
+  const groups = remoteGroups ?? (profileSession ? memberGroups(profileSession.name) : guestGroups);
   const allItems = groups.flatMap((group) => group.items);
   const visibleItems = allItems.filter((item) => !archivedIds.includes(item.id));
   const unreadCount = visibleItems.filter((item) => !readIds.includes(item.id)).length;
@@ -266,6 +280,27 @@ export function NotificationCenter() {
     window.addEventListener("reelroom-profile-session", syncSession);
     return () => window.removeEventListener("reelroom-profile-session", syncSession);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotifications = async () => {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store", credentials: "same-origin" });
+        if (!response.ok) return;
+        const result = (await response.json()) as { groups?: NotificationGroupData[] };
+        const nextGroups = Array.isArray(result.groups) ? mapRemoteGroups(result.groups) : [];
+        if (!cancelled && nextGroups.some((group) => group.items.length)) setRemoteGroups(nextGroups);
+      } catch {
+        // Keep the curated client feed available when the server feed is offline.
+      }
+    };
+    void loadNotifications();
+    window.addEventListener("reelroom-notifications-updated", loadNotifications);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("reelroom-notifications-updated", loadNotifications);
+    };
+  }, [profileSession]);
 
   useEffect(() => {
     setReadIds(readStringList(READ_KEY));
