@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_LIMIT = 120;
 const REDIS_TIMEOUT_MS = 1_500;
+const fallbackBuckets = new Map<string, { count: number; resetAt: number }>();
 
 // INCR and PEXPIRE must happen in one Redis command to avoid split-brain counters.
 const RATE_LIMIT_SCRIPT = `
@@ -62,15 +63,40 @@ function unavailableResult(limit: number, failClosed: boolean): RateLimitResult 
   };
 }
 
+function consumeFallbackRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
+  const now = Date.now();
+  if (fallbackBuckets.size > 2_000) {
+    for (const [bucketKey, bucket] of fallbackBuckets) {
+      if (bucket.resetAt <= now) fallbackBuckets.delete(bucketKey);
+    }
+  }
+
+  const current = fallbackBuckets.get(key);
+  const bucket = !current || current.resetAt <= now
+    ? { count: 0, resetAt: now + windowMs }
+    : current;
+  bucket.count += 1;
+  fallbackBuckets.set(key, bucket);
+  const allowed = bucket.count <= limit;
+  const resetMs = Math.max(1, bucket.resetAt - now);
+  return {
+    allowed,
+    limit,
+    remaining: Math.max(0, limit - bucket.count),
+    resetMs,
+    retryAfterSec: allowed ? undefined : Math.max(1, Math.ceil(resetMs / 1000)),
+    status: allowed ? undefined : 429,
+  };
+}
+
 export async function consumeApiRateLimit(request: NextRequest): Promise<RateLimitResult> {
   const windowMs = positiveInteger(process.env.RATE_LIMIT_WINDOW_MS, DEFAULT_WINDOW_MS);
   const limit = positiveInteger(process.env.RATE_LIMIT_MAX_REQUESTS, DEFAULT_LIMIT);
   const { url, token } = redisConfig();
   const failClosed = isEnabled(process.env.RATE_LIMIT_FAIL_CLOSED);
-
-  if (!url || !token) return unavailableResult(limit, failClosed);
-
   const key = `${process.env.RATE_LIMIT_KEY_PREFIX ?? "reelroom:api"}:${clientIdentifier(request)}`;
+
+  if (!url || !token) return consumeFallbackRateLimit(key, limit, windowMs);
 
   try {
     const response = await fetch(`${url}/pipeline`, {
@@ -110,7 +136,7 @@ export async function consumeApiRateLimit(request: NextRequest): Promise<RateLim
     console.warn("[rate-limit] Redis unavailable", {
       error: error instanceof Error ? error.message : "unknown",
     });
-    return unavailableResult(limit, failClosed);
+    return failClosed ? unavailableResult(limit, true) : consumeFallbackRateLimit(key, limit, windowMs);
   }
 }
 
