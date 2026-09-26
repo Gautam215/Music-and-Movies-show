@@ -875,6 +875,45 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
 .reelroom-seat-map-viewport::-webkit-scrollbar-track { background: transparent; }
 .reelroom-seat-map-viewport::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--border-strong)); }
 
+.reelroom-booking-page { position: relative; isolation: isolate; }
+.reelroom-booking-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: -4rem -10rem 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle at 12% 16%, hsl(var(--cobalt) / .12), transparent 28%), radial-gradient(circle at 86% 34%, hsl(var(--amber) / .08), transparent 30%);
+  filter: blur(34px);
+}
+.reelroom-booking-workspace { background: linear-gradient(145deg, hsl(var(--surface-2) / .62), hsl(var(--surface) / .42)); box-shadow: 0 32px 90px hsl(var(--canvas) / .28), inset 0 1px hsl(var(--ink) / .08); }
+.reelroom-showtime-card { position: relative; overflow: hidden; background: linear-gradient(145deg, hsl(var(--surface-2) / .7), hsl(var(--surface) / .45)); box-shadow: inset 0 1px hsl(var(--ink) / .06); transition: border-color 220ms ease, background 220ms ease, transform 220ms ease, box-shadow 220ms ease; }
+.reelroom-showtime-card::after { position: absolute; inset: -40% -20%; pointer-events: none; content: ""; background: radial-gradient(circle at 50% 0%, hsl(var(--amber) / .18), transparent 42%); opacity: 0; transition: opacity 220ms ease; }
+.reelroom-showtime-card:hover { transform: translateY(-2px); box-shadow: 0 18px 36px hsl(var(--canvas) / .28), inset 0 1px hsl(var(--ink) / .1); }
+.reelroom-showtime-card:hover::after, .reelroom-showtime-card-active::after { opacity: 1; }
+.reelroom-showtime-card-active { border-color: hsl(var(--amber) / .62); background: linear-gradient(145deg, hsl(var(--amber) / .15), hsl(var(--surface) / .5)); box-shadow: 0 16px 34px hsl(var(--amber) / .08), inset 0 1px hsl(var(--ink) / .12); }
+.reelroom-showtime-timeline { background: linear-gradient(145deg, hsl(var(--surface-2) / .6), hsl(var(--surface) / .3)); }
+.reelroom-sightline-stage { background: radial-gradient(circle at 50% 0%, hsl(var(--cobalt) / .09), transparent 38%), hsl(var(--canvas) / .22); }
+.reelroom-sightline-radar { position: absolute; inset: 1rem 12%; overflow: hidden; border-radius: 50% 50% 0 0; opacity: .55; pointer-events: none; }
+.reelroom-sightline-radar::before { position: absolute; inset: 0; content: ""; background: conic-gradient(from 270deg at 50% 100%, transparent 0deg, hsl(var(--cobalt) / .18) 42deg, hsl(var(--mint) / .2) 90deg, hsl(var(--cobalt) / .08) 138deg, transparent 180deg); clip-path: polygon(50% 100%, 10% 0, 90% 0); animation: reelroom-radar-breathe 4s ease-in-out infinite; }
+.reelroom-sightline-radar span { position: absolute; left: 50%; bottom: 12%; width: 70%; height: 70%; border: 1px solid hsl(var(--cobalt) / .2); border-radius: 50%; transform: translateX(-50%); }
+.reelroom-sightline-radar span:nth-child(2) { width: 48%; height: 48%; }
+.reelroom-sightline-radar span:nth-child(3) { width: 26%; height: 26%; }
+@keyframes reelroom-radar-breathe { 0%, 100% { opacity: .55; transform: scale(.97); } 50% { opacity: .9; transform: scale(1.02); } }
+.reelroom-seat-inspector { min-height: 18rem; background: linear-gradient(145deg, hsl(var(--surface-2) / .58), hsl(var(--surface) / .28)); }
+.reelroom-eye-preview { position: relative; height: 7.5rem; overflow: hidden; border: 1px solid hsl(var(--border) / .7); border-radius: 1rem; background: linear-gradient(180deg, hsl(var(--cobalt) / .15), hsl(var(--canvas) / .12)); }
+.reelroom-eye-preview::before { position: absolute; inset: 1rem 1.2rem auto; height: 2.2rem; border: 1px solid hsl(var(--ink) / .32); border-radius: 50% 50% .6rem .6rem; content: ""; transform: perspective(120px) rotateX(-10deg); }
+.reelroom-eye-preview-screen { position: absolute; left: 50%; bottom: 1.15rem; width: 72%; height: .34rem; border-radius: 999px; background: hsl(var(--ink) / .72); box-shadow: 0 0 22px hsl(var(--ink) / .32); transform: translateX(-50%); }
+.reelroom-eye-preview-line { position: absolute; left: 50%; bottom: 1.35rem; z-index: 1; width: .4rem; height: 5.3rem; border-left: 1px dashed hsl(var(--amber) / .82); transform-origin: bottom; }
+.reelroom-eye-preview-line.front { transform: translateX(-50%) rotate(13deg); }
+.reelroom-eye-preview-line.middle { transform: translateX(-50%) rotate(0deg); }
+.reelroom-eye-preview-line.rear { transform: translateX(-50%) rotate(-11deg); }
+.reelroom-order-summary { background: linear-gradient(145deg, hsl(var(--surface-2) / .74), hsl(var(--surface) / .48)); box-shadow: 0 26px 70px hsl(var(--canvas) / .24), inset 0 1px hsl(var(--ink) / .08); }
+.reelroom-booking-page button:focus-visible { outline: 2px solid hsl(var(--amber)); outline-offset: 3px; }
+@media (max-width: 639px) {
+  .reelroom-seat-inspector { min-height: 0; }
+  .reelroom-showtime-timeline { margin-inline: -0.25rem; }
+}
+
 .reelroom-soundtrack-page {
   position: relative;
   isolation: isolate;

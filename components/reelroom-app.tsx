@@ -6,30 +6,43 @@ import {
   ArrowRight,
   Armchair,
   Bell,
+  CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
+  Copy,
   Disc3,
+  Eye,
   EllipsisVertical,
   Film,
   Headphones,
   Heart,
   Home,
   LogIn,
+  Maximize2,
   MapPin,
   Music2,
+  Minus,
   Pause,
   Play,
+  Plus,
+  Radar,
   FastForward,
   Rewind,
   Repeat,
   Search,
   Share2,
   Shuffle,
+  ShieldCheck,
   SkipBack,
   SkipForward,
+  Sparkles,
   Ticket,
   UserRound,
+  Users,
   Volume2,
+  Wifi,
   X,
 } from "lucide-react";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
@@ -282,6 +295,9 @@ const nav = [
   ["login", "Login", LogIn],
 ] as const;
 type NavId = (typeof nav)[number][0];
+type ShowtimeView = "cards" | "timeline" | "days";
+type SeatLens = "radar" | "eye" | "golden";
+type EyeLevel = "front" | "middle" | "rear";
 
 function Button({
   children,
@@ -694,6 +710,14 @@ export function ReelroomApp({
   const [detailsShownAt, setDetailsShownAt] = useState<number | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
   const [showtime, setShowtime] = useState("1:40 PM");
+  const [showtimeView, setShowtimeView] = useState<ShowtimeView>("cards");
+  const [selectedDay, setSelectedDay] = useState("today");
+  const [seatLens, setSeatLens] = useState<SeatLens>("radar");
+  const [eyeLevel, setEyeLevel] = useState<EyeLevel>("middle");
+  const [groupSize, setGroupSize] = useState(2);
+  const [hoveredSeat, setHoveredSeat] = useState<string | null>(null);
+  const [sharedSession, setSharedSession] = useState(false);
+  const [sessionCopied, setSessionCopied] = useState(false);
   const [booking, setBooking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -732,6 +756,7 @@ export function ReelroomApp({
   const spotifyAuthWindowRef = useRef<Window | null>(null);
   const spotifyPlaylistRequestRef = useRef<Promise<void> | null>(null);
   const spotifyPlaylistRetryAtRef = useRef(0);
+  const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
@@ -2256,257 +2281,276 @@ export function ReelroomApp({
     "E8",
   ];
   const occupied = new Set(["A3", "A4", "C6", "D2", "D3", "E7"]);
+  const goldenSeats = new Set(["C3", "C4", "C5", "C6"]);
+  const activeShowtime = ticketMovie.showtimes.includes(showtime)
+    ? showtime
+    : ticketMovie.showtimes[0] ?? showtime;
+  const showtimeDays = [
+    { id: "today", label: "Today", date: "Thu 16 Oct", times: ticketMovie.showtimes },
+    { id: "tomorrow", label: "Tomorrow", date: "Fri 17 Oct", times: ticketMovie.showtimes.slice().reverse() },
+    { id: "weekend", label: "Weekend", date: "Sat 18 Oct", times: ticketMovie.showtimes.slice(1).concat(ticketMovie.showtimes[0] ?? []) },
+  ];
+  const selectedDayOption = showtimeDays.find((day) => day.id === selectedDay) ?? showtimeDays[0];
+  const seatPrice = (seat: string) => ticketMovie.price + (seat.startsWith("A") ? 3 : seat.startsWith("B") ? 1 : 0);
+  const ticketSubtotal = selectedSeats.reduce((total, seat) => total + seatPrice(seat), 0);
+  const bookingFee = selectedSeats.length ? 4.8 : 0;
+  const groupDiscount = selectedSeats.length >= 4 ? -4.8 : 0;
+  const ticketTotal = ticketSubtotal + bookingFee + groupDiscount;
+  const chooseSmartGroup = () => {
+    const rows = ["A", "B", "C", "D", "E"];
+    const target = Math.min(Math.max(groupSize, 1), 6);
+    for (const row of rows) {
+      for (let start = 1; start <= 9 - target; start += 1) {
+        const candidateSeats = Array.from({ length: target }, (_, index) => `${row}${start + index}`);
+        if (candidateSeats.every((seat) => !occupied.has(seat))) {
+          setSelectedSeats(candidateSeats);
+          announce(`${target} adjacent seats found in row ${row}.`);
+          return;
+        }
+      }
+    }
+    announce("No adjacent group block is available in this room.");
+  };
+  const panSeatMap = (direction: number) => {
+    seatMapViewportRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
+  };
+  const shareBookingSession = async () => {
+    const roomUrl = new URL(window.location.href);
+    roomUrl.searchParams.set("room", "ORPHEUM-04");
+    roomUrl.hash = "tickets";
+    setSharedSession(true);
+    try {
+      await navigator.clipboard?.writeText(roomUrl.toString());
+      setSessionCopied(true);
+      announce("Shared room link copied.");
+      window.setTimeout(() => setSessionCopied(false), 2200);
+    } catch {
+      announce("Shared room is ready to invite.");
+    }
+  };
   const ticketsPage = (
-    <div className="space-y-7">
+    <div className="reelroom-booking-page space-y-7">
       <SectionTitle
         eyebrow="Tickets / reserve a room"
         title="Make it a night"
-        copy="Choose a screening, hold your seats for a few minutes, and leave with a confirmation in your pocket."
+        copy="Choose a screening, find the sightline that feels right, and invite the people who should be there."
       />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <div className="rounded-2xl border border-border bg-surface p-5 md:p-6">
-          <div className="mb-6 flex items-center gap-2 font-mono text-[10px] uppercase text-muted">
-            <span className="text-amber">01 Show</span>
-            <span className="h-px w-8 bg-border" />
-            <span>02 Seats</span>
-            <span className="h-px w-8 bg-border" />
-            <span>03 Checkout</span>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="reelroom-booking-workspace min-w-0 rounded-[1.65rem] border border-white/[.12] bg-surface/55 p-4 shadow-cinematic backdrop-blur-xl sm:p-6">
+          <div className="mb-6 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+            <span className="rounded-full bg-amber px-3 py-1.5 text-canvas">01 Show</span>
+            <span className="h-px w-7 bg-border" />
+            <span className={cn("rounded-full px-3 py-1.5", selectedSeats.length ? "bg-cobalt/15 text-cobalt" : "")}>02 Seats</span>
+            <span className="h-px w-7 bg-border" />
+            <span className="rounded-full px-3 py-1.5">03 Checkout</span>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-mint"><Wifi className="size-3" /> Live room</span>
           </div>
-          <div className="flex items-center gap-3 border-b border-border pb-5">
-            <img
-              src={ticketMovie.poster}
-              alt=""
-              className="size-16 rounded-lg object-cover"
-            />
-            <div className="min-w-0">
-              <div className="font-mono text-[10px] uppercase text-amber">
-                Tonight / New York
-              </div>
-              <h2 className="mt-1 font-display text-xl font-semibold tracking-[-.04em] text-ink">
-                {ticketMovie.title}
-              </h2>
-              <p className="mt-1 text-xs text-muted">
-                {ticketMovie.meta} · The Orpheum · Dolby Cinema
-              </p>
+
+          <div className="flex flex-wrap items-center gap-3 border-b border-border pb-5">
+            <img src={ticketMovie.poster} alt="" className="size-16 rounded-xl object-cover shadow-lg" />
+            <div className="min-w-0 flex-1">
+              <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">Tonight / Greater Noida · Dolby Cinema</div>
+              <h2 className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">{ticketMovie.title}</h2>
+              <p className="mt-1 text-xs text-muted">{ticketMovie.meta} · The Orpheum · Screen 04</p>
+            </div>
+            <div className="rounded-2xl border border-white/[.1] bg-white/[.04] px-3 py-2 text-right">
+              <span className="block font-mono text-[9px] uppercase tracking-[.12em] text-muted">Your hold</span>
+              <strong className="mt-1 block font-mono text-sm text-amber">08:42</strong>
             </div>
           </div>
-          <div className="mt-6">
-            <div className="mb-3 font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-              Showtimes
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {ticketMovie.showtimes.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => setShowtime(time)}
-                  className={cn(
-                    "rounded-lg border border-border bg-surface-2 p-3 text-left",
-                    showtime === time && "border-cobalt bg-cobalt/15",
-                  )}
-                >
-                  <strong className="block font-display text-sm text-ink">
-                    {time}
-                  </strong>
-                  <span className="mt-1 block text-[10px] text-muted">
-                     Dolby · approx. ₹{ticketMovie.price}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="reelroom-seat-map-section mt-8 rounded-2xl border border-border bg-surface-2/45 p-4 sm:p-5">
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+
+          <section className="mt-6" aria-labelledby="showtime-heading">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-ink-2">
-                  Seat map · Screen 04
-                </span>
-                <h3 className="mt-1 font-display text-xl font-semibold tracking-[-.04em] text-ink">
-                  Choose your view
-                </h3>
-                <p className="mt-1 text-xs text-ink-2">
-                  Pick an open seat. You can change it before checkout.
-                </p>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">01 / choose the rhythm</span>
+                <h3 id="showtime-heading" className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Find your room.</h3>
+                <p className="mt-1 text-xs text-ink-2">Three ways to choose the same calm, considered screening.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-3 rounded-full border border-border bg-surface/70 px-3 py-2 font-mono text-[9px] text-ink-2">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full border border-white/30 bg-white/10" />
-                  Available
-                </span>
-                <span className="flex items-center gap-1.5 text-amber">
-                  <span className="size-2 rounded-full border border-amber/70 bg-amber/50" />
-                  Selected
-                </span>
-                <span className="flex items-center gap-1.5 text-muted">
-                  <span className="size-2 rounded-full border border-white/10 bg-white/5" />
-                  Taken
-                </span>
-              </div>
-            </div>
-            <div className="reelroom-screen mx-auto mb-5 mt-6 max-w-sm text-center font-mono text-[9px] tracking-[.24em] text-ink-2">
-              SCREEN
-            </div>
-            <div className="mx-auto mb-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-xl border border-border bg-surface/65 p-3">
-              <div>
-                <span className="block font-mono text-[10px] uppercase tracking-[.14em] text-ink-2">
-                  Map zoom
-                </span>
-                <span className="mt-1 block text-[11px] text-muted">
-                  Adjust the map view
-                </span>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSeatZoom((current) => Math.max(0.85, current - 0.15))}
-                  disabled={seatZoom <= 0.85}
-                  className="grid size-8 place-items-center rounded-full border border-border bg-surface-2 text-sm text-ink transition duration-300 hover:-translate-y-px hover:border-ink-2 hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
-                  aria-label="Zoom out seat map"
-                >
-                  −
-                </button>
-                <span className="w-12 text-center font-mono text-[10px] text-ink-2">
-                  {Math.round(seatZoom * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSeatZoom((current) => Math.min(1.6, current + 0.15))}
-                  disabled={seatZoom >= 1.6}
-                  className="grid size-8 place-items-center rounded-full border border-border bg-surface-2 text-sm text-ink transition duration-300 hover:-translate-y-px hover:border-ink-2 hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
-                  aria-label="Zoom in seat map"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <div className="reelroom-seat-map-viewport mx-auto w-full max-w-xl overflow-x-auto rounded-2xl border border-border bg-canvas/45 p-3 sm:p-5">
-              <div
-                className="reelroom-seat-map mx-auto grid min-w-[19rem] gap-2.5"
-                style={{ width: `${seatZoom * 100}%` }}
-              >
-                {["A", "B", "C", "D", "E"].map((row) => (
-                  <div
-                    key={row}
-                    className="reelroom-seat-row grid grid-cols-[18px_repeat(8,minmax(0,1fr))_18px] items-center gap-1.5"
-                  >
-                    <span className="text-center font-mono text-[9px] text-muted">{row}</span>
-                    {Array.from({ length: 8 }, (_, index) => {
-                      const seat = `${row}${index + 1}`;
-                      const isOccupied = occupied.has(seat);
-                      const isSelected = selectedSeats.includes(seat);
-                      return (
-                        <button
-                          key={seat}
-                          type="button"
-                          disabled={isOccupied}
-                          aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`}
-                          onClick={() =>
-                            setSelectedSeats((current) =>
-                              isSelected
-                                ? current.filter((item) => item !== seat)
-                                : [...current, seat],
-                            )
-                          }
-                          className={cn(
-                            "reelroom-seat group/seat aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
-                            isOccupied &&
-                              "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60",
-                            isSelected &&
-                              "border-amber/75 bg-amber/15 text-amber shadow-[0_8px_22px_rgba(217,200,255,.12)] hover:bg-amber/20",
-                            !isOccupied &&
-                              !isSelected &&
-                              "border-white/15 bg-white/[.035] text-ink-2 hover:border-white/35 hover:bg-white/[.1] hover:text-ink hover:shadow-[0_10px_22px_rgba(0,0,0,.22)]",
-                          )}
-                        >
-                          <Armchair className="mx-auto size-4 transition-transform duration-300 group-hover/seat:scale-110" aria-hidden="true" />
-                          <span className="sr-only">{seat}</span>
-                        </button>
-                      );
-                    })}
-                    <span className="text-center font-mono text-[9px] text-muted">{row}</span>
-                  </div>
+              <div className="flex rounded-full border border-border bg-surface-2/70 p-1" role="tablist" aria-label="Showtime view">
+                {(["cards", "timeline", "days"] as ShowtimeView[]).map((view) => (
+                  <button key={view} type="button" role="tab" aria-selected={showtimeView === view} onClick={() => setShowtimeView(view)} className={cn("rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.1em] transition", showtimeView === view ? "bg-ink text-canvas" : "text-muted hover:text-ink")}>
+                    {view === "cards" ? "Frosted" : view === "timeline" ? "Timeline" : "Days"}
+                  </button>
                 ))}
               </div>
             </div>
-            <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-full border border-border bg-surface/65 px-4 py-2.5 font-mono text-[10px] text-ink-2">
-              <Clock3 className="size-3.5 text-amber" /> Seats are held for 08:42 after selection.
+
+            {showtimeView === "cards" ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {ticketMovie.showtimes.map((time, index) => (
+                  <button key={time} type="button" onClick={() => setShowtime(time)} className={cn("reelroom-showtime-card group rounded-2xl border p-4 text-left", activeShowtime === time ? "reelroom-showtime-card-active" : "border-border bg-surface-2/55 hover:border-white/30")}>
+                    <span className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-muted"><span>{index === 0 ? "Good morning" : index === ticketMovie.showtimes.length - 1 ? "Last light" : "Open room"}</span><span className={activeShowtime === time ? "text-mint" : "text-amber"}>●</span></span>
+                    <strong className="mt-4 block font-display text-xl tracking-[-.05em] text-ink">{time}</strong>
+                    <span className="mt-1 block text-[10px] text-ink-2">Dolby Atmos · {Math.max(3, 18 - index * 3)} seats left</span>
+                    <span className="mt-4 block font-mono text-[10px] text-amber">from ₹{ticketMovie.price + (index ? 0 : 2)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : showtimeView === "timeline" ? (
+              <div className="reelroom-showtime-timeline mt-5 overflow-x-auto rounded-2xl border border-border bg-surface-2/40 p-5">
+                <div className="relative flex min-w-[34rem] items-start justify-between gap-3 pt-2">
+                  <div className="absolute left-3 right-3 top-[1.05rem] h-px bg-border" />
+                  {ticketMovie.showtimes.map((time, index) => (
+                    <button key={time} type="button" onClick={() => setShowtime(time)} className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center">
+                      <span className={cn("size-3 rounded-full border-2 border-surface-2 transition duration-300 group-hover:scale-125", activeShowtime === time ? "bg-amber shadow-[0_0_0_5px_rgba(217,200,255,.12),0_0_22px_rgba(217,200,255,.62)]" : "bg-surface-3") } />
+                      <span className={cn("font-display text-base tracking-[-.03em]", activeShowtime === time ? "text-ink" : "text-ink-2")}>{time}</span>
+                      <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted">{index % 2 ? "Open room" : "Low light"}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(11rem,.7fr)_minmax(0,1.3fr)]">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:content-start">
+                  {showtimeDays.map((day) => (
+                    <button key={day.id} type="button" onClick={() => { setSelectedDay(day.id); setShowtime(day.times[0] ?? activeShowtime); }} className={cn("min-w-[7.2rem] rounded-2xl border p-3 text-left transition sm:min-w-0", selectedDay === day.id ? "border-amber/60 bg-amber/10" : "border-border bg-surface-2/50 hover:border-white/25")}>
+                      <span className="block font-mono text-[9px] uppercase tracking-[.1em] text-muted">{day.label}</span>
+                      <strong className="mt-2 block font-display text-sm text-ink">{day.date}</strong>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {selectedDayOption.times.map((time) => (
+                    <button key={`${selectedDay}-${time}`} type="button" onClick={() => setShowtime(time)} className={cn("rounded-2xl border px-3 py-3 text-left", activeShowtime === time ? "border-cobalt bg-cobalt/15" : "border-border bg-surface-2/50 hover:border-white/25")}>
+                      <strong className="block font-display text-sm text-ink">{time}</strong>
+                      <span className="mt-1 block text-[10px] text-muted">Dolby · ₹{ticketMovie.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[.1] bg-white/[.035] p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-cobalt/15 text-cobalt"><Users className="size-4" /></div>
+              <div className="min-w-0"><strong className="block text-xs text-ink">Booking with friends?</strong><span className="mt-0.5 block truncate text-[10px] text-muted">Smart seating finds one clean block. Shared session keeps everyone in sync.</span></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded-full border border-border bg-surface-2/70 p-1">
+                <button type="button" className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3" onClick={() => setGroupSize((size) => Math.max(1, size - 1))} aria-label="Decrease group size"><Minus className="size-3" /></button>
+                <span className="w-7 text-center font-mono text-[10px] text-ink">{groupSize}</span>
+                <button type="button" className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3" onClick={() => setGroupSize((size) => Math.min(6, size + 1))} aria-label="Increase group size"><Plus className="size-3" /></button>
+              </div>
+              <button type="button" onClick={chooseSmartGroup} className="inline-flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink hover:bg-cobalt/90"><Sparkles className="size-3" /> Smart group</button>
+              <button type="button" onClick={() => void shareBookingSession()} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink-2 hover:border-ink-2 hover:text-ink"><Share2 className="size-3" /> {sessionCopied ? "Copied" : "Share room"}</button>
             </div>
           </div>
+
+          <section className="reelroom-seat-map-section mt-6 rounded-[1.5rem] border border-white/[.1] bg-surface-2/45 p-4 sm:p-5" aria-labelledby="seat-map-heading">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">02 / sightline studio · screen 04</span>
+                <h3 id="seat-map-heading" className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Choose your view.</h3>
+                <p className="mt-1 max-w-lg text-xs leading-5 text-ink-2">Every seat is a little different. Read the room, tune the eye-level, and settle into the angle that fits.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] text-ink-2">
+                <span className="flex items-center gap-1.5"><span className="size-2 rounded-full border border-white/35 bg-white/10" /> Available</span>
+                <span className="flex items-center gap-1.5 text-amber"><span className="size-2 rounded-full border border-amber/70 bg-amber/50" /> Selected</span>
+                <span className="flex items-center gap-1.5 text-muted"><span className="size-2 rounded-full border border-white/10 bg-white/5" /> Taken</span>
+                <span className="flex items-center gap-1.5 text-cobalt"><span className="size-2 rounded-full border border-cobalt/60 bg-cobalt/30" /> Golden zone</span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]">
+              <div className="min-w-0">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface/55 p-2">
+                  <div className="flex rounded-full border border-border bg-surface-2/65 p-1" role="tablist" aria-label="Seat view lens">
+                    {(["radar", "eye", "golden"] as SeatLens[]).map((lens) => (
+                      <button key={lens} type="button" role="tab" aria-selected={seatLens === lens} onClick={() => setSeatLens(lens)} className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition", seatLens === lens ? "bg-ink text-canvas" : "text-muted hover:text-ink")}>{lens === "radar" ? <Radar className="size-3" /> : lens === "eye" ? <Eye className="size-3" /> : <Sparkles className="size-3" />}{lens === "radar" ? "Radar" : lens === "eye" ? "Eye-level" : "Golden zon"}</button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => panSeatMap(-1)} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3" aria-label="Pan seats left"><ChevronLeft className="size-3.5" /></button>
+                    <button type="button" onClick={() => setSeatZoom((current) => Math.max(.85, current - .15))} disabled={seatZoom <= .85} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30" aria-label="Zoom out seat map"><Minus className="size-3.5" /></button>
+                    <span className="w-10 text-center font-mono text-[9px] text-muted">{Math.round(seatZoom * 100)}%</span>
+                    <button type="button" onClick={() => setSeatZoom((current) => Math.min(1.6, current + .15))} disabled={seatZoom >= 1.6} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30" aria-label="Zoom in seat map"><Plus className="size-3.5" /></button>
+                    <button type="button" onClick={() => panSeatMap(1)} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3" aria-label="Pan seats right"><ChevronRight className="size-3.5" /></button>
+                  </div>
+                </div>
+
+                <div className="reelroom-sightline-stage rounded-[1.35rem] border border-border bg-canvas/45 p-3 sm:p-5">
+                  <div className="reelroom-screen mx-auto mb-4 max-w-sm text-center font-mono text-[9px] tracking-[.24em] text-ink-2">SCREEN / {eyeLevel} eye-line</div>
+                  <div ref={seatMapViewportRef} className="reelroom-seat-map-viewport relative mx-auto w-full max-w-xl overflow-x-auto rounded-2xl border border-border bg-canvas/45 p-3 sm:p-5">
+                    {seatLens === "radar" ? <div className="reelroom-sightline-radar" aria-hidden="true"><span /><span /><span /></div> : null}
+                    <div className="reelroom-seat-map relative z-10 mx-auto grid min-w-[19rem] gap-2.5" style={{ width: `${seatZoom * 100}%` }}>
+                      {["A", "B", "C", "D", "E"].map((row) => (
+                        <div key={row} className="reelroom-seat-row grid grid-cols-[18px_repeat(8,minmax(0,1fr))_18px] items-center gap-1.5">
+                          <span className="text-center font-mono text-[9px] text-muted">{row}</span>
+                          {Array.from({ length: 8 }, (_, index) => {
+                            const seat = `${row}${index + 1}`;
+                            const isOccupied = occupied.has(seat);
+                            const isSelected = selectedSeats.includes(seat);
+                            const isGolden = goldenSeats.has(seat);
+                            return (
+                              <button key={seat} type="button" disabled={isOccupied} aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`} onMouseEnter={() => setHoveredSeat(seat)} onFocus={() => setHoveredSeat(seat)} onMouseLeave={() => setHoveredSeat(null)} onBlur={() => setHoveredSeat(null)} onClick={() => setSelectedSeats((current) => isSelected ? current.filter((item) => item !== seat) : [...current, seat])} className={cn("reelroom-seat group/seat relative aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber", isOccupied && "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60", isSelected && "border-amber/75 bg-amber/15 text-amber shadow-[0_8px_22px_rgba(217,200,255,.12)] hover:bg-amber/20", !isOccupied && !isSelected && "border-white/15 bg-white/[.035] text-ink-2 hover:border-white/35 hover:bg-white/[.1] hover:text-ink hover:shadow-[0_10px_22px_rgba(0,0,0,.22)]", isGolden && !isOccupied && !isSelected && "border-cobalt/45 bg-cobalt/[.06]")}>
+                                <Armchair className="mx-auto size-4 transition-transform duration-300 group-hover/seat:scale-110" aria-hidden="true" />
+                                {isGolden ? <span className="absolute right-1 top-1 text-[7px] text-cobalt">✦</span> : null}
+                                <span className="sr-only">{seat}</span>
+                              </button>
+                            );
+                          })}
+                          <span className="text-center font-mono text-[9px] text-muted">{row}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.1em] text-muted"><Maximize2 className="size-3 text-amber" /> Drag horizontally to pan the room</div>
+                    {hoveredSeat ? <div className="rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 font-mono text-[9px] text-amber">{hoveredSeat} · {goldenSeats.has(hoveredSeat) ? "Golden zon" : hoveredSeat.startsWith("A") ? "Closer view" : "Balanced view"}</div> : null}
+                  </div>
+                </div>
+              </div>
+
+              <aside className="reelroom-seat-inspector rounded-[1.25rem] border border-white/[.1] bg-white/[.035] p-4">
+                {seatLens === "radar" ? (
+                  <>
+                    <div className="flex items-center gap-2 text-cobalt"><Radar className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Sightline obstruction radar</span></div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">The center stays clear.</h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">The radar estimates heads and railings between you and the screen. Mid-room seats keep the cleanest cone.</p>
+                    <div className="mt-5 space-y-3">
+                      {["Center axis", "Left edge", "Right edge"].map((label, index) => <div key={label}><div className="mb-1 flex justify-between font-mono text-[9px] uppercase tracking-[.08em] text-muted"><span>{label}</span><span className="text-mint">{index === 0 ? "98%" : index === 1 ? "82%" : "88%"}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-surface-3"><span className="block h-full rounded-full bg-gradient-to-r from-cobalt to-mint" style={{ width: `${[98, 82, 88][index]}%` }} /></div></div>)}
+                    </div>
+                  </>
+                ) : seatLens === "eye" ? (
+                  <>
+                    <div className="flex items-center gap-2 text-amber"><Eye className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Custom eye-level</span></div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">Tune the horizon.</h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">Preview how the screen lands from your row before you commit.</p>
+                    <div className="reelroom-eye-preview mt-5"><span className={cn("reelroom-eye-preview-line", eyeLevel)} /><span className="reelroom-eye-preview-screen" /></div>
+                    <div className="mt-4 grid grid-cols-3 gap-1.5">{(["front", "middle", "rear"] as EyeLevel[]).map((level) => <button key={level} type="button" onClick={() => setEyeLevel(level)} className={cn("rounded-lg border px-2 py-2 font-mono text-[9px] uppercase tracking-[.08em]", eyeLevel === level ? "border-amber/60 bg-amber/10 text-amber" : "border-border text-muted hover:text-ink")}>{level}</button>)}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-amber"><Sparkles className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Golden zon</span></div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">Balanced, not boring.</h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">The highlighted seats sit inside the theater&apos;s sweet spot: centered sound, gentle distance, no neck strain.</p>
+                    <div className="mt-5 rounded-xl border border-cobalt/25 bg-cobalt/10 p-3 text-[10px] leading-5 text-cobalt">✦ C3–C6 are the recommended Golden zon for this room.</div>
+                  </>
+                )}
+                <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-[10px] text-muted"><ShieldCheck className="size-3.5 text-mint" /> Seating map updates instantly when the room changes.</div>
+              </aside>
+            </div>
+            <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-full border border-border bg-surface/65 px-4 py-2.5 font-mono text-[10px] text-ink-2"><Clock3 className="size-3.5 text-amber" /> Seats are held for 08:42 after selection.</div>
+          </section>
         </div>
+
         {!isLastLightDetailsVisible ? (
-          <aside className="h-fit rounded-2xl border border-border bg-surface-2 p-5 lg:sticky lg:top-5">
-          <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-            Order summary
-          </div>
-           <h3 className="mt-2 font-display text-lg font-semibold tracking-[-.04em] text-ink">
-             Your screening
-           </h3>
-           <p className="mt-2 text-[10px] leading-4 text-muted">
-             Approximate ticket price based on IMDb rating and runtime.
-           </p>
-           <div className="my-5 flex gap-3 border-b border-border pb-5">
-            <img
-              src={ticketMovie.poster}
-              alt=""
-              className="size-14 rounded-lg object-cover"
-            />
-            <div className="min-w-0">
-              <strong className="block font-display text-sm text-ink">
-                {ticketMovie.title}
-              </strong>
-              <span className="mt-1 block font-mono text-[10px] text-ink-2">
-                Friday · {showtime}
-              </span>
-              <span className="mt-1 block font-mono text-[10px] text-muted">
-                The Orpheum · Screen 04
-              </span>
+          <aside className="reelroom-order-summary h-fit rounded-[1.5rem] border border-white/[.12] bg-surface-2/80 p-5 shadow-cinematic backdrop-blur-xl lg:sticky lg:top-5">
+            <div className="flex items-center justify-between gap-3"><div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">Order summary</div><span className="inline-flex items-center gap-1 font-mono text-[9px] text-mint"><Wifi className="size-3" /> synced</span></div>
+            <h3 className="mt-2 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Your screening.</h3>
+            <div className="my-5 flex gap-3 border-b border-border pb-5"><img src={ticketMovie.poster} alt="" className="size-16 rounded-xl object-cover" /><div className="min-w-0"><strong className="block truncate font-display text-sm text-ink">{ticketMovie.title}</strong><span className="mt-1 block font-mono text-[10px] text-amber">{selectedDayOption.date} · {activeShowtime}</span><span className="mt-1 block font-mono text-[10px] text-muted">The Orpheum · Dolby Cinema</span></div></div>
+            <div className="space-y-3 text-xs text-ink-2">
+              <div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-2"><CalendarDays className="size-3.5 text-amber" /> Date & time</span><button type="button" onClick={() => document.getElementById("showtime-heading")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="font-mono text-[10px] text-amber">Modify</button></div>
+              <div className="flex justify-between gap-3"><span>Seats × {selectedSeats.length}</span><strong className="max-w-[10rem] text-right text-ink">{selectedSeats.length ? selectedSeats.join(", ") : "Select seats"}</strong></div>
+              <div className="flex justify-between gap-3"><span>Tickets</span><strong className="text-ink">₹{ticketSubtotal.toFixed(2)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Booking fee</span><strong className="text-ink">₹{bookingFee.toFixed(2)}</strong></div>
+              {groupDiscount ? <div className="flex justify-between gap-3 text-mint"><span>Group saving</span><strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong></div> : null}
             </div>
-          </div>
-          <div className="space-y-3 text-xs text-ink-2">
-            <div className="flex justify-between">
-              <span>Tickets × {selectedSeats.length}</span>
-              <strong className="text-ink">
-                ₹{(selectedSeats.length * ticketMovie.price).toFixed(2)}
-              </strong>
-            </div>
-            <div className="flex justify-between">
-              <span>Booking fee</span>
-              <strong className="text-ink">
-                {selectedSeats.length ? "₹4.80" : "₹0.00"}
-              </strong>
-            </div>
-            <div className="flex justify-between">
-              <span>Seats</span>
-              <strong className="max-w-[10rem] text-right text-ink">
-                {selectedSeats.length
-                  ? selectedSeats.join(", ")
-                  : "Select seats"}
-              </strong>
-            </div>
-          </div>
-          <div className="mt-5 flex justify-between border-t border-border pt-4 font-display text-base font-semibold">
-            <span>Total</span>
-            <strong className="text-amber">
-              ₹{(
-                 selectedSeats.length * ticketMovie.price +
-                (selectedSeats.length ? 4.8 : 0)
-              ).toFixed(2)}
-            </strong>
-          </div>
-          <Button
-            variant="primary"
-            disabled={!selectedSeats.length}
-            onClick={() => setBooking(true)}
-            className="mt-5 w-full"
-          >
-            {selectedSeats.length
-              ? "Continue to checkout"
-              : "Select your seats"}
-            <ArrowRight className="size-4" />
-          </Button>
-          <p className="mt-3 text-[10px] leading-5 text-muted">
-            Demo mode: no payment is processed. Production will hand off to a
-            PCI-compliant provider.
-          </p>
+            <div className="mt-5 flex items-end justify-between border-t border-border pt-4"><span className="font-display text-base font-semibold text-ink">Total</span><strong className="font-display text-2xl tracking-[-.05em] text-amber">₹{ticketTotal.toFixed(2)}</strong></div>
+            <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-[10px] leading-5 text-ink-2"><span className="mb-1 block font-mono uppercase tracking-[.1em] text-muted">Shared room</span>{sharedSession ? "You and 2 friends are choosing together." : "Invite friends to choose seats in the same room."}<button type="button" onClick={() => void shareBookingSession()} className="mt-2 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt"><Copy className="size-3" /> {sessionCopied ? "Link copied" : "Copy invite link"}</button></div>
+            <Button variant="primary" disabled={!selectedSeats.length} onClick={() => setBooking(true)} className="mt-5 w-full">{selectedSeats.length ? "Continue to checkout" : "Select your seats"}<ArrowRight className="size-4" /></Button>
+            <p className="mt-3 flex items-start gap-2 text-[10px] leading-5 text-muted"><ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" /> Demo mode: payment is not processed. Production hands off to a PCI-compliant provider.</p>
           </aside>
         ) : null}
       </div>
@@ -2943,12 +2987,12 @@ export function ReelroomApp({
             <span className="text-muted">Payment</span>
             <strong className="text-mint">Provider checkout</strong>
           </div>
-          <div className="flex justify-between py-4 text-xs">
-            <span className="text-muted">Total</span>
-            <strong className="text-ink">
-              ₹{(selectedSeats.length * ticketMovie.price + 4.8).toFixed(2)}
-            </strong>
-          </div>
+            <div className="flex justify-between py-4 text-xs">
+              <span className="text-muted">Total</span>
+              <strong className="text-ink">
+               ₹{ticketTotal.toFixed(2)}
+              </strong>
+            </div>
         </div>
         <Button
           variant="primary"
