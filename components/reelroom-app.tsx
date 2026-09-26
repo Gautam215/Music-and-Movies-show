@@ -772,8 +772,8 @@ export function ReelroomApp({
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
   const [checkoutMethod, setCheckoutMethod] = useState<"card" | "apple" | "google">("card");
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
-    name: "Alex Kim",
-    email: "alex.kim@example.com",
+    name: "",
+    email: "",
     cardNumber: "",
     expiry: "",
     cvc: "",
@@ -1211,6 +1211,14 @@ export function ReelroomApp({
   }, []);
 
   useEffect(() => {
+    setCheckoutForm((current) => ({
+      ...current,
+      name: profileUser?.name ?? "",
+      email: profileUser?.email ?? "",
+    }));
+  }, [profileUser]);
+
+  useEffect(() => {
     if (!preferencesReady) return;
     try {
       window.localStorage.setItem("reelroom.releaseAlerts", String(releaseAlerts));
@@ -1414,6 +1422,11 @@ export function ReelroomApp({
     setCheckoutClosing(false);
     setCheckoutStatus("idle");
     setCheckoutMethod("card");
+    setCheckoutForm((current) => ({
+      ...current,
+      name: profileUser?.name ?? "",
+      email: profileUser?.email ?? "",
+    }));
     setCheckoutTouched({});
     setCheckoutErrors(emptyCheckoutErrors);
     setBooking(true);
