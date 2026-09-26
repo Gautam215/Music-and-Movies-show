@@ -216,6 +216,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [errors, setErrors] = useState<FieldErrors>({});
   const [feedback, setFeedback] = useState<{ kind: "error" | "info"; message: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const isSignup = mode === "signup";
 
@@ -236,7 +237,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
     setErrors((current) => ({ ...current, [field]: validateField(field, values[field], mode) || undefined }));
   };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: FieldErrors = {};
     const fields: FieldName[] = isSignup ? ["name", "email", "password"] : ["email", "password"];
@@ -253,16 +254,26 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
     }
 
     haptic(10);
-    const name = (isSignup ? fullName : email)
-      .split("@")[0]
-      .replace(/[._-]+/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Reelscape member";
-    const nextSession = { name, email };
-    window.sessionStorage.setItem(sessionKey, JSON.stringify(nextSession));
-    window.dispatchEvent(new Event("reelroom-profile-session"));
-    setPassword("");
-    setFeedback({ kind: "info", message: "Session ready." });
-    onLogin(nextSession);
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/auth/${isSignup ? "register" : "signin"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, password }),
+      });
+      const result = (await response.json()) as { error?: string; user?: ProfileSession };
+      if (!response.ok || !result.user) throw new Error(result.error || "Could not sign in.");
+      const nextSession = { name: result.user.name, email: result.user.email };
+      window.sessionStorage.setItem(sessionKey, JSON.stringify(nextSession));
+      window.dispatchEvent(new Event("reelroom-profile-session"));
+      setPassword("");
+      setFeedback({ kind: "info", message: isSignup ? "Account created." : "Signed in successfully." });
+      onLogin(nextSession);
+    } catch (error) {
+      setFeedback({ kind: "error", message: error instanceof Error ? error.message : "Could not sign in." });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleMode = () => {
@@ -319,7 +330,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
           <button type="button" className="profile-inline-link" onClick={() => showInfo("Password recovery will be connected to the account service.")}>Forgot Password?</button>
           <span className="profile-form-hint"><ShieldCheck className="size-3.5" /> Encrypted session</span>
         </div>
-        <button type="submit" className="profile-auth-submit"><LogIn className="size-4" /> {isSignup ? "Create account" : "Sign in"} <ArrowRight className="size-4" /></button>
+        <button type="submit" disabled={submitting} className="profile-auth-submit disabled:cursor-not-allowed disabled:opacity-60"><LogIn className="size-4" /> {submitting ? "Checking..." : isSignup ? "Create account" : "Sign in"} <ArrowRight className="size-4" /></button>
       </form>
 
       <div className="profile-auth-divider"><span /> <span>or continue with</span> <span /></div>
@@ -329,7 +340,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
       </div>
       {feedback ? <div className={feedback.kind === "error" ? "profile-auth-feedback profile-auth-feedback-error" : "profile-auth-feedback"} role="status" aria-live="polite">{feedback.kind === "error" ? <ShieldCheck className="size-4" /> : <Check className="size-4" />}{feedback.message}</div> : null}
       <div className="profile-auth-switch">{isSignup ? "Already have an account?" : "New to Reelscape?"} <button type="button" onClick={toggleMode}>{isSignup ? "Sign in" : "Sign up"}</button></div>
-      <div className="profile-auth-note"><ShieldCheck className="size-4" /> Your password never leaves this demo session.</div>
+       <div className="profile-auth-note"><ShieldCheck className="size-4" /> Your password is protected by server authentication.</div>
     </section>
   );
 }
@@ -374,6 +385,15 @@ export function ProfileExperience() {
     const sync = () => {
       setVisible(window.location.pathname === "/" && window.location.hash === "#profile");
       setSession(readSession());
+      void fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" })
+        .then(async (response) => (response.ok ? (await response.json()) as { user?: ProfileSession | null } : null))
+        .then((result) => {
+          if (result?.user) {
+            window.sessionStorage.setItem(sessionKey, JSON.stringify(result.user));
+            setSession(result.user);
+          }
+        })
+        .catch(() => undefined);
     };
     sync();
     window.addEventListener("hashchange", sync);
@@ -399,6 +419,7 @@ export function ProfileExperience() {
 
   const logout = () => {
     haptic();
+    void fetch("/api/auth/signout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
     window.sessionStorage.removeItem(sessionKey);
     window.dispatchEvent(new Event("reelroom-profile-session"));
     setSession(null);

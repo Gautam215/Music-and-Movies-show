@@ -8,6 +8,7 @@ This is the full-stack-ready Next.js source tree for the Movie & Entertainment P
 - Tailwind CSS with shadcn-compatible `components/ui` primitives.
 - `lucide-react` for interface icons.
 - Convex schema and transactional seat-hold functions under `convex/`.
+- MongoDB-backed email/password authentication under `app/api/auth/`.
 - Works Wheel from 21st.dev at `components/ui/works-wheel.tsx`.
 - Black Hole visual system at `components/ui/black-hole-hero-section.tsx`, used as the global hero language.
 
@@ -44,6 +45,10 @@ Both completed successfully in the build environment.
 Every `/api/*` request passes through `proxy.ts`. The proxy uses one atomic Redis Lua `EVAL` script to increment a per-client fixed-window counter and set its expiry without race conditions. It works with any Upstash-compatible Redis REST endpoint.
 
 Configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in the deployment environment. The defaults allow 120 requests per client per 60 seconds; override them with `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_MS`. Set `RATE_LIMIT_FAIL_CLOSED=true` when Redis outages must reject API traffic with `503` instead of temporarily allowing it.
+
+## Authentication
+
+Set `MONGODB_URI` and optionally `MONGODB_DB_NAME` before using `/register`. The form creates users in the `users` collection and stores only scrypt password hashes. Login sessions are opaque, httpOnly cookies backed by the `sessions` collection. The Google button stays disabled until a Google OAuth provider is configured.
 
 Browser API calls use `lib/client-fetch.ts`, which retries transient failures and `429` responses with exponential backoff, jitter, and the server's `Retry-After` value when present.
 

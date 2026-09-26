@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -17,7 +18,7 @@ function GoogleMark() {
   );
 }
 
-function PasswordField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function PasswordField({ value, onChange, autoComplete }: { value: string; onChange: (value: string) => void; autoComplete: string }) {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -32,7 +33,7 @@ function PasswordField({ value, onChange }: { value: string; onChange: (value: s
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="At least 8 characters"
-          autoComplete="new-password"
+           autoComplete={autoComplete}
           className="h-12 w-full rounded-xl border border-white/10 bg-white/[.045] px-4 pr-12 text-sm text-white outline-none transition placeholder:text-[#827990] focus:border-[#b99cff] focus:bg-white/[.07] focus:ring-4 focus:ring-[#a883ff]/10"
         />
         <button
@@ -49,14 +50,35 @@ function PasswordField({ value, onChange }: { value: string; onChange: (value: s
 }
 
 export function AuthRegistration() {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("register");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isRegistering = mode === "register";
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/auth/${isRegistering ? "register" : "signin"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, password }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Something went wrong.");
+      router.replace("/");
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Something went wrong.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -114,9 +136,10 @@ export function AuthRegistration() {
                   className="h-12 w-full rounded-xl border border-white/10 bg-white/[.045] px-4 text-sm text-white outline-none transition placeholder:text-[#827990] focus:border-[#b99cff] focus:bg-white/[.07] focus:ring-4 focus:ring-[#a883ff]/10"
                 />
               </div>
-              <PasswordField value={password} onChange={setPassword} />
-              <button type="submit" className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#d9c8ff] text-sm font-semibold text-[#17111f] transition hover:bg-[#ede5ff] focus:outline-none focus:ring-4 focus:ring-[#a883ff]/20">
-                {isRegistering ? "Sign Up" : "Sign In"}
+              <PasswordField value={password} onChange={setPassword} autoComplete={isRegistering ? "new-password" : "current-password"} />
+              {error ? <p role="alert" className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p> : null}
+              <button type="submit" disabled={isSubmitting} className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#d9c8ff] text-sm font-semibold text-[#17111f] transition hover:bg-[#ede5ff] focus:outline-none focus:ring-4 focus:ring-[#a883ff]/20 disabled:cursor-not-allowed disabled:opacity-60">
+                {isSubmitting ? "Please wait..." : isRegistering ? "Sign Up" : "Sign In"}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </button>
             </form>
@@ -133,9 +156,9 @@ export function AuthRegistration() {
               <span>Or continue with</span>
               <span className="h-px flex-1 bg-white/10" />
             </div>
-            <button type="button" className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.035] text-sm font-medium text-[#eee9f5] transition hover:border-white/25 hover:bg-white/[.07]">
+            <button type="button" disabled className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.035] text-sm font-medium text-[#827990] opacity-70">
               <GoogleMark />
-              Continue with Google
+              Google login coming soon
             </button>
           </div>
         </section>
