@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
   clearSpotifyTokenCookies,
   getSpotifyServerToken,
   persistSpotifyToken,
+  spotifyApiFetch,
   spotifyPrivateHeaders,
 } from "@/lib/spotify-server";
 
@@ -13,9 +13,9 @@ type SpotifyProfile = {
 };
 
 export async function GET() {
-  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
+  const tokenState = await getSpotifyServerToken();
 
-  if (!accessToken) {
+  if (!tokenState.accessToken) {
     const response = NextResponse.json(
       { connected: false },
       { headers: spotifyPrivateHeaders() },
@@ -23,21 +23,9 @@ export async function GET() {
     return clearSpotifyTokenCookies(response);
   }
 
-  let profileResponse = await fetch("https://api.spotify.com/v1/me", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  const profileResponse = await spotifyApiFetch(tokenState, "https://api.spotify.com/v1/me", {
     cache: "no-store",
   });
-
-  if (profileResponse.status === 401 && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-    if (accessToken) {
-      profileResponse = await fetch("https://api.spotify.com/v1/me", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      });
-    }
-  }
 
   if (!profileResponse.ok) {
     const response = NextResponse.json(
@@ -47,7 +35,7 @@ export async function GET() {
     if (profileResponse.status === 401) {
       return clearSpotifyTokenCookies(response);
     }
-    return persistSpotifyToken(response, refreshedToken);
+    return persistSpotifyToken(response, tokenState.refreshedToken);
   }
 
   const profile = (await profileResponse.json()) as SpotifyProfile;
@@ -57,5 +45,5 @@ export async function GET() {
     product: profile.product ?? null,
   }, { headers: spotifyPrivateHeaders() });
 
-  return persistSpotifyToken(response, refreshedToken);
+  return persistSpotifyToken(response, tokenState.refreshedToken);
 }

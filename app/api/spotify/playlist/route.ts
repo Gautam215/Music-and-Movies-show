@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
   clearSpotifyTokenCookies,
   getSpotifyServerToken,
   persistSpotifyToken,
+  spotifyApiFetch,
   spotifyPrivateHeaders,
 } from "@/lib/spotify-server";
 
@@ -50,17 +50,10 @@ function setRefreshedCookies(
   return persistSpotifyToken(response, token);
 }
 
-function spotifyErrorHeaders(upstreamResponse: Response | null) {
-  const retryAfter = upstreamResponse?.headers.get("retry-after");
-  return retryAfter
-    ? { ...spotifyPrivateHeaders(), "Retry-After": retryAfter }
-    : spotifyPrivateHeaders();
-}
-
 export async function GET(request: Request) {
   const playlistName = new URL(request.url).searchParams.get("name")?.trim() || "Hehe";
-  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
-  if (!accessToken) {
+  const tokenState = await getSpotifyServerToken();
+  if (!tokenState.accessToken) {
     const response = NextResponse.json(
       { error: "Spotify is not connected." },
       { status: 401, headers: spotifyPrivateHeaders() },
@@ -71,11 +64,9 @@ export async function GET(request: Request) {
   const spotifyFetch = async (url: URL | string): Promise<SpotifyFetchResult> => {
     const path = new URL(url).pathname;
     try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken ?? ""}` },
+      const response = await spotifyApiFetch(tokenState, url, {
         cache: "no-store",
-        signal: AbortSignal.timeout(SPOTIFY_REQUEST_TIMEOUT_MS),
-      });
+      }, { timeoutMs: SPOTIFY_REQUEST_TIMEOUT_MS });
       if (!response.ok) {
         console.warn("[spotify/playlist] upstream response", { path, status: response.status });
       }
@@ -95,22 +86,12 @@ export async function GET(request: Request) {
   let playlistsPayload: { items?: SpotifyPlaylist[]; next?: string | null } = {};
   let playlist: SpotifyPlaylist | undefined;
   let nextPlaylistsUrl: string | null = "https://api.spotify.com/v1/me/playlists?limit=50";
-  let refreshedAfter401 = false;
 
   for (let page = 0; page < 10 && nextPlaylistsUrl && !playlist; page += 1) {
     const result = await spotifyFetch(nextPlaylistsUrl);
     playlistsResponse = result.response;
     playlistsError = result.error;
     if (playlistsError || !playlistsResponse) break;
-    if (playlistsResponse.status === 401 && refreshToken && !refreshedAfter401) {
-      refreshedToken = await refreshSpotifyToken(refreshToken);
-      accessToken = refreshedToken?.access_token;
-      refreshedAfter401 = true;
-      if (accessToken) {
-        page -= 1;
-        continue;
-      }
-    }
     if (!playlistsResponse.ok) break;
     playlistsPayload = (await playlistsResponse.json()) as typeof playlistsPayload;
     playlist = (playlistsPayload.items ?? []).find(
@@ -143,11 +124,11 @@ export async function GET(request: Request) {
             : "Spotify playlists could not be loaded.";
     const response = NextResponse.json(
       { error: message, needsReauth: status === 401 || status === 403 },
-      { status, headers: spotifyErrorHeaders(playlistsResponse) },
+      { status, headers: spotifyPrivateHeaders(playlistsResponse?.headers.get("retry-after")) },
     );
     return status === 401
       ? clearSpotifyTokenCookies(response)
-      : setRefreshedCookies(response, refreshedToken);
+      : setRefreshedCookies(response, tokenState.refreshedToken);
   }
 
   if (!playlist) {
@@ -159,22 +140,14 @@ export async function GET(request: Request) {
         },
         { status: 404, headers: spotifyPrivateHeaders() },
       ),
-      refreshedToken,
+      tokenState.refreshedToken,
     );
   }
 
   const itemsUrl = new URL(`https://api.spotify.com/v1/playlists/${playlist.id}/items`);
   itemsUrl.searchParams.set("limit", "50");
-  let itemsResult = await spotifyFetch(itemsUrl);
-  let itemsResponse = itemsResult.response;
-  if (itemsResponse?.status === 401 && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-    if (accessToken) {
-      itemsResult = await spotifyFetch(itemsUrl);
-      itemsResponse = itemsResult.response;
-    }
-  }
+  const itemsResult = await spotifyFetch(itemsUrl);
+  const itemsResponse = itemsResult.response;
   if (itemsResult.error || !itemsResponse || !itemsResponse.ok) {
     const upstreamStatus = itemsResponse?.status;
     const status = itemsResult.error === "timeout"
@@ -201,11 +174,11 @@ export async function GET(request: Request) {
                 : "Tracks from this Spotify playlist could not be loaded.",
         needsReauth: status === 401 || status === 403,
       },
-      { status, headers: spotifyErrorHeaders(itemsResponse) },
+      { status, headers: spotifyPrivateHeaders(itemsResponse?.headers.get("retry-after")) },
     );
     return status === 401
       ? clearSpotifyTokenCookies(response)
-      : setRefreshedCookies(response, refreshedToken);
+      : setRefreshedCookies(response, tokenState.refreshedToken);
   }
 
   const itemsPayload = (await itemsResponse.json()) as { items?: SpotifyPlaylistItem[] };
@@ -230,6 +203,6 @@ export async function GET(request: Request) {
       { playlistName: playlist.name, songs, updatedAt: new Date().toISOString() },
       { headers: spotifyPrivateHeaders() },
     ),
-    refreshedToken,
+    tokenState.refreshedToken,
   );
 }

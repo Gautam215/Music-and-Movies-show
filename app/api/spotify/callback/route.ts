@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     response.cookies.set(
       SPOTIFY_ACCESS_COOKIE,
       token.access_token,
-      spotifyCookieOptions(Math.max(token.expires_in ?? 3600, 60)),
+      spotifyCookieOptions(Math.max((token.expires_in ?? 3600) - 30, 60)),
     );
     if (token.refresh_token) {
       response.cookies.set(

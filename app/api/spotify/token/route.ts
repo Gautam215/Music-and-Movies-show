@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
   clearSpotifyTokenCookies,
   getSpotifyServerToken,
@@ -14,19 +13,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
-  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
-
-  if (accessToken) {
-    const profileResponse = await fetch("https://api.spotify.com/v1/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (profileResponse.status === 401 && refreshToken) {
-      refreshedToken = await refreshSpotifyToken(refreshToken);
-      accessToken = refreshedToken?.access_token;
-    }
-  }
-
+  const tokenState = await getSpotifyServerToken();
+  const { accessToken, refreshedToken } = tokenState;
   if (!accessToken) {
     const response = NextResponse.json(
       { error: "Spotify is not connected." },

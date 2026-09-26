@@ -1,42 +1,41 @@
 import { NextResponse } from "next/server";
-import { refreshSpotifyToken } from "@/lib/spotify-auth";
 import {
   clearSpotifyTokenCookies,
   getSpotifyServerToken,
   persistSpotifyToken,
+  spotifyApiFetch,
   spotifyPrivateHeaders,
 } from "@/lib/spotify-server";
 
-async function playTrack(accessToken: string, uri: string, deviceId: string) {
+async function playTrack(uri: string, deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
   const url = new URL("https://api.spotify.com/v1/me/player/play");
   url.searchParams.set("device_id", deviceId);
-  return fetch(url, {
+  return spotifyApiFetch(tokenState, url, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ uris: [uri] }),
     cache: "no-store",
   });
 }
 
-async function transferPlayback(accessToken: string, deviceId: string) {
-  return fetch("https://api.spotify.com/v1/me/player", {
+async function transferPlayback(deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
+  return spotifyApiFetch(tokenState, "https://api.spotify.com/v1/me/player", {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ device_ids: [deviceId], play: false }),
     cache: "no-store",
   });
 }
 
-async function startTrack(accessToken: string, uri: string, deviceId: string) {
-  const transferResponse = await transferPlayback(accessToken, deviceId);
+async function startTrack(uri: string, deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
+  const playResponse = await playTrack(uri, deviceId, tokenState);
+  if (playResponse.status !== 404) return playResponse;
+
+  // A freshly-created Web Playback SDK device can briefly be unavailable to
+  // the play endpoint. Transfer it only for that specific recovery case.
+  const transferResponse = await transferPlayback(deviceId, tokenState);
   if (!transferResponse.ok) return transferResponse;
-  return playTrack(accessToken, uri, deviceId);
+  return playTrack(uri, deviceId, tokenState);
 }
 
 export async function POST(request: Request) {
@@ -60,8 +59,8 @@ export async function POST(request: Request) {
     );
   }
 
-  let { accessToken, refreshToken, refreshedToken } = await getSpotifyServerToken();
-  if (!accessToken) {
+  const tokenState = await getSpotifyServerToken();
+  if (!tokenState.accessToken) {
     const response = NextResponse.json(
       { error: "Spotify is not connected." },
       { status: 401, headers: spotifyPrivateHeaders() },
@@ -69,12 +68,7 @@ export async function POST(request: Request) {
     return clearSpotifyTokenCookies(response);
   }
 
-  let spotifyResponse = await startTrack(accessToken, uri, deviceId);
-  if (spotifyResponse.status === 401 && refreshToken) {
-    refreshedToken = await refreshSpotifyToken(refreshToken);
-    accessToken = refreshedToken?.access_token;
-    if (accessToken) spotifyResponse = await startTrack(accessToken, uri, deviceId);
-  }
+  const spotifyResponse = await startTrack(uri, deviceId, tokenState);
 
   if (!spotifyResponse.ok) {
     const error = spotifyResponse.status === 403
@@ -87,14 +81,17 @@ export async function POST(request: Request) {
     const status = spotifyResponse.status === 401 || spotifyResponse.status === 403
       ? spotifyResponse.status
       : 502;
-    return persistSpotifyToken(
-      NextResponse.json({ error }, { status, headers: spotifyPrivateHeaders() }),
-      refreshedToken,
+    const response = NextResponse.json(
+      { error },
+      { status, headers: spotifyPrivateHeaders(spotifyResponse.headers.get("retry-after")) },
     );
+    return status === 401
+      ? clearSpotifyTokenCookies(response)
+      : persistSpotifyToken(response, tokenState.refreshedToken);
   }
 
   return persistSpotifyToken(
     NextResponse.json({ playing: true }, { headers: spotifyPrivateHeaders() }),
-    refreshedToken,
+    tokenState.refreshedToken,
   );
 }

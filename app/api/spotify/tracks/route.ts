@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { spotifyCatalogFetch } from "@/lib/spotify-server";
 
 type SpotifyTrack = {
   id: string;
@@ -31,31 +32,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: "grant_type=client_credentials",
-      cache: "no-store",
-    });
-
-    if (!tokenResponse.ok) {
-      return NextResponse.json(
-        { error: "Spotify authentication failed." },
-        { status: 502 },
-      );
-    }
-
-    const token = (await tokenResponse.json()) as { access_token?: string };
-    if (!token.access_token) {
-      return NextResponse.json(
-        { error: "Spotify did not return an access token." },
-        { status: 502 },
-      );
-    }
-
     const requestUrl = new URL(request.url);
     const query = requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
     const requestedLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
@@ -68,19 +44,22 @@ export async function GET(request: Request) {
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("market", "US");
 
-    const tracksResponse = await fetch(searchUrl, {
-      headers: { Authorization: `Bearer ${token.access_token}` },
-      cache: "no-store",
-    });
+    const tracksResponse = await spotifyCatalogFetch(searchUrl, { cache: "no-store" });
 
     if (!tracksResponse.ok) {
-      const error =
-        tracksResponse.status === 403
-          ? "Spotify catalog access requires an active Premium subscription for the app owner."
+      const error = tracksResponse.status === 403
+        ? "Spotify catalog access requires an active Premium subscription for the app owner."
+        : tracksResponse.status === 429
+          ? "Spotify is rate limiting catalog requests. Please try again shortly."
           : "Spotify tracks could not be loaded.";
       return NextResponse.json(
         { error },
-        { status: tracksResponse.status === 403 ? 403 : 502 },
+        {
+          status: tracksResponse.status === 403 ? 403 : tracksResponse.status === 429 ? 429 : 502,
+          headers: tracksResponse.status === 429
+            ? { "Retry-After": tracksResponse.headers.get("retry-after") ?? "30" }
+            : undefined,
+        },
       );
     }
 

@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
+import { fetchWithServerBackoff } from "@/lib/server-retry";
 
 export const SPOTIFY_STATE_COOKIE = "spotify_oauth_state";
 export const SPOTIFY_POPUP_COOKIE = "spotify_oauth_popup";
 export const SPOTIFY_CODE_VERIFIER_COOKIE = "spotify_code_verifier";
 export const SPOTIFY_ACCESS_COOKIE = "spotify_access_token";
 export const SPOTIFY_REFRESH_COOKIE = "spotify_refresh_token";
-const SPOTIFY_TOKEN_TIMEOUT_MS = 10_000;
 
 export function spotifyCookieOptions(maxAge: number) {
   return {
@@ -50,7 +50,7 @@ export async function exchangeSpotifyCode(
   if (!clientId) return null;
 
   try {
-    const response = await fetch("https://accounts.spotify.com/api/token", {
+    const response = await fetchWithServerBackoff("https://accounts.spotify.com/api/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -63,8 +63,7 @@ export async function exchangeSpotifyCode(
         code_verifier: codeVerifier,
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(SPOTIFY_TOKEN_TIMEOUT_MS),
-    });
+    }, { retryUnsafeMethods: true });
 
     if (!response.ok) return null;
     return (await response.json()) as {
@@ -82,7 +81,7 @@ export async function refreshSpotifyToken(refreshToken: string) {
   if (!clientId) return null;
 
   try {
-    const response = await fetch("https://accounts.spotify.com/api/token", {
+    const response = await fetchWithServerBackoff("https://accounts.spotify.com/api/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -93,8 +92,7 @@ export async function refreshSpotifyToken(refreshToken: string) {
         refresh_token: refreshToken,
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(SPOTIFY_TOKEN_TIMEOUT_MS),
-    });
+    }, { retryUnsafeMethods: true });
 
     if (!response.ok) return null;
     return (await response.json()) as {

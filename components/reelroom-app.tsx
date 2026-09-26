@@ -140,6 +140,23 @@ async function fetchSpotifySession() {
   return (await response.json()) as SpotifySession;
 }
 
+function requestSpotifySession(
+  requestRef: { current: Promise<SpotifySession | null> | null },
+  nextAllowedAtRef: { current: number },
+  force = false,
+) {
+  if (requestRef.current) return requestRef.current;
+  if (!force && Date.now() < nextAllowedAtRef.current) return Promise.resolve(null);
+
+  nextAllowedAtRef.current = Date.now() + 15_000;
+  const request = fetchSpotifySession();
+  requestRef.current = request;
+  void request.finally(() => {
+    if (requestRef.current === request) requestRef.current = null;
+  });
+  return request;
+}
+
 function formatPlaybackTime(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
@@ -803,6 +820,8 @@ export function ReelroomApp({
   const spotifyAuthWindowRef = useRef<Window | null>(null);
   const spotifyPlaylistRequestRef = useRef<Promise<void> | null>(null);
   const spotifyPlaylistRetryAtRef = useRef(0);
+  const spotifySessionRequestRef = useRef<Promise<SpotifySession | null> | null>(null);
+  const spotifySessionNextAllowedAtRef = useRef(0);
   const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
@@ -854,16 +873,19 @@ export function ReelroomApp({
                 Number.isFinite(retryAfter) ? retryAfter * 1000 : 30_000,
                 15_000,
               );
-            }
+            } else spotifyPlaylistRetryAtRef.current = Date.now() + 30_000;
             setSpotifyPlaylistError(payload?.error ?? "Hehe playlist tracks are unavailable.");
             return;
           }
-          spotifyPlaylistRetryAtRef.current = 0;
+          spotifyPlaylistRetryAtRef.current = Date.now() + 60_000;
           setSpotifyPlaylistName(payload?.playlistName ?? "Hehe");
           setSpotifyCatalog(payload?.songs ?? []);
           setSpotifyPlaylistError(null);
         } catch {
-          if (!cancelled) setSpotifyPlaylistError("Hehe playlist tracks are unavailable.");
+          if (!cancelled) {
+            spotifyPlaylistRetryAtRef.current = Date.now() + 30_000;
+            setSpotifyPlaylistError("Hehe playlist tracks are unavailable.");
+          }
         } finally {
           if (!cancelled) setSpotifyPlaylistLoading(false);
         }
@@ -942,7 +964,7 @@ export function ReelroomApp({
   useEffect(() => {
     if (!spotifyConnected && !spotifyConnecting) return;
     const syncSession = () => {
-      void fetchSpotifySession().then((session) => {
+      void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef).then((session) => {
         if (session?.connected) {
           setSpotifyConnecting(false);
           setSpotifyConnected(true);
@@ -966,7 +988,7 @@ export function ReelroomApp({
 
   useEffect(() => {
     let cancelled = false;
-    fetchSpotifySession()
+    requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef)
       .then((session) => {
         if (!cancelled && session?.connected) {
           setSpotifyConnected(true);
@@ -988,7 +1010,7 @@ export function ReelroomApp({
       spotifyAuthWindowRef.current = null;
       if (event.data.status === "connected") {
         setSpotifyStatus("Checking Spotify session");
-        void fetchSpotifySession().then((session) => {
+        void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef, true).then((session) => {
           if (cancelled) return;
           if (session?.connected) {
             setSpotifyConnected(true);
@@ -1020,6 +1042,11 @@ export function ReelroomApp({
   useEffect(() => {
     if (!spotifyConnected) return;
     let cancelled = false;
+    const cleanupPlayer = () => {
+      spotifyPlayerRef.current?.disconnect();
+      spotifyPlayerRef.current = null;
+      spotifyDeviceIdRef.current = null;
+    };
     const setupPlayer = () => {
       if (cancelled || !window.Spotify || spotifyPlayerRef.current) return;
       const player = new window.Spotify.Player({
@@ -1073,6 +1100,10 @@ export function ReelroomApp({
       spotifyPlayerRef.current = player;
       player.connect().then((connected) => {
         if (!connected && !cancelled) setSpotifyStatus("Player unavailable");
+      }).catch((error) => {
+        if (cancelled) return;
+        setSpotifyStatus("Player unavailable");
+        setSpotifyError(error instanceof Error ? error.message : "Spotify could not connect the player.");
       });
     };
 
@@ -1080,6 +1111,7 @@ export function ReelroomApp({
       setupPlayer();
       return () => {
         cancelled = true;
+        cleanupPlayer();
       };
     }
 
@@ -1099,9 +1131,7 @@ export function ReelroomApp({
       cancelled = true;
       script.removeEventListener("load", onLoad);
       window.onSpotifyWebPlaybackSDKReady = previousReady;
-      spotifyPlayerRef.current?.disconnect();
-      spotifyPlayerRef.current = null;
-      spotifyDeviceIdRef.current = null;
+      cleanupPlayer();
       setSpotifyPositionMs(0);
       setSpotifyDurationMs(0);
       setSpotifyReady(false);
@@ -1518,29 +1548,33 @@ export function ReelroomApp({
       setSpotifyError("The Spotify player is still preparing.");
       return;
     }
-    await player.activateElement();
-    if (spotifyTrackUri === song.spotifyUri) {
-      if (spotifyPaused) await player.resume();
-      else await player.pause();
-      return;
+    try {
+      await player.activateElement();
+      if (spotifyTrackUri === song.spotifyUri) {
+        if (spotifyPaused) await player.resume();
+        else await player.pause();
+        return;
+      }
+      if (!song.spotifyUri) {
+        setSpotifyError("This track is not available in the Spotify catalog yet.");
+        return;
+      }
+      const response = await fetchWithBackoff("/api/spotify/player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: song.spotifyUri, deviceId }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setSpotifyError(payload?.error ?? "Spotify could not start this track.");
+        return;
+      }
+      setSpotifyError(null);
+      setSpotifyTrackUri(song.spotifyUri);
+      setPlaying(song.title);
+    } catch (error) {
+      setSpotifyError(error instanceof Error ? error.message : "Spotify could not start this track.");
     }
-    if (!song.spotifyUri) {
-      setSpotifyError("This track is not available in the Spotify catalog yet.");
-      return;
-    }
-    const response = await fetchWithBackoff("/api/spotify/player", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uri: song.spotifyUri, deviceId }),
-    }, { retryUnsafeMethods: true });
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setSpotifyError(payload?.error ?? "Spotify could not start this track.");
-      return;
-    }
-    setSpotifyError(null);
-    setSpotifyTrackUri(song.spotifyUri);
-    setPlaying(song.title);
   };
   const toggleSpotifyPlayback = async () => {
     const player = spotifyPlayerRef.current;
@@ -1626,9 +1660,6 @@ export function ReelroomApp({
     filteredSongs.find((song) => song.spotifyUri === spotifyTrackUri) ??
     filteredSongs[0] ??
     null;
-  const activeTrackId =
-    activeSong?.spotifyUri?.split(":").pop() ??
-    activeSong?.spotifyUrl?.split("/track/")[1]?.split("?")[0];
   const playbackProgress = spotifyDurationMs
     ? Math.min((spotifyPositionMs / spotifyDurationMs) * 100, 100)
     : 0;
@@ -2123,20 +2154,6 @@ export function ReelroomApp({
                   </div>
                 </div>
 
-              {activeTrackId ? (
-                <div className="reelroom-player-embed mt-7 overflow-hidden rounded-[1.35rem]">
-                  <iframe
-                    className="h-[152px] w-full"
-                    src={`https://open.spotify.com/embed/track/${activeTrackId}?utm_source=generator`}
-                    title={`${activeSong?.title ?? "Spotify track"} - Spotify`}
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
               </div>
             </div>
 
@@ -2297,6 +2314,16 @@ export function ReelroomApp({
                 ? "Choose a track below to hand the scene over to your Spotify device."
                 : "Connect Spotify Premium to hand the scene over to your recommendations."}
             </p>
+            {!spotifyConnected ? (
+              <button
+                type="button"
+                onClick={connectSpotify}
+                disabled={spotifyConnecting}
+                className="mt-4 rounded-full border border-amber/60 bg-amber px-4 py-2 font-mono text-[10px] uppercase tracking-[.12em] text-canvas transition hover:border-amber hover:bg-ink hover:text-ink disabled:cursor-wait disabled:opacity-60"
+              >
+                {spotifyConnecting ? spotifyStatus : "Connect Spotify Premium"}
+              </button>
+            ) : null}
           </div>
           <div className="reelroom-reelscape-controls flex shrink-0 items-center gap-1.5 self-start lg:self-auto">
               <button
