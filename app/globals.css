@@ -635,6 +635,8 @@ body:has(.profile-experience) { background: #050711; }
   inset: 0;
   z-index: 55;
   overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
   background: #050711;
   color: #f5f7ff;
   isolation: isolate;
