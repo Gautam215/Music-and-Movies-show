@@ -784,6 +784,10 @@ export function ReelroomApp({
   const [checkoutTouched, setCheckoutTouched] = useState<Partial<Record<CheckoutField, boolean>>>({});
   const [checkoutErrors, setCheckoutErrors] = useState<Partial<Record<CheckoutField, string>>>(emptyCheckoutErrors);
   const [notice, setNotice] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>([]);
   const [selectedSoundtrack, setSelectedSoundtrack] = useState<Song[]>([]);
@@ -1900,9 +1904,26 @@ export function ReelroomApp({
         </div>
         <form
           className="space-y-3 rounded-2xl border border-border bg-surface p-4"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            announce("Login is open to all users in this demo.");
+            setAuthError(null);
+            setAuthSubmitting(true);
+            try {
+              const response = await fetch("/api/auth/signin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: authEmail, password: authPassword }),
+              });
+              const result = (await response.json()) as { error?: string; user?: { name?: string } };
+              if (!response.ok) throw new Error(result.error || "Could not sign in.");
+              announce(`Welcome back${result.user?.name ? `, ${result.user.name}` : ""}.`);
+              setAuthPassword("");
+              setPage("home");
+            } catch (error) {
+              setAuthError(error instanceof Error ? error.message : "Could not sign in.");
+            } finally {
+              setAuthSubmitting(false);
+            }
           }}
         >
           <label className="block">
@@ -1912,7 +1933,10 @@ export function ReelroomApp({
             <input
               type="email"
               required
+              value={authEmail}
+              onChange={(event) => setAuthEmail(event.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
@@ -1923,14 +1947,21 @@ export function ReelroomApp({
             <input
               type="password"
               required
+              value={authPassword}
+              onChange={(event) => setAuthPassword(event.target.value)}
               placeholder="Enter your password"
+              autoComplete="current-password"
               className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
-          <Button type="submit" variant="primary" className="h-10 w-full min-h-0">
+          {authError ? <p role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">{authError}</p> : null}
+          <Button type="submit" disabled={authSubmitting} variant="primary" className="h-10 w-full min-h-0 disabled:cursor-not-allowed disabled:opacity-60">
             <LogIn className="size-4" />
-            Log in
+            {authSubmitting ? "Checking..." : "Log in"}
           </Button>
+          <a href="/register" className="block text-center font-mono text-[10px] uppercase tracking-[.14em] text-amber hover:text-ink">
+            New here? Create an account
+          </a>
         </form>
       </section>
       <section className="relative min-h-[22rem] overflow-hidden md:min-h-[calc(100vh-7rem)]">
