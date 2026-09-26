@@ -29,12 +29,14 @@ export async function POST(request: Request) {
       ? rawGenres.filter((genre): genre is string => typeof genre === "string" && genre.length <= 80).slice(0, 8)
       : [];
     const rawMetadata = body?.metadata;
-    const metadata = rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
-      ? Object.fromEntries(
-          Object.entries(rawMetadata as Record<string, unknown>)
-            .filter(([key, value]) => key.length <= 40 && typeof value === "string" && value.length <= 200)
-            .slice(0, 8),
-        )
+    const metadata: Record<string, string> | undefined = rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
+      ? Object.entries(rawMetadata as Record<string, unknown>)
+          .filter(([key, value]) => key.length <= 40 && typeof value === "string" && value.length <= 200)
+          .slice(0, 8)
+          .reduce<Record<string, string>>((result, [key, value]) => {
+            result[key] = value as string;
+            return result;
+          }, {})
       : undefined;
 
     if (!signalTypes.includes(body?.type as UserSignalType) || !title || title.length > 200) {
