@@ -15,6 +15,8 @@ const items = [
   { id: "profile", label: "Profile", href: "/#profile", icon: UserRound },
 ] satisfies { id: string; label: string; href: string | null; icon: LucideIcon }[];
 
+const dismissTransientsEvent = "reelroom-dismiss-transients";
+
 type ContrastMode = "light" | "dark";
 
 function getContrastMode(): ContrastMode {
@@ -105,11 +107,12 @@ export function FloatingNavigation() {
           return <NotificationCenter key={id} />;
         }
         return (
-          <a
-            key={id}
-            ref={(node) => { linkRefs.current[id] = node; }}
-            href={href}
-            data-active={id === activePage}
+            <a
+              key={id}
+              ref={(node) => { linkRefs.current[id] = node; }}
+              href={href}
+              onClick={() => window.dispatchEvent(new Event(dismissTransientsEvent))}
+              data-active={id === activePage}
             aria-current={id === activePage ? "page" : undefined}
           >
             <Icon className="reelroom-floating-nav-icon" aria-hidden="true" />

@@ -53,6 +53,7 @@ const ARCHIVED_KEY = "reelroom.notification-archived.v1";
 const REMINDERS_KEY = "reelroom.notification-reminders.v1";
 const PREFERENCES_KEY = "reelroom.notification-preferences.v1";
 const PROFILE_SESSION_KEY = "reelroom.profile.session";
+const dismissTransientsEvent = "reelroom-dismiss-transients";
 
 const artwork = {
   neon: "https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=160&q=82",
@@ -317,6 +318,12 @@ export function NotificationCenter() {
     }, 320);
   };
 
+  useEffect(() => {
+    const dismissPanel = () => closePanel(false);
+    window.addEventListener(dismissTransientsEvent, dismissPanel);
+    return () => window.removeEventListener(dismissTransientsEvent, dismissPanel);
+  }, [mounted, closing]);
+
   const openPanel = () => {
     setProfileSession(readProfileSession());
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
@@ -448,7 +455,12 @@ export function NotificationCenter() {
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={panelOpen}
         aria-controls="reelroom-notification-panel"
-        onClick={() => panelOpen ? closePanel() : openPanel()}
+        onClick={() => {
+          const wasOpen = panelOpen;
+          window.dispatchEvent(new Event(dismissTransientsEvent));
+          if (wasOpen) closePanel();
+          else openPanel();
+        }}
       >
         <Bell className="notification-center-trigger-icon" aria-hidden="true" />
         <span>Notification</span>

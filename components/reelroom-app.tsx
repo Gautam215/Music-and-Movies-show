@@ -103,6 +103,7 @@ type CheckoutForm = Record<CheckoutField, string>;
 
 const emptyCheckoutErrors: Partial<Record<CheckoutField, string>> = {};
 const checkoutFields: CheckoutField[] = ["name", "email", "cardNumber", "expiry", "cvc"];
+const dismissTransientsEvent = "reelroom-dismiss-transients";
 
 function validateCheckoutField(field: CheckoutField, value: string) {
   const trimmed = value.trim();
@@ -1121,6 +1122,7 @@ export function ReelroomApp({
   }, [spotifySearchOpen]);
 
   const setPage = (nextPage: NavId) => {
+    window.dispatchEvent(new Event(dismissTransientsEvent));
     setBooking(false);
     setCheckoutClosing(false);
     setCheckoutStatus("idle");
@@ -1133,6 +1135,7 @@ export function ReelroomApp({
 
   useEffect(() => {
     const syncPage = () => {
+      window.dispatchEvent(new Event(dismissTransientsEvent));
       setBooking(false);
       setCheckoutClosing(false);
       setCheckoutStatus("idle");
@@ -1251,6 +1254,33 @@ export function ReelroomApp({
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [moreOpen]);
+
+  useEffect(() => {
+    const dismissTransients = () => {
+      setSelected(null);
+      setBooking(false);
+      setCheckoutClosing(false);
+      setCheckoutStatus("idle");
+      setMoreOpen(false);
+      setSpotifySearchOpen(false);
+      setNotice(null);
+    };
+    const dismissOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(
+        ".reelroom-floating-nav, .notification-center-panel, .notification-center-trigger, .reelroom-checkout-panel, .reelroom-detail-panel, .reelroom-more-menu, .reelroom-header-menu, #spotify-search-panel",
+      )) return;
+      window.dispatchEvent(new Event(dismissTransientsEvent));
+    };
+
+    window.addEventListener(dismissTransientsEvent, dismissTransients);
+    document.addEventListener("pointerdown", dismissOnOutsidePointer);
+    return () => {
+      window.removeEventListener(dismissTransientsEvent, dismissTransients);
+      document.removeEventListener("pointerdown", dismissOnOutsidePointer);
+    };
+  }, []);
 
   useEffect(() => {
     let frame = 0;
@@ -2930,7 +2960,7 @@ export function ReelroomApp({
       onClick={() => setSelected(null)}
     >
       <div
-        className="group relative max-h-[94vh] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-none border border-border bg-surface shadow-cinematic sm:rounded-[1.75rem]"
+        className="reelroom-detail-panel group relative max-h-[94vh] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-none border border-border bg-surface shadow-cinematic sm:rounded-[1.75rem]"
         role="dialog"
         aria-modal="true"
         aria-label={`${selected.title} details`}
