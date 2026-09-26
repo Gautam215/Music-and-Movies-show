@@ -9,7 +9,7 @@ This is the full-stack-ready Next.js source tree for the Movie & Entertainment P
 - `lucide-react` for interface icons.
 - Convex schema and transactional seat-hold functions under `convex/`.
 - MongoDB-backed email/password authentication under `app/api/auth/`.
-- Bi-weekly TMDB trend catalog across movies, TV, and anime with regional guest fallback and logged-in viewing-history personalization.
+- Two-week TMDB featured screening plus a separate daily Current Reel across movies, TV, and anime with regional guest fallback and logged-in viewing-history personalization.
 - Works Wheel from 21st.dev at `components/ui/works-wheel.tsx`.
 - Black Hole visual system at `components/ui/black-hole-hero-section.tsx`, used as the global hero language.
 

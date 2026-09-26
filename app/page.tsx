@@ -1,7 +1,8 @@
 import { ReelroomApp } from "@/components/reelroom-app";
 import { getCurrentUser } from "@/lib/auth-session";
 import { getOmdbMovies } from "@/lib/omdb";
-import { getCuratedMovies, getDailyMovieUpdates, getHomeTrending, getTopReelMovies } from "@/lib/tmdb";
+import { getCuratedMovies, getCurrentReel, getDailyMovieUpdates, getFeaturedScreening, getTopReelMovies } from "@/lib/tmdb";
+import { getRequestLocation } from "@/lib/request-location";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -10,14 +11,15 @@ export default async function Page() {
   const requestHeaders = await headers();
   const regionHeader = requestHeaders.get("x-vercel-ip-country") || requestHeaders.get("cf-ipcountry");
   const region = regionHeader && /^[A-Za-z]{2}$/.test(regionHeader) ? regionHeader.toUpperCase() : undefined;
-  let userId: string | undefined;
+  let currentUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
   try {
-    userId = (await getCurrentUser())?.id;
+    currentUser = await getCurrentUser();
   } catch {
-    userId = undefined;
+    currentUser = null;
   }
-  const [homeTrending, topReelMovies, curatedMovies, omdbMovies, dailyUpdates] = await Promise.all([
-    getHomeTrending({ userId, region }),
+  const [featuredMovie, currentReel, topReelMovies, curatedMovies, omdbMovies, dailyUpdates] = await Promise.all([
+    getFeaturedScreening({ region }),
+    getCurrentReel({ userId: currentUser?.id, region }),
     getTopReelMovies(),
     getCuratedMovies(),
     getOmdbMovies(),
@@ -25,8 +27,8 @@ export default async function Page() {
   ]);
   const fallbackMovies = omdbMovies ?? dailyUpdates?.trending ?? undefined;
   const upcomingMovies = dailyUpdates?.comingSoon ?? null;
-  const initialMovies = homeTrending?.length
-    ? homeTrending
+  const initialMovies = currentReel?.length
+    ? currentReel
     : topReelMovies?.length
     ? topReelMovies
     : curatedMovies?.length || upcomingMovies?.length
@@ -35,5 +37,13 @@ export default async function Page() {
           allMovies.findIndex((candidate) => candidate.id === movie.id) === index,
       )
     : fallbackMovies;
-  return <ReelroomApp initialMovies={initialMovies ?? undefined} dailyUpdates={dailyUpdates ?? undefined} />;
+  const profileLocation = getRequestLocation(requestHeaders);
+  return (
+    <ReelroomApp
+      initialMovies={initialMovies ?? undefined}
+      featuredMovie={featuredMovie ?? currentReel?.[0] ?? initialMovies?.[0]}
+      dailyUpdates={dailyUpdates ?? undefined}
+      initialProfile={currentUser ? { name: currentUser.name, email: currentUser.email, location: profileLocation } : null}
+    />
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ButtonHTMLAttributes, CSSProperties, FormEvent, ReactNode } from "react";
 import {
   ArrowRight,
@@ -101,6 +102,12 @@ type CheckoutStatus = "idle" | "loading" | "success";
 
 type CheckoutForm = Record<CheckoutField, string>;
 
+type ProfileUser = {
+  name: string;
+  email: string;
+  location?: string | null;
+};
+
 const emptyCheckoutErrors: Partial<Record<CheckoutField, string>> = {};
 const checkoutFields: CheckoutField[] = ["name", "email", "cardNumber", "expiry", "cvc"];
 const dismissTransientsEvent = "reelroom-dismiss-transients";
@@ -129,6 +136,15 @@ function formatCardNumber(value: string) {
 function formatExpiry(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 4);
   return digits.length > 2 ? `${digits.slice(0, 2)} / ${digits.slice(2)}` : digits;
+}
+
+function profileInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "R";
 }
 
 async function fetchSpotifySession() {
@@ -496,7 +512,7 @@ function FeaturedScreening({
       </div>
       <div className="flex flex-col justify-center py-2 md:py-8">
         <div className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
-          Featured event
+          Featured event · 14-day market pulse
         </div>
         <h1 className="mt-4 max-w-xl font-display text-5xl font-semibold leading-[.91] tracking-[-.08em] text-ink sm:text-6xl md:text-7xl">
           Your First Screening
@@ -538,46 +554,9 @@ function CurrentReelSection({
   onViewAll: () => void;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const scrollResetRef = useRef<number | null>(null);
-  const [isGridScrolling, setIsGridScrolling] = useState(false);
-  const [scrollbar, setScrollbar] = useState({ overflowing: false, width: 100, left: 0 });
-
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-
-    const updateScrollbar = () => {
-      const maxScroll = grid.scrollWidth - grid.clientWidth;
-      if (maxScroll <= 0) {
-        setScrollbar({ overflowing: false, width: 100, left: 0 });
-        return;
-      }
-
-      const width = Math.max((grid.clientWidth / grid.scrollWidth) * 100, 18);
-      const left = (grid.scrollLeft / maxScroll) * (100 - width);
-      setScrollbar({ overflowing: true, width, left });
-    };
-
-    const handleScroll = () => {
-      updateScrollbar();
-      setIsGridScrolling(true);
-      if (scrollResetRef.current !== null) window.clearTimeout(scrollResetRef.current);
-      scrollResetRef.current = window.setTimeout(() => setIsGridScrolling(false), 700);
-    };
-
-    updateScrollbar();
-    grid.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", updateScrollbar);
-
-    return () => {
-      grid.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", updateScrollbar);
-      if (scrollResetRef.current !== null) window.clearTimeout(scrollResetRef.current);
-    };
-  }, []);
 
   return (
-    <section className="relative space-y-7" aria-live="polite">
+    <section className="reelroom-home-panel relative space-y-7" aria-live="polite">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
@@ -635,11 +614,6 @@ function CurrentReelSection({
               </button>
             ))}
           </div>
-          {scrollbar.overflowing && (
-            <div className={cn("reelroom-scrollbar", isGridScrolling && "reelroom-scrollbar-visible")} aria-hidden="true">
-              <span style={{ width: `${scrollbar.width}%`, left: `${scrollbar.left}%` }} />
-            </div>
-          )}
         </div>
         <div className="relative">
           <div key={activeMovie.id} className="reelroom-reel-preview">
@@ -741,17 +715,21 @@ function pageFromLocation(): NavId {
 
 export function ReelroomApp({
   initialMovies,
+  featuredMovie,
   dailyUpdates,
+  initialProfile,
 }: {
   initialMovies?: Movie[];
+  featuredMovie?: Movie;
   dailyUpdates?: MovieUpdateFeeds;
+  initialProfile?: ProfileUser | null;
 }) {
+  const router = useRouter();
   const catalog = initialMovies?.length ? initialMovies : movies;
-  const heroCandidates = catalog.length ? catalog : movies;
-  const [heroIndex, setHeroIndex] = useState(0);
-  const heroMovie = heroCandidates[heroIndex % Math.max(heroCandidates.length, 1)] ?? movies[0];
+  const heroMovie = featuredMovie ?? catalog[0] ?? movies[0];
   const [page, setPageState] = useState<NavId>("home");
   const [routeReady, setRouteReady] = useState(false);
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(initialProfile ?? null);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
   const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(null);
@@ -830,14 +808,23 @@ export function ReelroomApp({
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
   useEffect(() => {
-    if (heroCandidates.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % heroCandidates.length);
-    }, 7000);
-    return () => window.clearInterval(interval);
-  }, [heroCandidates.length]);
+    let cancelled = false;
+    const syncProfile = async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+        const result = (await response.json()) as { user?: ProfileUser | null };
+        if (!cancelled) setProfileUser(result.user ?? null);
+      } catch {
+        if (!cancelled) setProfileUser(null);
+      }
+    };
+    void syncProfile();
+    window.addEventListener("reelroom-profile-session", syncProfile);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("reelroom-profile-session", syncProfile);
+    };
+  }, []);
 
   useEffect(() => {
     if (!droppedMovie || detailsShownAt === null) return;
@@ -1705,7 +1692,7 @@ export function ReelroomApp({
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
-      city={preferredCity}
+       city={profileUser?.location ?? preferredCity}
       shelfMovies={shelfMovies}
       onActivate={(movie) => setActiveReelMovieId(movie.id)}
        onOpen={openMovie}
@@ -1777,7 +1764,7 @@ export function ReelroomApp({
 
   const blackHoleHero = (
     <BlackHoleHeroSection
-      className="relative min-h-[44rem] sm:min-h-[42rem] md:min-h-[38rem] lg:min-h-[34rem]"
+      className="reelroom-home-panel relative min-h-[44rem] sm:min-h-[42rem] md:min-h-[38rem] lg:min-h-[34rem]"
       distance={8}
       elevation={7}
       focus={[0.7, 0.48]}
@@ -1930,11 +1917,14 @@ export function ReelroomApp({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: authEmail, password: authPassword }),
               });
-              const result = (await response.json()) as { error?: string; user?: { name?: string } };
-              if (!response.ok) throw new Error(result.error || "Could not sign in.");
-              announce(`Welcome back${result.user?.name ? `, ${result.user.name}` : ""}.`);
-              setAuthPassword("");
-              setPage("home");
+               const result = (await response.json()) as { error?: string; user?: ProfileUser };
+               if (!response.ok) throw new Error(result.error || "Could not sign in.");
+               announce(`Welcome back${result.user?.name ? `, ${result.user.name}` : ""}.`);
+               if (result.user) setProfileUser(result.user);
+               setAuthPassword("");
+               setPage("home");
+               window.dispatchEvent(new Event("reelroom-profile-session"));
+               router.refresh();
             } catch (error) {
               setAuthError(error instanceof Error ? error.message : "Could not sign in.");
             } finally {
@@ -2795,14 +2785,17 @@ export function ReelroomApp({
         />
         <div className="flex w-full max-w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
           <div className="flex min-w-0 max-w-full items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
-              AG
-            </div>
-            <div className="min-w-0">
-              <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
-                Abhishek Kumar Gautam
-              </h2>
-              <p className="mt-1 text-xs text-ink-2">Greater Noida · Member since 2021</p>
+             <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
+               {profileInitials(profileUser?.name ?? "Reelscape")}
+             </div>
+             <div className="min-w-0">
+               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
+                 {profileUser?.name ?? "Sign in to load your profile"}
+               </h2>
+               <p className="mt-1 text-xs text-ink-2">
+                 {profileUser?.location ?? "Location will appear after sign in"}
+                 {profileUser?.email ? ` · ${profileUser.email}` : ""}
+               </p>
             </div>
           </div>
           <Button

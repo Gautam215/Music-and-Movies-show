@@ -18,7 +18,7 @@ type ViewingHistoryDocument = ViewingHistoryInput & {
 export type ViewingProfile = {
   genreWeights: Map<string, number>;
   mediaTypeWeights: Map<ViewingMediaType, number>;
-  language?: string;
+  preferredGenres: string[];
 };
 
 export async function recordViewing(input: ViewingHistoryInput) {
@@ -45,5 +45,10 @@ export async function getViewingProfile(userId: string): Promise<ViewingProfile>
     mediaTypeWeights.set(entry.mediaType, (mediaTypeWeights.get(entry.mediaType) ?? 0) + weight);
   });
 
-  return { genreWeights, mediaTypeWeights };
+  const preferredGenres = [...genreWeights.entries()]
+    .sort(([, firstWeight], [, secondWeight]) => secondWeight - firstWeight)
+    .slice(0, 6)
+    .map(([genre]) => genre);
+
+  return { genreWeights, mediaTypeWeights, preferredGenres };
 }

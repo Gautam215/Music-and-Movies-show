@@ -7,6 +7,7 @@ import { ArrowRight, Check, Eye, EyeOff, LogIn, LogOut, Mail, MapPin, ShieldChec
 type ProfileSession = {
   name: string;
   email: string;
+  location?: string | null;
 };
 
 const sessionKey = "reelroom.profile.session";
@@ -74,7 +75,9 @@ function readSession() {
     const stored = window.sessionStorage.getItem(sessionKey);
     if (!stored) return null;
     const parsed = JSON.parse(stored) as Partial<ProfileSession>;
-    return parsed.name && parsed.email ? { name: parsed.name, email: parsed.email } : null;
+    return parsed.name && parsed.email
+      ? { name: parsed.name, email: parsed.email, location: parsed.location ?? null }
+      : null;
   } catch {
     return null;
   }
@@ -263,7 +266,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
       });
       const result = (await response.json()) as { error?: string; user?: ProfileSession };
       if (!response.ok || !result.user) throw new Error(result.error || "Could not sign in.");
-      const nextSession = { name: result.user.name, email: result.user.email };
+       const nextSession = { name: result.user.name, email: result.user.email, location: result.user.location ?? null };
       window.sessionStorage.setItem(sessionKey, JSON.stringify(nextSession));
       window.dispatchEvent(new Event("reelroom-profile-session"));
       setPassword("");
@@ -353,7 +356,7 @@ function LoggedInProfile({ session, onLogout }: { session: ProfileSession; onLog
         <div>
           <div className="profile-kicker">Profile / active session</div>
           <h2 id="profile-title">{session.name}</h2>
-          <p><Mail className="size-3.5" /> {session.email} <span>·</span> <MapPin className="size-3.5" /> Greater Noida</p>
+           <p><Mail className="size-3.5" /> {session.email} <span>·</span> <MapPin className="size-3.5" /> {session.location ?? "Location unavailable"}</p>
         </div>
         <button type="button" className="profile-logout" onClick={onLogout}><LogOut className="size-4" /> Logout</button>
       </div>
@@ -398,9 +401,11 @@ export function ProfileExperience() {
     sync();
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
+    window.addEventListener("reelroom-profile-session", sync);
     return () => {
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
+      window.removeEventListener("reelroom-profile-session", sync);
     };
   }, []);
 

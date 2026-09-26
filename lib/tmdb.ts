@@ -8,6 +8,8 @@ const TMDB_UPCOMING_ENDPOINT = "https://api.themoviedb.org/3/discover/movie";
 const TMDB_TV_ENDPOINT = "https://api.themoviedb.org/3/discover/tv";
 const TMDB_MOVIE_ENDPOINT = "https://api.themoviedb.org/3/movie";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w780";
+const BIWEEKLY_REVALIDATE_SECONDS = 14 * 24 * 60 * 60;
+const DAILY_REVALIDATE_SECONDS = 24 * 60 * 60;
 const FALLBACK_POSTER = "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
 const FALLBACK_BACKDROP = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85";
 
@@ -161,14 +163,14 @@ async function fetchTrendCatalog(token: string, scope: TrendScope) {
     .slice(0, 30);
 }
 
-const getBiweeklyTrendCatalog = async (region?: string) => {
+const getCachedTrendCatalog = async (region: string | undefined, revalidate: number, cacheNamespace: string) => {
   const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
   if (!token) return null;
   const cacheKey = region?.toUpperCase() || "GLOBAL";
   const getCached = unstable_cache(
     () => fetchTrendCatalog(token, { region }),
-    ["reelscape-biweekly-trending-v1", cacheKey],
-    { revalidate: 1_209_600, tags: ["reelscape-biweekly-trending-v1"] },
+    [cacheNamespace, cacheKey],
+    { revalidate, tags: [cacheNamespace] },
   );
   try {
     const results = await getCached();
@@ -178,19 +180,31 @@ const getBiweeklyTrendCatalog = async (region?: string) => {
   }
 };
 
+const getBiweeklyTrendCatalog = (region?: string) =>
+  getCachedTrendCatalog(region, BIWEEKLY_REVALIDATE_SECONDS, "reelscape-biweekly-trending-v1");
+
+const getDailyTrendCatalog = (region?: string) =>
+  getCachedTrendCatalog(region, DAILY_REVALIDATE_SECONDS, "reelscape-daily-current-reel-v1");
+
 function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
   return trends
     .map((movie, index) => {
       const genreScore = movie.genres.reduce((score, genre) => score + (profile.genreWeights.get(genre) ?? 0), 0);
+      const preferredGenreScore = movie.genres.filter((genre) => profile.preferredGenres.includes(genre)).length;
       const mediaScore = profile.mediaTypeWeights.get(movie.mediaType ?? "movie") ?? 0;
-      return { movie, score: (movie.trendScore ?? 0) + genreScore * 0.35 + mediaScore * 0.2 - index * 0.02 };
+      return { movie, score: (movie.trendScore ?? 0) + genreScore * 0.35 + preferredGenreScore * 1.5 + mediaScore * 0.2 - index * 0.02 };
     })
     .sort((a, b) => b.score - a.score)
     .map(({ movie }) => movie);
 }
 
-export async function getHomeTrending({ userId, region }: { userId?: string; region?: string }) {
+export async function getFeaturedScreening({ region }: { region?: string }) {
   const trends = await getBiweeklyTrendCatalog(region);
+  return trends?.[0] ?? null;
+}
+
+export async function getCurrentReel({ userId, region }: { userId?: string; region?: string }) {
+  const trends = await getDailyTrendCatalog(region);
   if (!trends) return null;
   if (!userId) return trends.slice(0, 12);
   try {
