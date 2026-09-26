@@ -51,6 +51,7 @@ import { UpdatesCarousel } from "@/components/ui/updates-carousel";
 import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
+import { ReelscapeLogo } from "@/components/reelscape-logo";
 import { cn } from "@/lib/utils";
 import { fetchWithBackoff } from "@/lib/client-fetch";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
@@ -3518,14 +3519,7 @@ export function ReelroomApp({
             )}
           >
           <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "reelroom-updates-header")}>
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-7 rotate-45 place-items-center border border-border text-amber">
-                <Film className="size-3.5 -rotate-45" />
-              </span>
-              <strong className="font-display text-lg tracking-[-.05em]">
-                reel<span className="text-amber">scape</span>
-              </strong>
-            </div>
+            <ReelscapeLogo />
             <div className="ml-auto flex items-center gap-2">
               {page === "home" ? (
                 <button

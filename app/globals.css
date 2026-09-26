@@ -90,30 +90,40 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     top: 0;
     left: 0;
     z-index: 100;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     pointer-events: none;
     opacity: 0;
     transform: translate3d(var(--cursor-x, -100px), var(--cursor-y, -100px), 0) translate(-50%, -50%);
     transition: opacity 180ms ease;
+    will-change: transform;
   }
   .reelroom-cursor[data-visible="true"] { opacity: 1; }
   .reelroom-cursor-mark {
     display: block;
-    width: 7px;
-    height: 7px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: hsl(var(--amber) / .72);
     box-shadow: 0 0 8px hsl(var(--amber) / .58);
     transition: width 180ms ease, height 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
   }
   .reelroom-cursor[data-hover="true"] .reelroom-cursor-mark {
-    width: 11px;
-    height: 11px;
+    width: 14px;
+    height: 14px;
     background: hsl(var(--amber) / .9);
     box-shadow: 0 0 0 4px hsl(var(--amber) / .12), 0 0 18px hsl(var(--amber) / .72), 0 0 34px hsl(var(--amber) / .28);
   }
 }
+
+.reelroom-logo { display: inline-flex; min-width: 0; align-items: center; gap: .72rem; color: hsl(var(--ink)); text-decoration: none; }
+.reelroom-logo-mark { display: grid; width: 1.75rem; height: 1.75rem; flex: 0 0 auto; place-items: center; transform: rotate(45deg); border: 1px solid hsl(var(--border-strong)); color: hsl(var(--amber)); transition: border-color 220ms ease, background-color 220ms ease, color 220ms ease, transform 220ms ease; }
+.reelroom-logo-copy { display: grid; min-width: 0; gap: .14rem; }
+.reelroom-logo-copy strong { font-family: "SF Pro Display", Inter, sans-serif; font-size: 1.05rem; font-weight: 600; letter-spacing: -.05em; line-height: 1; }
+.reelroom-logo-copy strong span { color: hsl(var(--amber)); }
+.reelroom-logo-copy small { color: hsl(var(--ink-2)); font-family: "IBM Plex Mono", monospace; font-size: .48rem; letter-spacing: .14em; line-height: 1; text-transform: uppercase; }
+.reelroom-logo:hover .reelroom-logo-mark,
+.reelroom-logo:focus-visible .reelroom-logo-mark { border-color: hsl(var(--amber) / .72); background: hsl(var(--amber) / .08); color: hsl(var(--ink)); transform: rotate(45deg) scale(1.05); }
 
 .grain::after {
   content: "";
@@ -722,9 +732,6 @@ body:has(.profile-experience) { background: #050711; }
 }
 .profile-login-stage { display: grid; min-height: calc(100vh - 2 * clamp(1rem, 3vw, 2.5rem)); grid-template-rows: auto 1fr auto; align-items: center; gap: 1.5rem; }
 .profile-login-brand { display: inline-flex; align-items: center; gap: .7rem; justify-self: start; color: #f5f7ff; }
-.profile-login-brand-mark { display: grid; width: 2rem; height: 2rem; place-items: center; border: 1px solid rgba(190, 205, 255, .4); border-radius: .7rem; background: rgba(118, 140, 255, .12); color: #dce5ff; font-size: .75rem; font-weight: 700; box-shadow: inset 0 1px rgba(255, 255, 255, .18), 0 8px 28px rgba(56, 84, 190, .2); }
-.profile-login-brand strong { display: block; font-size: .85rem; font-weight: 600; letter-spacing: -.04em; }
-.profile-login-brand span:not(.profile-login-brand-mark) { display: block; margin-top: .2rem; color: rgba(226, 232, 255, .46); font-family: "IBM Plex Mono", monospace; font-size: .52rem; letter-spacing: .13em; text-transform: uppercase; }
 .profile-login-footer { display: flex; justify-content: space-between; gap: 1rem; color: rgba(226, 232, 255, .4); font-family: "IBM Plex Mono", monospace; font-size: .53rem; letter-spacing: .13em; }
 .profile-auth-card,
 .profile-signed-in {

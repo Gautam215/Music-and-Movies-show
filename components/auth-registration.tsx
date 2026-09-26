@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ReelscapeLogo } from "@/components/reelscape-logo";
 
 type AuthMode = "register" | "signin";
 
@@ -86,15 +87,7 @@ export function AuthRegistration() {
       <div className="grid min-h-screen md:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
         <section className="flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-24">
           <div className="w-full max-w-[430px]">
-            <div className="mb-12 flex items-center gap-3">
-              <span className="grid size-9 rotate-45 place-items-center rounded-xl border border-[#b99cff]/50 bg-[#b99cff]/10 text-[#d9c8ff]">
-                <span className="-rotate-45 text-sm font-semibold">G</span>
-              </span>
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[.24em] text-[#9d91ae]">Gautam / access</p>
-                <p className="mt-1 text-sm font-medium text-[#f5efff]">Make room for what&apos;s next.</p>
-              </div>
-            </div>
+            <ReelscapeLogo className="mb-12" subtitle="movies & music" />
 
             <div className="mb-8">
               <p className="font-mono text-[10px] uppercase tracking-[.2em] text-[#b99cff]">New orbit</p>

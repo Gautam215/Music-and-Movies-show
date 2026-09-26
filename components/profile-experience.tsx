@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, Check, Eye, EyeOff, LogIn, LogOut, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { ReelscapeLogo } from "@/components/reelscape-logo";
 
 type ProfileSession = {
   name: string;
@@ -442,7 +443,7 @@ export function ProfileExperience() {
           </>
         ) : (
           <div className="profile-login-stage">
-            <div className="profile-login-brand"><span className="profile-login-brand-mark">R</span><div><strong>reelscape</strong><span>private cinema / profile</span></div></div>
+            <ReelscapeLogo className="profile-login-brand" subtitle="private cinema / profile" />
             <ProfileLogin onLogin={setSession} />
             <div className="profile-login-footer"><span>NO TRACKING BY DEFAULT</span><span>ESC TO RETURN</span></div>
           </div>

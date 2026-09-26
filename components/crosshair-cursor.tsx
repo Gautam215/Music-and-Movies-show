@@ -20,7 +20,7 @@ export function MinimalCursor() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const animate = () => {
-      const blend = reducedMotion ? 1 : 0.24;
+      const blend = reducedMotion ? 1 : 0.42;
       currentX += (targetX - currentX) * blend;
       currentY += (targetY - currentY) * blend;
       cursor.style.setProperty("--cursor-x", `${currentX}px`);
