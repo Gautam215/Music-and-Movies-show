@@ -50,3 +50,150 @@ jobs:
 
       - name: Run API regression checks
         run: npm run test:api
+
+  screenshots:
+    name: Capture UI screenshots
+    needs: verify
+    if: ${{ needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Start production server
+        run: npm run start > /tmp/reelscape-next.log 2>&1 &
+
+      - name: Wait for production server
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/reelscape-next.log
+          exit 1
+
+      - name: Capture screenshots
+        run: npm run screenshots
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reelscape-ui-screenshots
+          path: screenshots/*.png
+          if-no-files-found: error
+
+  deploy-preview:
+    name: Deploy Vercel preview
+    needs: [verify, screenshots]
+    if: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Link Vercel project
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel link \
+            --project=music-and-movies-show \
+            --scope="$VERCEL_ORG_ID" \
+            --token="$VERCEL_TOKEN" \
+            --yes
+
+      - name: Deploy Vercel preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel deploy \
+            --token="$VERCEL_TOKEN" \
+            --yes 2>&1 | tee vercel-preview.log
+          preview_url="$(grep -Eo 'https://[^[:space:]]+\.vercel\.app' vercel-preview.log | tail -n 1)"
+          if [ -z "$preview_url" ]; then
+            echo "Vercel did not return a preview URL."
+            exit 1
+          fi
+          {
+            echo "### Vercel preview"
+            echo
+            echo "$preview_url"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-production:
+    name: Deploy Vercel production
+    needs: [verify, screenshots]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Link Vercel project
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel link \
+            --project=music-and-movies-show \
+            --scope="$VERCEL_ORG_ID" \
+            --token="$VERCEL_TOKEN" \
+            --yes
+
+      - name: Deploy Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel deploy \
+            --prod \
+            --token="$VERCEL_TOKEN" \
+            --yes

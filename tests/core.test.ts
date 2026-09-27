@@ -3,6 +3,30 @@ import test from "node:test";
 import { isSameOrigin } from "../lib/request-security.ts";
 import { consumeApiRateLimit, rateLimitHeaders } from "../lib/rate-limit.ts";
 import { fetchWithServerBackoff } from "../lib/server-retry.ts";
+import {
+  getCurrentMonthDateWindow,
+  getFeaturedDateWindow,
+  getHypeScore,
+} from "../lib/tmdb-selection.ts";
+
+test("TMDB date windows stay within their requested calendar ranges", () => {
+  const now = new Date("2026-09-27T23:50:00.000Z");
+  assert.deepEqual(getFeaturedDateWindow(now), {
+    start: "2026-10-27",
+    end: "2026-11-26",
+  });
+  assert.deepEqual(getCurrentMonthDateWindow(now), {
+    start: "2026-09-01",
+    end: "2026-09-27",
+  });
+});
+
+test("TMDB hype score rewards popularity, ratings, and audience volume", () => {
+  assert.ok(
+    getHypeScore({ popularity: 80, vote_average: 7, vote_count: 1_000 }) >
+      getHypeScore({ popularity: 20, vote_average: 5, vote_count: 10 }),
+  );
+});
 
 test("same-origin checks reject foreign origins and allow same-origin requests", () => {
   assert.equal(
