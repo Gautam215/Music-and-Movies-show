@@ -23,6 +23,30 @@ type ProfileSession = {
   location?: string | null;
 };
 
+type SavedSignal = {
+  _id: string;
+  title: string;
+  key?: string;
+  tmdbId?: number;
+  mediaType?: "movie" | "tv" | "anime";
+  genres?: string[];
+  metadata?: Record<string, string>;
+};
+
+type SavedMovie = {
+  key: string;
+  title: string;
+  meta: string;
+  image: string;
+};
+
+type SavedSong = {
+  key: string;
+  title: string;
+  artist: string;
+  movie: string;
+};
+
 const sessionKey = "reelroom.profile.session";
 const routeChangeEvent = "reelroom-route-change";
 const profileFocusableSelector =
@@ -78,32 +102,20 @@ function AppleMark() {
   );
 }
 
-const savedMovies = [
-  {
-    title: "The Last Light",
-    meta: "Drama / Now playing",
-    image:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=420&q=85",
-  },
-  {
-    title: "Neon Aftercare",
-    meta: "Sci-Fi / Now playing",
-    image:
-      "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=420&q=85",
-  },
-  {
-    title: "Static Bloom",
-    meta: "Documentary / Upcoming",
-    image:
-      "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=420&q=85",
-  },
-];
+const fallbackSavedImage =
+  "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=420&q=85";
 
-const savedSongs = [
-  ["The Last Light", "Mara Vale", "Original motion picture score"],
-  ["Aftercare", "Eli North", "Neon Aftercare"],
-  ["Static Bloom", "June Park", "The closing credits"],
-];
+async function fetchSavedSignals() {
+  const response = await fetch("/api/user-signals?type=favorite&limit=200", {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  if (!response.ok) return [];
+  const payload = (await response.json().catch(() => null)) as {
+    signals?: SavedSignal[];
+  } | null;
+  return Array.isArray(payload?.signals) ? payload.signals : [];
+}
 
 function readSession() {
   try {
@@ -623,9 +635,13 @@ function ProfileLogin({
 function LoggedInProfile({
   session,
   onLogout,
+  savedMovies,
+  savedSongs,
 }: {
   session: ProfileSession;
   onLogout: () => void;
+  savedMovies: SavedMovie[];
+  savedSongs: SavedSong[];
 }) {
   return (
     <section className="profile-signed-in" aria-labelledby="profile-title">
@@ -658,15 +674,19 @@ function LoggedInProfile({
             <span>{savedMovies.length} saved</span>
           </div>
           <div className="profile-movie-list">
-            {savedMovies.map((movie) => (
-              <article key={movie.title}>
-                <Image width={45} height={54} src={movie.image} alt="" />
-                <div>
-                  <strong>{movie.title}</strong>
-                  <span>{movie.meta}</span>
-                </div>
-              </article>
-            ))}
+            {savedMovies.length ? (
+              savedMovies.map((movie) => (
+                <article key={movie.key}>
+                  <Image width={45} height={54} src={movie.image} alt="" />
+                  <div>
+                    <strong>{movie.title}</strong>
+                    <span>{movie.meta}</span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="profile-saved-empty">No saved films yet.</p>
+            )}
           </div>
         </section>
         <section
@@ -681,17 +701,23 @@ function LoggedInProfile({
             <span>{savedSongs.length} saved</span>
           </div>
           <div className="profile-song-list">
-            {savedSongs.map(([title, artist, movie], index) => (
-              <article key={title}>
-                <span className="profile-song-index">0{index + 1}</span>
-                <div>
-                  <strong>{title}</strong>
-                  <span>
-                    {artist} · {movie}
+            {savedSongs.length ? (
+              savedSongs.map((song, index) => (
+                <article key={song.key}>
+                  <span className="profile-song-index">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
-                </div>
-              </article>
-            ))}
+                  <div>
+                    <strong>{song.title}</strong>
+                    <span>
+                      {song.artist} · {song.movie}
+                    </span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="profile-saved-empty">No saved songs yet.</p>
+            )}
           </div>
         </section>
       </div>
@@ -706,46 +732,96 @@ function LoggedInProfile({
 export function ProfileExperience() {
   const [visible, setVisible] = useState(false);
   const [session, setSession] = useState<ProfileSession | null>(null);
+  const [savedMovies, setSavedMovies] = useState<SavedMovie[]>([]);
+  const [savedSongs, setSavedSongs] = useState<SavedSong[]>([]);
 
   useEffect(() => {
-    const sync = () => {
+    let cancelled = false;
+    const sync = async () => {
       setVisible(
         window.location.pathname === "/" && window.location.hash === "#profile",
       );
       setSession(readSession());
-      void fetch("/api/auth/session", {
-        cache: "no-store",
-        credentials: "same-origin",
-      })
-        .then(async (response) =>
-          response.ok
-            ? ((await response.json()) as { user?: ProfileSession | null })
-            : null,
-        )
-        .then((result) => {
-          if (result?.user) {
-            window.sessionStorage.setItem(
-              sessionKey,
-              JSON.stringify(result.user),
-            );
-            setSession(result.user);
-          } else if (result) {
-            window.sessionStorage.removeItem(sessionKey);
-            setSession(null);
-          }
-        })
-        .catch(() => undefined);
+      try {
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const result = response.ok
+          ? ((await response.json()) as { user?: ProfileSession | null })
+          : null;
+        if (cancelled) return;
+        if (result?.user) {
+          window.sessionStorage.setItem(
+            sessionKey,
+            JSON.stringify(result.user),
+          );
+          setSession(result.user);
+          const signals = await fetchSavedSignals();
+          if (cancelled) return;
+          const seenMovies = new Set<string>();
+          const seenSongs = new Set<string>();
+          const movies: SavedMovie[] = [];
+          const songs: SavedSong[] = [];
+          signals.forEach((signal) => {
+            if (
+              signal.metadata?.kind === "song" ||
+              signal.key?.startsWith("song:")
+            ) {
+              const key = signal.key ?? signal._id;
+              if (seenSongs.has(key)) return;
+              seenSongs.add(key);
+              songs.push({
+                key,
+                title: signal.title,
+                artist: signal.metadata?.artist ?? "Unknown artist",
+                movie: signal.metadata?.movie ?? "Saved soundtrack",
+              });
+              return;
+            }
+            const movieKey =
+              signal.metadata?.catalogId ??
+              (signal.tmdbId && signal.mediaType
+                ? `${signal.mediaType}:${signal.tmdbId}`
+                : signal.title.trim().toLocaleLowerCase());
+            if (seenMovies.has(movieKey)) return;
+            seenMovies.add(movieKey);
+            movies.push({
+              key: signal.key ?? signal._id,
+              title: signal.title,
+              meta:
+                signal.metadata?.meta ??
+                signal.metadata?.release ??
+                signal.genres?.join(" / ") ??
+                "Saved film",
+              image: signal.metadata?.poster ?? fallbackSavedImage,
+            });
+          });
+          setSavedMovies(movies);
+          setSavedSongs(songs);
+        } else if (result) {
+          window.sessionStorage.removeItem(sessionKey);
+          setSession(null);
+          setSavedMovies([]);
+          setSavedSongs([]);
+        }
+      } catch {
+        // Keep the local session view when the network is temporarily unavailable.
+      }
     };
-    sync();
+    void sync();
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
     window.addEventListener(routeChangeEvent, sync);
     window.addEventListener("reelroom-profile-session", sync);
+    window.addEventListener("reelroom-saved-signals-updated", sync);
     return () => {
+      cancelled = true;
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
       window.removeEventListener(routeChangeEvent, sync);
       window.removeEventListener("reelroom-profile-session", sync);
+      window.removeEventListener("reelroom-saved-signals-updated", sync);
     };
   }, []);
 
@@ -859,7 +935,12 @@ export function ProfileExperience() {
               <h1 id="profile-experience-title">Your signal.</h1>
               <p>Saved scenes, songs, and the next place to land.</p>
             </div>
-            <LoggedInProfile session={session} onLogout={logout} />
+            <LoggedInProfile
+              session={session}
+              onLogout={logout}
+              savedMovies={savedMovies}
+              savedSongs={savedSongs}
+            />
           </>
         ) : (
           <div className="profile-login-stage">

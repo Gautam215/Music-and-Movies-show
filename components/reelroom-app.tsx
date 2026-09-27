@@ -75,6 +75,37 @@ type Song = {
   previewUrl?: string | null;
 };
 
+type SavedSignal = {
+  type: "favorite";
+  title: string;
+  key?: string;
+  tmdbId?: number;
+  mediaType?: Movie["mediaType"];
+  metadata?: Record<string, string>;
+};
+
+const savedSignalsUpdatedEvent = "reelroom-saved-signals-updated";
+
+function movieSaveKey(movie: Movie) {
+  return `movie:${movie.id}`;
+}
+
+function songSaveKey(song: Song) {
+  return `song:${song.spotifyUri ?? song.id ?? `${song.title}:${song.artist}`}`;
+}
+
+async function fetchSavedSignals() {
+  const response = await fetchWithBackoff(
+    "/api/user-signals?type=favorite&limit=200",
+    { cache: "no-store", credentials: "same-origin" },
+  );
+  if (!response.ok) return [];
+  const payload = (await response.json().catch(() => null)) as {
+    signals?: SavedSignal[];
+  } | null;
+  return Array.isArray(payload?.signals) ? payload.signals : [];
+}
+
 type SpotifyPlayerState = {
   paused: boolean;
   position?: number;
@@ -199,6 +230,7 @@ function recordUserSignal(
   signal: {
     type: "favorite" | "booking" | "listen";
     title: string;
+    key?: string;
     tmdbId?: number;
     mediaType?: Movie["mediaType"];
     genres?: string[];
@@ -214,11 +246,76 @@ function recordUserSignal(
     body: JSON.stringify(signal),
   })
     .then((response) => {
-      if (response.ok)
+      if (response.ok) {
         window.dispatchEvent(new Event("reelroom-notifications-updated"));
+        if (signal.type === "favorite")
+          window.dispatchEvent(new Event(savedSignalsUpdatedEvent));
+      }
       return response;
     })
     .catch(() => null);
+}
+
+function removeUserSignal(
+  signal: {
+    type: "favorite";
+    key?: string;
+    title?: string;
+    tmdbId?: number;
+    mediaType?: Movie["mediaType"];
+  },
+  enabled = true,
+) {
+  if (!enabled) return Promise.resolve(null);
+  return fetchWithBackoff(
+    "/api/user-signals",
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(signal),
+    },
+    { retryUnsafeMethods: false },
+  )
+    .then((response) => {
+      if (response.ok) {
+        window.dispatchEvent(new Event("reelroom-notifications-updated"));
+        window.dispatchEvent(new Event(savedSignalsUpdatedEvent));
+      }
+      return response;
+    })
+    .catch(() => null);
+}
+
+function SongSaveButton({
+  song,
+  saved,
+  onToggle,
+  dark = false,
+}: {
+  song: Song;
+  saved: boolean;
+  onToggle: (song: Song) => void;
+  dark?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(song)}
+      aria-label={
+        saved ? `Remove ${song.title} from saved songs` : `Save ${song.title}`
+      }
+      aria-pressed={saved}
+      className={cn(
+        "grid size-11 shrink-0 place-items-center rounded-full border transition hover:border-amber hover:text-amber focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
+        dark
+          ? "border-white/15 text-ink-2 hover:bg-white/[.08]"
+          : "border-border text-muted hover:bg-surface",
+      )}
+    >
+      <Heart className={cn("size-3.5", saved && "fill-amber text-amber")} />
+    </button>
+  );
 }
 
 function formatPlaybackTime(milliseconds: number) {
@@ -879,6 +976,7 @@ export function ReelroomApp({
   const [profileSessionReady, setProfileSessionReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [savedSongKeys, setSavedSongKeys] = useState<string[]>([]);
   const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(
     null,
   );
@@ -1021,6 +1119,57 @@ export function ReelroomApp({
       window.removeEventListener("reelroom-profile-session", syncProfile);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const syncSavedSignals = async () => {
+      if (!profileSessionReady) return;
+      if (!profileUser) {
+        setFavorites([]);
+        setSavedSongKeys([]);
+        return;
+      }
+
+      const signals = await fetchSavedSignals();
+      if (cancelled) return;
+
+      const movieKeys = signals
+        .filter((signal) => signal.metadata?.kind !== "song")
+        .map((signal) => {
+          const catalogId = signal.metadata?.catalogId;
+          if (catalogId) return catalogId;
+          const matchingMovie = catalog.find(
+            (movie) =>
+              (signal.tmdbId !== undefined &&
+                movie.tmdbId === signal.tmdbId &&
+                movie.mediaType === signal.mediaType) ||
+              movie.title === signal.title,
+          );
+          if (matchingMovie) return matchingMovie.id;
+          return signal.key?.startsWith("movie:")
+            ? signal.key.slice("movie:".length)
+            : null;
+        })
+        .filter((key): key is string => Boolean(key));
+      const songKeys = signals
+        .filter(
+          (signal) =>
+            signal.metadata?.kind === "song" || signal.key?.startsWith("song:"),
+        )
+        .map((signal) => signal.key)
+        .filter((key): key is string => Boolean(key));
+
+      setFavorites([...new Set(movieKeys)]);
+      setSavedSongKeys([...new Set(songKeys)]);
+    };
+
+    void syncSavedSignals();
+    window.addEventListener(savedSignalsUpdatedEvent, syncSavedSignals);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(savedSignalsUpdatedEvent, syncSavedSignals);
+    };
+  }, [catalog, profileSessionReady, profileUser]);
 
   useEffect(() => {
     if (!droppedMovie || detailsShownAt === null) return;
@@ -1750,23 +1899,76 @@ export function ReelroomApp({
   const toggleFavorite = (id: string) => {
     const movie = [...catalog, ...movies].find((item) => item.id === id);
     const alreadySaved = favorites.includes(id);
-    if (!alreadySaved && movie) {
-      void recordUserSignal(
-        {
-          type: "favorite",
-          title: movie.title,
-          tmdbId: movie.tmdbId,
-          mediaType: movie.mediaType,
-          genres: movie.genres,
-        },
-        canRecordUserActivity,
-      );
+    if (movie && canRecordUserActivity) {
+      if (alreadySaved) {
+        void removeUserSignal(
+          {
+            type: "favorite",
+            key: movieSaveKey(movie),
+            title: movie.title,
+            tmdbId: movie.tmdbId,
+            mediaType: movie.mediaType,
+          },
+          canRecordUserActivity,
+        );
+      } else {
+        void recordUserSignal(
+          {
+            type: "favorite",
+            key: movieSaveKey(movie),
+            title: movie.title,
+            tmdbId: movie.tmdbId,
+            mediaType: movie.mediaType,
+            genres: movie.genres,
+            metadata: {
+              kind: "movie",
+              catalogId: movie.id,
+              poster: movie.poster,
+              meta: movie.meta,
+              release: movie.release,
+            },
+          },
+          canRecordUserActivity,
+        );
+      }
     }
     setFavorites((current) => {
       return alreadySaved
         ? current.filter((item) => item !== id)
         : [...current, id];
     });
+  };
+  const toggleSavedSong = (song: Song) => {
+    const key = songSaveKey(song);
+    const alreadySaved = savedSongKeys.includes(key);
+    setSavedSongKeys((current) =>
+      alreadySaved ? current.filter((item) => item !== key) : [...current, key],
+    );
+    if (alreadySaved) {
+      void removeUserSignal(
+        { type: "favorite", key, title: song.title },
+        canRecordUserActivity,
+      );
+      return;
+    }
+    void recordUserSignal(
+      {
+        type: "favorite",
+        key,
+        title: song.title,
+        metadata: {
+          kind: "song",
+          artist: song.artist,
+          movie: song.movie,
+          duration: song.duration,
+          art: song.art,
+          genre: song.genre,
+          ...(song.spotifyUri ? { spotifyUri: song.spotifyUri } : {}),
+          ...(song.spotifyUrl ? { spotifyUrl: song.spotifyUrl } : {}),
+        },
+      },
+      canRecordUserActivity,
+    );
   };
   const announce = (message: string) => {
     setNotice(message);
@@ -2957,6 +3159,12 @@ export function ReelroomApp({
                       <span className="shrink-0 font-mono text-[10px] text-muted">
                         {song.duration}
                       </span>
+                      <SongSaveButton
+                        song={song}
+                        saved={savedSongKeys.includes(songSaveKey(song))}
+                        onToggle={toggleSavedSong}
+                        dark
+                      />
                       <button
                         type="button"
                         onClick={() => void toggleSpotifySong(song)}
@@ -3153,6 +3361,12 @@ export function ReelroomApp({
                     <span className="reelroom-track-time shrink-0 font-mono text-[10px]">
                       {song.duration}
                     </span>
+                    <SongSaveButton
+                      song={song}
+                      saved={savedSongKeys.includes(songSaveKey(song))}
+                      onToggle={toggleSavedSong}
+                      dark
+                    />
                     <button
                       type="button"
                       onClick={() => void toggleSpotifySong(song)}
@@ -4538,6 +4752,11 @@ export function ReelroomApp({
                         {song.artist} · {song.duration}
                       </span>
                     </div>
+                    <SongSaveButton
+                      song={song}
+                      saved={savedSongKeys.includes(songSaveKey(song))}
+                      onToggle={toggleSavedSong}
+                    />
                     <button
                       type="button"
                       onClick={() => void toggleSpotifySong(song)}
