@@ -89,18 +89,19 @@ export async function POST(request: Request) {
       rawMetadata &&
       typeof rawMetadata === "object" &&
       !Array.isArray(rawMetadata)
-        ? Object.entries(rawMetadata as Record<string, unknown>)
-            .filter(
-              ([key, value]) =>
-                key.length <= 40 &&
-                typeof value === "string" &&
-                value.length <= 200,
-            )
-            .slice(0, 8)
-            .reduce<Record<string, string>>((result, [key, value]) => {
-              result[key] = value as string;
-              return result;
-            }, {})
+        ? Object.entries(rawMetadata as Record<string, unknown>).reduce<
+            Record<string, string>
+          >((result, [key, value]) => {
+            if (
+              Object.keys(result).length < 8 &&
+              key.length <= 40 &&
+              typeof value === "string" &&
+              value.length <= 200
+            ) {
+              result[key] = value;
+            }
+            return result;
+          }, {})
         : undefined;
 
     if (
