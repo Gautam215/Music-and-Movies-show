@@ -7,7 +7,10 @@ type ReelscapeLogoProps = {
   interactive?: boolean;
 };
 
-export function ReelscapeLogo({ className, interactive = true }: ReelscapeLogoProps) {
+export function ReelscapeLogo({
+  className,
+  interactive = true,
+}: ReelscapeLogoProps) {
   const content = (
     <Image
       className="reelroom-logo-art"
@@ -19,6 +22,15 @@ export function ReelscapeLogo({ className, interactive = true }: ReelscapeLogoPr
     />
   );
 
-  if (!interactive) return <span className={cn("reelroom-logo", className)}>{content}</span>;
-  return <Link href="/" className={cn("reelroom-logo", className)} aria-label="Reelscape home">{content}</Link>;
+  if (!interactive)
+    return <span className={cn("reelroom-logo", className)}>{content}</span>;
+  return (
+    <Link
+      href="/"
+      className={cn("reelroom-logo", className)}
+      aria-label="Reelscape home"
+    >
+      {content}
+    </Link>
+  );
 }

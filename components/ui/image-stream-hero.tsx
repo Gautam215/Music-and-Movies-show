@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /** Resolution-independent geometry for the mirrored image corridor. */
@@ -116,7 +117,10 @@ export function ImageStreamHero({
           perspectiveOrigin: `50% ${axis}%`,
         }}
       >
-        <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
+        <div
+          className="absolute inset-0"
+          style={{ transformStyle: "preserve-3d" }}
+        >
           {[right, left].map((name) =>
             Array.from({ length: cards }, (_, i) => {
               const img = images[i % Math.max(images.length, 1)];
@@ -129,8 +133,11 @@ export function ImageStreamHero({
                     card,
                     "pointer-events-auto absolute flex flex-col overflow-hidden border border-white/10 bg-surface shadow-2xl",
                     dragEnabled && "cursor-grab active:cursor-grabbing",
-                    draggingSrc === img?.src && "ring-2 ring-amber ring-offset-2 ring-offset-canvas",
-                    selectable && selectedSrc === img?.src && "ring-2 ring-cobalt ring-offset-2 ring-offset-canvas",
+                    draggingSrc === img?.src &&
+                      "ring-2 ring-amber ring-offset-2 ring-offset-canvas",
+                    selectable &&
+                      selectedSrc === img?.src &&
+                      "ring-2 ring-cobalt ring-offset-2 ring-offset-canvas",
                   )}
                   draggable={dragEnabled}
                   data-drag-enabled={dragEnabled ? "true" : undefined}
@@ -150,7 +157,12 @@ export function ImageStreamHero({
                     if (selectable && img) onCardSelect?.(img);
                   }}
                   onKeyDown={(event) => {
-                    if (!selectable || !img || (event.key !== "Enter" && event.key !== " ")) return;
+                    if (
+                      !selectable ||
+                      !img ||
+                      (event.key !== "Enter" && event.key !== " ")
+                    )
+                      return;
                     event.preventDefault();
                     onCardSelect?.(img);
                   }}
@@ -176,12 +188,12 @@ export function ImageStreamHero({
                 >
                   {img ? (
                     <>
-                      <div className="min-h-0 flex-1">
-                        <img
+                      <div className="relative min-h-0 flex-1">
+                        <Image
+                          fill
                           src={img.src}
                           alt={img.alt ?? ""}
-                          loading="lazy"
-                          decoding="async"
+                          sizes="18vw"
                           className="h-full w-full object-cover"
                           draggable={false}
                         />
@@ -206,7 +218,8 @@ export function ImageStreamHero({
         <div
           className={cn(
             "reelroom-stream-dropzone pointer-events-auto absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center justify-center rounded-2xl border border-dashed border-amber/45 bg-canvas/75 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[.14em] text-ink-2 backdrop-blur-md transition",
-            draggingSrc && "border-amber bg-amber/10 text-amber shadow-[0_0_28px_rgba(251,191,36,.22)]",
+            draggingSrc &&
+              "border-amber bg-amber/10 text-amber shadow-[0_0_28px_rgba(251,191,36,.22)]",
           )}
           onDragOver={(event) => {
             event.preventDefault();
@@ -220,7 +233,9 @@ export function ImageStreamHero({
             setDraggingSrc(null);
           }}
         >
-          {draggingSrc ? "Release to inspect this movie" : "Drag any movie card here for details"}
+          {draggingSrc
+            ? "Release to inspect this movie"
+            : "Drag any movie card here for details"}
         </div>
       ) : null}
       {children}

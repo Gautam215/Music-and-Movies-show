@@ -82,7 +82,11 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string) {
 
 function createProgram(gl: WebGLRenderingContext) {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  const fragmentShader = createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    fragmentShaderSource,
+  );
   if (!vertexShader || !fragmentShader) return null;
   const program = gl.createProgram();
   if (!program) return null;
@@ -104,7 +108,11 @@ export function SpotifyWaveform({ className }: SpotifyWaveformProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" });
+    const gl = canvas.getContext("webgl", {
+      antialias: false,
+      alpha: false,
+      powerPreference: "low-power",
+    });
     if (!gl) return;
 
     const program = createProgram(gl);
@@ -151,8 +159,10 @@ export function SpotifyWaveform({ className }: SpotifyWaveformProps) {
 
     const updatePointer = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 2 - 1;
-      const y = 1 - ((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 2;
+      const x =
+        ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 2 - 1;
+      const y =
+        1 - ((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 2;
       targetPointer.x = x * (bounds.width / Math.max(bounds.height, 1));
       targetPointer.y = y;
     };
@@ -161,12 +171,19 @@ export function SpotifyWaveform({ className }: SpotifyWaveformProps) {
       targetPointer.y = 0;
     };
     const schedule = () => {
-      if (destroyed || frame || !visible || document.visibilityState === "hidden") return;
+      if (
+        destroyed ||
+        frame ||
+        !visible ||
+        document.visibilityState === "hidden"
+      )
+        return;
       frame = window.requestAnimationFrame(draw);
     };
     const draw = (now: number) => {
       frame = 0;
-      if (destroyed || !visible || document.visibilityState === "hidden") return;
+      if (destroyed || !visible || document.visibilityState === "hidden")
+        return;
       if (!reducedMotion.matches && now - lastFrame < 1000 / 30) {
         schedule();
         return;
@@ -188,10 +205,13 @@ export function SpotifyWaveform({ className }: SpotifyWaveformProps) {
       resize();
       schedule();
     });
-    const visibilityObserver = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      if (visible) schedule();
-    }, { threshold: 0.01 });
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) schedule();
+      },
+      { threshold: 0.01 },
+    );
     const handleVisibility = () => {
       if (document.visibilityState === "hidden" && frame) {
         window.cancelAnimationFrame(frame);

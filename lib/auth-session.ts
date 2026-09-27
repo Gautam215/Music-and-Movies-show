@@ -1,11 +1,18 @@
 import { cookies } from "next/headers";
-import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+  scrypt as scryptCallback,
+  timingSafeEqual,
+} from "node:crypto";
 import { promisify } from "node:util";
 import { getDatabase } from "@/lib/mongodb";
 
 const scrypt = promisify(scryptCallback);
 export const SESSION_COOKIE = "reelroom_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+let sessionExpiryIndexPromise: Promise<string> | null = null;
 
 export type PublicUser = { id: string; name: string; email: string };
 
@@ -37,9 +44,16 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(password: string, storedHash: string) {
   const [salt, keyHex] = storedHash.split(":");
-  if (!salt || !keyHex) return false;
+  if (
+    !salt ||
+    !keyHex ||
+    keyHex.length % 2 !== 0 ||
+    !/^[0-9a-f]+$/i.test(keyHex)
+  )
+    return false;
 
   const expected = Buffer.from(keyHex, "hex");
+  if (expected.length !== 64) return false;
   const actual = (await scrypt(password, salt, expected.length)) as Buffer;
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
@@ -58,11 +72,20 @@ export async function createSession(userId: string) {
   const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
   const db = await getDatabase();
 
-  await db.collection<SessionDocument>("sessions").createIndex(
-    { expiresAt: 1 },
-    { expireAfterSeconds: 0 },
-  );
-  await db.collection<SessionDocument>("sessions").insertOne({
+  const sessions = db.collection<SessionDocument>("sessions");
+  if (!sessionExpiryIndexPromise) {
+    sessionExpiryIndexPromise = sessions.createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0 },
+    );
+  }
+  try {
+    await sessionExpiryIndexPromise;
+  } catch (error) {
+    sessionExpiryIndexPromise = null;
+    throw error;
+  }
+  await sessions.insertOne({
     _id: randomUUID(),
     userId,
     tokenHash: hashSessionToken(token),
@@ -81,13 +104,18 @@ export function setSessionCookie(response: Response, token: string) {
 }
 
 export function clearSessionCookie(response: Response) {
-  response.headers.append("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  response.headers.append(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+  );
 }
 
 export async function revokeSession(token: string | undefined) {
   if (!token) return;
   const db = await getDatabase();
-  await db.collection<SessionDocument>("sessions").deleteOne({ tokenHash: hashSessionToken(token) });
+  await db
+    .collection<SessionDocument>("sessions")
+    .deleteOne({ tokenHash: hashSessionToken(token) });
 }
 
 export async function getCurrentUser(): Promise<PublicUser | null> {
@@ -101,6 +129,8 @@ export async function getCurrentUser(): Promise<PublicUser | null> {
   });
   if (!session) return null;
 
-  const user = await db.collection<UserDocument>("users").findOne({ _id: session.userId });
+  const user = await db
+    .collection<UserDocument>("users")
+    .findOne({ _id: session.userId });
   return user ? toPublicUser(user) : null;
 }

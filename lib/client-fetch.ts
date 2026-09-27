@@ -13,14 +13,19 @@ export type FetchWithBackoffOptions = {
 function retryAfterMs(value: string | null, maxDelayMs: number) {
   if (!value) return null;
   const seconds = Number(value);
-  if (Number.isFinite(seconds)) return Math.min(Math.max(0, seconds * 1000), maxDelayMs);
+  if (Number.isFinite(seconds))
+    return Math.min(Math.max(0, seconds * 1000), maxDelayMs);
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp)
     ? Math.min(Math.max(0, timestamp - Date.now()), maxDelayMs)
     : null;
 }
 
-function exponentialDelay(attempt: number, baseDelayMs: number, maxDelayMs: number) {
+function exponentialDelay(
+  attempt: number,
+  baseDelayMs: number,
+  maxDelayMs: number,
+) {
   const ceiling = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt);
   return Math.round(Math.random() * ceiling);
 }
@@ -50,10 +55,15 @@ export async function fetchWithBackoff(
   options: FetchWithBackoffOptions = {},
 ) {
   const method = (init.method ?? "GET").toUpperCase();
-  const canRetry = options.retryUnsafeMethods === true || ["GET", "HEAD", "OPTIONS"].includes(method);
+  const canRetry =
+    options.retryUnsafeMethods === true ||
+    ["GET", "HEAD", "OPTIONS"].includes(method);
   const maxRetries = Math.max(0, options.maxRetries ?? DEFAULT_MAX_RETRIES);
   const baseDelayMs = Math.max(0, options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS);
-  const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS);
+  const maxDelayMs = Math.max(
+    baseDelayMs,
+    options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS,
+  );
   const signal = init.signal ?? undefined;
 
   for (let attempt = 0; ; attempt += 1) {
@@ -66,10 +76,16 @@ export async function fetchWithBackoff(
       continue;
     }
 
-    if (!canRetry || !RETRYABLE_STATUSES.has(response.status) || attempt >= maxRetries) return response;
+    if (
+      !canRetry ||
+      !RETRYABLE_STATUSES.has(response.status) ||
+      attempt >= maxRetries
+    )
+      return response;
 
-    const delay = retryAfterMs(response.headers.get("retry-after"), maxDelayMs)
-      ?? exponentialDelay(attempt, baseDelayMs, maxDelayMs);
+    const delay =
+      retryAfterMs(response.headers.get("retry-after"), maxDelayMs) ??
+      exponentialDelay(attempt, baseDelayMs, maxDelayMs);
     await wait(delay, signal);
   }
 }

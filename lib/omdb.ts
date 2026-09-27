@@ -1,10 +1,12 @@
 import type { Movie } from "@/lib/movie-types";
+import { fetchWithServerBackoff } from "@/lib/server-retry";
 
 const OMDB_ENDPOINT = "https://www.omdbapi.com/";
 const FALLBACK_POSTER =
   "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
 const FALLBACK_BACKDROP =
   "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85";
+const OMDB_REQUEST_TIMEOUT_MS = 8_000;
 
 const defaultMovieIds = [
   "tt3896198",
@@ -53,8 +55,20 @@ function formatRuntime(value?: string) {
 function estimateTicketPrice(movie: OmdbMovie) {
   const rating = Number.parseFloat(movie.imdbRating ?? "");
   const runtime = Number.parseInt(movie.Runtime ?? "", 10);
-  const ratingPremium = Number.isFinite(rating) ? (rating >= 8.5 ? 4 : rating >= 7 ? 2 : 0) : 0;
-  const runtimePremium = Number.isFinite(runtime) ? (runtime >= 150 ? 4 : runtime >= 120 ? 2 : 0) : 0;
+  const ratingPremium = Number.isFinite(rating)
+    ? rating >= 8.5
+      ? 4
+      : rating >= 7
+        ? 2
+        : 0
+    : 0;
+  const runtimePremium = Number.isFinite(runtime)
+    ? runtime >= 150
+      ? 4
+      : runtime >= 120
+        ? 2
+        : 0
+    : 0;
 
   return 12 + ratingPremium + runtimePremium;
 }
@@ -62,8 +76,11 @@ function estimateTicketPrice(movie: OmdbMovie) {
 function mapMovie(movie: OmdbMovie, index: number): Movie | null {
   if (movie.Response !== "True" || !movie.imdbID || !movie.Title) return null;
 
-  const poster = movie.Poster && movie.Poster !== "N/A" ? movie.Poster : FALLBACK_POSTER;
-  const genres = (movie.Genre && movie.Genre !== "N/A" ? movie.Genre.split(",") : [])
+  const poster =
+    movie.Poster && movie.Poster !== "N/A" ? movie.Poster : FALLBACK_POSTER;
+  const genres = (
+    movie.Genre && movie.Genre !== "N/A" ? movie.Genre.split(",") : []
+  )
     .map((genre) => genre.trim())
     .filter(Boolean);
 
@@ -72,7 +89,8 @@ function mapMovie(movie: OmdbMovie, index: number): Movie | null {
     title: movie.Title,
     meta: `${genres[0] ?? "Film"} · ${formatRuntime(movie.Runtime)}`,
     status: index === 0 ? "NOW PLAYING" : "UPCOMING",
-    rating: movie.imdbRating && movie.imdbRating !== "N/A" ? movie.imdbRating : "—",
+    rating:
+      movie.imdbRating && movie.imdbRating !== "N/A" ? movie.imdbRating : "—",
     poster,
     backdrop: poster === FALLBACK_POSTER ? FALLBACK_BACKDROP : poster,
     synopsis:
@@ -89,9 +107,13 @@ function mapMovie(movie: OmdbMovie, index: number): Movie | null {
 
 async function fetchMovie(id: string, apiKey: string) {
   const params = new URLSearchParams({ apikey: apiKey, i: id, plot: "short" });
-  const response = await fetch(`${OMDB_ENDPOINT}?${params.toString()}`, {
-    cache: "no-store",
-  });
+  const response = await fetchWithServerBackoff(
+    `${OMDB_ENDPOINT}?${params.toString()}`,
+    {
+      cache: "no-store",
+    },
+    { maxRetries: 2, timeoutMs: OMDB_REQUEST_TIMEOUT_MS },
+  );
   if (!response.ok) return null;
   return (await response.json()) as OmdbMovie;
 }

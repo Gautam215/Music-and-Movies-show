@@ -13,25 +13,36 @@ const items = [
   { id: "updates", label: "Update", href: "/#updates", icon: Sparkles },
   { id: "notifications", label: "Notification", href: null, icon: Bell },
   { id: "profile", label: "Profile", href: "/#profile", icon: UserRound },
-] satisfies { id: string; label: string; href: string | null; icon: LucideIcon }[];
+] satisfies {
+  id: string;
+  label: string;
+  href: string | null;
+  icon: LucideIcon;
+}[];
 
 const dismissTransientsEvent = "reelroom-dismiss-transients";
 
 type ContrastMode = "light" | "dark";
 
 function getContrastMode(): ContrastMode {
-  const backgroundElement = document.querySelector<HTMLElement>(".profile-experience") || document.body;
+  const backgroundElement =
+    document.querySelector<HTMLElement>(".profile-experience") || document.body;
   const background = getComputedStyle(backgroundElement).backgroundColor;
   const channels = background.match(/[\d.]+/g)?.map(Number) || [];
   if (channels.length < 3 || channels[3] === 0) {
-    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
   }
   const [red, green, blue] = channels;
   const toLinear = (channel: number) => {
     const value = channel / 255;
-    return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    return value <= 0.03928
+      ? value / 12.92
+      : Math.pow((value + 0.055) / 1.055, 2.4);
   };
-  const luminance = 0.2126 * toLinear(red) + 0.7152 * toLinear(green) + 0.0722 * toLinear(blue);
+  const luminance =
+    0.2126 * toLinear(red) + 0.7152 * toLinear(green) + 0.0722 * toLinear(blue);
   return luminance > 0.38 ? "light" : "dark";
 }
 
@@ -67,7 +78,12 @@ export function FloatingNavigation() {
     window.addEventListener("hashchange", syncContrast);
     window.addEventListener("resize", syncContrast);
     const observer = new MutationObserver(syncContrast);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    });
     return () => {
       window.clearTimeout(delayedSync);
       media.removeEventListener("change", syncContrast);
@@ -81,7 +97,11 @@ export function FloatingNavigation() {
     const activeLink = linkRefs.current[activePage];
     const nav = navRef.current;
     if (!activeLink || !nav) return;
-    const measure = () => setActivePill({ left: activeLink.offsetLeft, width: activeLink.offsetWidth });
+    const measure = () =>
+      setActivePill({
+        left: activeLink.offsetLeft,
+        width: activeLink.offsetWidth,
+      });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(nav);
@@ -96,7 +116,12 @@ export function FloatingNavigation() {
   if (pathname !== "/") return null;
 
   return (
-    <nav ref={navRef} className="reelroom-floating-nav" data-contrast={contrastMode} aria-label="Primary navigation">
+    <nav
+      ref={navRef}
+      className="reelroom-floating-nav"
+      data-contrast={contrastMode}
+      aria-label="Primary navigation"
+    >
       <span
         className="reelroom-floating-nav-active-pill"
         aria-hidden="true"
@@ -107,12 +132,16 @@ export function FloatingNavigation() {
           return <NotificationCenter key={id} />;
         }
         return (
-            <a
-              key={id}
-              ref={(node) => { linkRefs.current[id] = node; }}
-              href={href}
-              onClick={() => window.dispatchEvent(new Event(dismissTransientsEvent))}
-              data-active={id === activePage}
+          <a
+            key={id}
+            ref={(node) => {
+              linkRefs.current[id] = node;
+            }}
+            href={href}
+            onClick={() =>
+              window.dispatchEvent(new Event(dismissTransientsEvent))
+            }
+            data-active={id === activePage}
             aria-current={id === activePage ? "page" : undefined}
           >
             <Icon className="reelroom-floating-nav-icon" aria-hidden="true" />

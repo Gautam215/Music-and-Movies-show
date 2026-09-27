@@ -32,14 +32,37 @@ The UI currently uses deterministic in-memory state for review. `convex/schema.t
 
 ## Verification
 
-The project was checked with:
+Run the complete local verification pipeline after installing dependencies:
 
 ```bash
-npx tsc --noEmit
+npm ci
+npm run format:check
+npm run typecheck
+npm run lint
+npm test
 npm run build
+npm run test:api
+npm run audit
 ```
 
-Both completed successfully in the build environment.
+`npm run test:api` starts the production build on an isolated local port and checks public pages, rate-limit headers, authentication boundaries, Spotify error responses, and cross-origin request rejection. It should run after `npm run build`.
+
+The unit tests use Node's built-in test runner and cover same-origin validation, transient upstream retries, safe versus unsafe retry behavior, and fallback rate-limit headers.
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs the same format, type-check, lint, dependency audit, unit-test, production-build, and API-regression steps for pushes to `main` and pull requests. `.github/dependabot.yml` checks npm packages and GitHub Actions weekly.
+
+This repository contains continuous integration only. It does not contain an automatic deployment workflow because the deployment target and its production secrets are not defined in the repository. Configure deployment in the chosen host after CI is green; never commit `.env` files or provider credentials.
+
+## Stack Inventory
+
+- Languages: TypeScript, TSX, JavaScript, ECMAScript modules, CSS, HTML, JSON, YAML, Markdown.
+- Frontend: Next.js 16 App Router, React 19, Tailwind CSS 3, Lucide React, shadcn-compatible UI utilities, CSS animations, Spotify Web Playback SDK integration.
+- Backend: Next.js Route Handlers and middleware proxy, Node.js 22 runtime, MongoDB Node driver, Convex schema/mutations, scrypt password hashing, opaque httpOnly cookie sessions.
+- External services: TMDB, OMDb, Spotify Web API, Spotify OAuth/PKCE, and optional Upstash-compatible Redis rate limiting.
+- Tooling: npm lockfile, TypeScript compiler, ESLint 9 with `eslint-config-next`, Prettier 3, Node test runner, Next.js production server, GitHub Actions, Dependabot.
+- Deployment boundary: the app is a standard Next.js deployment; environment variables in `.env.example` are server configuration and must be supplied by the deployment platform.
 
 ## API Rate Limiting
 

@@ -10,9 +10,17 @@ const mediaTypes = ["movie", "tv", "anime"] as const;
 
 export async function POST(request: Request) {
   try {
-    if (!isSameOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403, headers: privateJsonHeaders() });
+    if (!isSameOrigin(request))
+      return NextResponse.json(
+        { error: "Invalid request origin." },
+        { status: 403, headers: privateJsonHeaders() },
+      );
     const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    if (!user)
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
 
     const body = (await request.json().catch(() => null)) as {
       type?: unknown;
@@ -26,27 +34,56 @@ export async function POST(request: Request) {
     const tmdbId = body?.tmdbId === undefined ? undefined : Number(body.tmdbId);
     const rawGenres = body?.genres;
     const genres = Array.isArray(rawGenres)
-      ? rawGenres.filter((genre): genre is string => typeof genre === "string" && genre.length <= 80).slice(0, 8)
+      ? rawGenres
+          .filter(
+            (genre): genre is string =>
+              typeof genre === "string" && genre.length <= 80,
+          )
+          .slice(0, 8)
       : [];
     const rawMetadata = body?.metadata;
-    const metadata: Record<string, string> | undefined = rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
-      ? Object.entries(rawMetadata as Record<string, unknown>)
-          .filter(([key, value]) => key.length <= 40 && typeof value === "string" && value.length <= 200)
-          .slice(0, 8)
-          .reduce<Record<string, string>>((result, [key, value]) => {
-            result[key] = value as string;
-            return result;
-          }, {})
-      : undefined;
+    const metadata: Record<string, string> | undefined =
+      rawMetadata &&
+      typeof rawMetadata === "object" &&
+      !Array.isArray(rawMetadata)
+        ? Object.entries(rawMetadata as Record<string, unknown>)
+            .filter(
+              ([key, value]) =>
+                key.length <= 40 &&
+                typeof value === "string" &&
+                value.length <= 200,
+            )
+            .slice(0, 8)
+            .reduce<Record<string, string>>((result, [key, value]) => {
+              result[key] = value as string;
+              return result;
+            }, {})
+        : undefined;
 
-    if (!signalTypes.includes(body?.type as UserSignalType) || !title || title.length > 200) {
-      return NextResponse.json({ error: "Invalid user signal." }, { status: 400, headers: privateJsonHeaders() });
+    if (
+      !signalTypes.includes(body?.type as UserSignalType) ||
+      !title ||
+      title.length > 200
+    ) {
+      return NextResponse.json(
+        { error: "Invalid user signal." },
+        { status: 400, headers: privateJsonHeaders() },
+      );
     }
     if (tmdbId !== undefined && (!Number.isInteger(tmdbId) || tmdbId <= 0)) {
-      return NextResponse.json({ error: "Invalid TMDB id." }, { status: 400, headers: privateJsonHeaders() });
+      return NextResponse.json(
+        { error: "Invalid TMDB id." },
+        { status: 400, headers: privateJsonHeaders() },
+      );
     }
-    if (body?.mediaType !== undefined && !mediaTypes.includes(body.mediaType as (typeof mediaTypes)[number])) {
-      return NextResponse.json({ error: "Invalid media type." }, { status: 400, headers: privateJsonHeaders() });
+    if (
+      body?.mediaType !== undefined &&
+      !mediaTypes.includes(body.mediaType as (typeof mediaTypes)[number])
+    ) {
+      return NextResponse.json(
+        { error: "Invalid media type." },
+        { status: 400, headers: privateJsonHeaders() },
+      );
     }
 
     await recordUserSignal({
@@ -58,9 +95,15 @@ export async function POST(request: Request) {
       genres,
       metadata,
     });
-    return NextResponse.json({ ok: true }, { status: 201, headers: privateJsonHeaders() });
+    return NextResponse.json(
+      { ok: true },
+      { status: 201, headers: privateJsonHeaders() },
+    );
   } catch (error) {
     console.error("User signal write failed", error);
-    return NextResponse.json({ error: "Could not save this activity." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not save this activity." },
+      { status: 500 },
+    );
   }
 }

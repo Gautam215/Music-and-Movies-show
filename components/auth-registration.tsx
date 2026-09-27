@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -11,20 +12,42 @@ type AuthMode = "register" | "signin";
 function GoogleMark() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
-      <path fill="#4285F4" d="M21.6 12.23c0-.7-.06-1.37-.18-2H12v3.79h5.38a4.6 4.6 0 0 1-1.99 3.02v2.5h3.22c1.89-1.74 2.99-4.3 2.99-7.31Z" />
-      <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.46l-3.22-2.5c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.58A9.98 9.98 0 0 0 12 22Z" />
-      <path fill="#FBBC05" d="M6.41 13.87a6 6 0 0 1 0-3.74V7.55H3.08a10 10 0 0 0 0 8.9l3.33-2.58Z" />
-      <path fill="#EA4335" d="M12 6c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 2.96 14.7 2 12 2a9.98 9.98 0 0 0-8.92 5.55l3.33 2.58C7.2 7.76 9.4 6 12 6Z" />
+      <path
+        fill="#4285F4"
+        d="M21.6 12.23c0-.7-.06-1.37-.18-2H12v3.79h5.38a4.6 4.6 0 0 1-1.99 3.02v2.5h3.22c1.89-1.74 2.99-4.3 2.99-7.31Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 22c2.7 0 4.96-.9 6.61-2.46l-3.22-2.5c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.58A9.98 9.98 0 0 0 12 22Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.41 13.87a6 6 0 0 1 0-3.74V7.55H3.08a10 10 0 0 0 0 8.9l3.33-2.58Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 2.96 14.7 2 12 2a9.98 9.98 0 0 0-8.92 5.55l3.33 2.58C7.2 7.76 9.4 6 12 6Z"
+      />
     </svg>
   );
 }
 
-function PasswordField({ value, onChange, autoComplete }: { value: string; onChange: (value: string) => void; autoComplete: string }) {
+function PasswordField({
+  value,
+  onChange,
+  autoComplete,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+}) {
   const [visible, setVisible] = useState(false);
 
   return (
     <div className="space-y-2">
-      <label htmlFor="password" className="text-xs font-medium text-[#e8e1f5]">Password</label>
+      <label htmlFor="password" className="text-xs font-medium text-[#e8e1f5]">
+        Password
+      </label>
       <div className="relative">
         <input
           id="password"
@@ -34,7 +57,7 @@ function PasswordField({ value, onChange, autoComplete }: { value: string; onCha
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="At least 8 characters"
-           autoComplete={autoComplete}
+          autoComplete={autoComplete}
           className="h-12 w-full rounded-xl border border-white/10 bg-white/[.045] px-4 pr-12 text-sm text-white outline-none transition placeholder:text-[#827990] focus:border-[#b99cff] focus:bg-white/[.07] focus:ring-4 focus:ring-[#a883ff]/10"
         />
         <button
@@ -66,43 +89,63 @@ export function AuthRegistration() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/auth/${isRegistering ? "register" : "signin"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName, email, password }),
-      });
+      const response = await fetch(
+        `/api/auth/${isRegistering ? "register" : "signin"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fullName, email, password }),
+        },
+      );
       const result = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(result.error || "Something went wrong.");
+      if (!response.ok)
+        throw new Error(result.error || "Something went wrong.");
       router.replace("/");
       router.refresh();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Something went wrong.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Something went wrong.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <main className="auth-page min-h-screen overflow-hidden bg-[#08070d] text-white selection:bg-[#b99cff]/30" data-background="astronaut">
+    <main
+      className="auth-page min-h-screen overflow-hidden bg-[#08070d] text-white selection:bg-[#b99cff]/30"
+      data-background="astronaut"
+    >
       <div className="grid min-h-screen md:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
         <section className="flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-24">
           <div className="w-full max-w-[430px]">
             <ReelscapeLogo className="mb-12" />
 
             <div className="mb-8">
-              <p className="font-mono text-[10px] uppercase tracking-[.2em] text-[#b99cff]">New orbit</p>
+              <p className="font-mono text-[10px] uppercase tracking-[.2em] text-[#b99cff]">
+                New orbit
+              </p>
               <h1 className="mt-4 max-w-md text-4xl font-semibold tracking-[-.06em] text-[#faf7ff] sm:text-5xl">
                 {isRegistering ? "Create your account." : "Welcome back."}
               </h1>
               <p className="mt-4 max-w-sm text-sm leading-6 text-[#9d91ae]">
-                {isRegistering ? "Your next chapter starts with a name and a place to land." : "Sign in to continue your journey."}
+                {isRegistering
+                  ? "Your next chapter starts with a name and a place to land."
+                  : "Sign in to continue your journey."}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {isRegistering ? (
                 <div className="space-y-2">
-                  <label htmlFor="full-name" className="text-xs font-medium text-[#e8e1f5]">Full Name</label>
+                  <label
+                    htmlFor="full-name"
+                    className="text-xs font-medium text-[#e8e1f5]"
+                  >
+                    Full Name
+                  </label>
                   <input
                     id="full-name"
                     name="name"
@@ -116,7 +159,12 @@ export function AuthRegistration() {
                 </div>
               ) : null}
               <div className="space-y-2">
-                <label htmlFor="auth-email" className="text-xs font-medium text-[#e8e1f5]">Email</label>
+                <label
+                  htmlFor="auth-email"
+                  className="text-xs font-medium text-[#e8e1f5]"
+                >
+                  Email
+                </label>
                 <input
                   id="auth-email"
                   name="email"
@@ -129,17 +177,44 @@ export function AuthRegistration() {
                   className="h-12 w-full rounded-xl border border-white/10 bg-white/[.045] px-4 text-sm text-white outline-none transition placeholder:text-[#827990] focus:border-[#b99cff] focus:bg-white/[.07] focus:ring-4 focus:ring-[#a883ff]/10"
                 />
               </div>
-              <PasswordField value={password} onChange={setPassword} autoComplete={isRegistering ? "new-password" : "current-password"} />
-              {error ? <p role="alert" className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p> : null}
-              <button type="submit" disabled={isSubmitting} className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#d9c8ff] text-sm font-semibold text-[#17111f] transition hover:bg-[#ede5ff] focus:outline-none focus:ring-4 focus:ring-[#a883ff]/20 disabled:cursor-not-allowed disabled:opacity-60">
-                {isSubmitting ? "Please wait..." : isRegistering ? "Sign Up" : "Sign In"}
+              <PasswordField
+                value={password}
+                onChange={setPassword}
+                autoComplete={
+                  isRegistering ? "new-password" : "current-password"
+                }
+              />
+              {error ? (
+                <p
+                  role="alert"
+                  className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200"
+                >
+                  {error}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#d9c8ff] text-sm font-semibold text-[#17111f] transition hover:bg-[#ede5ff] focus:outline-none focus:ring-4 focus:ring-[#a883ff]/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? "Please wait..."
+                  : isRegistering
+                    ? "Sign Up"
+                    : "Sign In"}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </button>
             </form>
 
             <div className="mt-6 text-center text-sm text-[#9d91ae]">
-              {isRegistering ? "Already have an account?" : "Don&apos;t have an account?"}{" "}
-              <button type="button" onClick={() => setMode(isRegistering ? "signin" : "register")} className="font-medium text-[#d9c8ff] underline-offset-4 hover:underline">
+              {isRegistering
+                ? "Already have an account?"
+                : "Don&apos;t have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => setMode(isRegistering ? "signin" : "register")}
+                className="font-medium text-[#d9c8ff] underline-offset-4 hover:underline"
+              >
                 {isRegistering ? "Sign in" : "Sign up"}
               </button>
             </div>
@@ -149,7 +224,11 @@ export function AuthRegistration() {
               <span>Or continue with</span>
               <span className="h-px flex-1 bg-white/10" />
             </div>
-            <button type="button" disabled className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.035] text-sm font-medium text-[#827990] opacity-70">
+            <button
+              type="button"
+              disabled
+              className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[.035] text-sm font-medium text-[#827990] opacity-70"
+            >
               <GoogleMark />
               Google login coming soon
             </button>
@@ -158,18 +237,26 @@ export function AuthRegistration() {
 
         <section className="relative min-h-[520px] overflow-hidden border-t border-white/10 bg-[#11101b] md:min-h-screen md:border-l md:border-t-0">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_40%,rgba(185,156,255,.24),transparent_36%),linear-gradient(145deg,#11101b,#090811)]" />
-          <div className="absolute left-8 top-8 font-mono text-[10px] uppercase tracking-[.22em] text-[#81758f]">01 / new beginning</div>
+          <div className="absolute left-8 top-8 font-mono text-[10px] uppercase tracking-[.22em] text-[#81758f]">
+            01 / new beginning
+          </div>
           <div className="relative flex min-h-[520px] flex-col items-center justify-end px-6 pb-10 pt-20 md:min-h-screen md:px-12 md:pb-14">
             <div className="relative w-full max-w-[620px] flex-1 overflow-hidden">
-              <img
+              <Image
                 src="/astronaut.png"
                 alt="Astronaut floating through a violet star field"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="absolute inset-0 h-[118%] w-full object-cover object-right-top mix-blend-screen"
               />
             </div>
             <div className="relative z-10 text-center">
-              <p className="text-xl font-medium tracking-[-.03em] text-[#f8f3ff] sm:text-2xl">A new chapter awaits.</p>
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[.2em] text-[#9d91ae]">— Gautam</p>
+              <p className="text-xl font-medium tracking-[-.03em] text-[#f8f3ff] sm:text-2xl">
+                A new chapter awaits.
+              </p>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[.2em] text-[#9d91ae]">
+                — Gautam
+              </p>
             </div>
           </div>
         </section>

@@ -17,10 +17,19 @@ export type UserSignal = UserSignalInput & {
   createdAt: Date;
 };
 
+let userSignalIndexPromise: Promise<string> | null = null;
+
 export async function recordUserSignal(input: UserSignalInput) {
   const db = await getDatabase();
   const signals = db.collection<UserSignal>("userSignals");
-  await signals.createIndex({ userId: 1, createdAt: -1 });
+  if (!userSignalIndexPromise)
+    userSignalIndexPromise = signals.createIndex({ userId: 1, createdAt: -1 });
+  try {
+    await userSignalIndexPromise;
+  } catch (error) {
+    userSignalIndexPromise = null;
+    throw error;
+  }
   await signals.insertOne({
     ...input,
     _id: `${input.userId}:${input.type}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,

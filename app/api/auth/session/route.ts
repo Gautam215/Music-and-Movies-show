@@ -9,7 +9,12 @@ export const runtime = "nodejs";
 export async function GET() {
   const user = await getCurrentUser();
   const requestHeaders = await headers();
-  return NextResponse.json({
-    user: user ? { ...user, location: getRequestLocation(requestHeaders) } : null,
-  }, { headers: privateJsonHeaders() });
+  return NextResponse.json(
+    {
+      user: user
+        ? { ...user, location: getRequestLocation(requestHeaders) }
+        : null,
+    },
+    { headers: privateJsonHeaders() },
+  );
 }

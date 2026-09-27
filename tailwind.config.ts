@@ -20,8 +20,22 @@ const config: Config = {
         mint: "hsl(var(--mint))",
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", "Arial", "sans-serif"],
-        display: ["Inter", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        display: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
         mono: ["IBM Plex Mono", "monospace"],
       },
       boxShadow: {

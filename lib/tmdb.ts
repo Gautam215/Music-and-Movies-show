@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
+import { fetchWithServerBackoff } from "@/lib/server-retry";
 import { getViewingProfile, type ViewingProfile } from "@/lib/viewing-history";
 
 const TMDB_ENDPOINT = "https://api.themoviedb.org/3/trending/movie/week";
@@ -10,8 +11,11 @@ const TMDB_MOVIE_ENDPOINT = "https://api.themoviedb.org/3/movie";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w780";
 const BIWEEKLY_REVALIDATE_SECONDS = 14 * 24 * 60 * 60;
 const DAILY_REVALIDATE_SECONDS = 24 * 60 * 60;
-const FALLBACK_POSTER = "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
-const FALLBACK_BACKDROP = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85";
+const TMDB_REQUEST_TIMEOUT_MS = 8_000;
+const FALLBACK_POSTER =
+  "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=700&q=85";
+const FALLBACK_BACKDROP =
+  "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1800&q=85";
 
 const genres: Record<number, string> = {
   12: "Adventure",
@@ -77,7 +81,11 @@ function formatRelease(value?: string, fallback = "Trending this week") {
   if (!value) return fallback;
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return fallback;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function mapMovie(
@@ -87,14 +95,22 @@ function mapMovie(
   segment?: string,
   mediaTypeOverride?: Movie["mediaType"],
 ): Movie {
-  const title = movie.title?.trim() || movie.name?.trim() || movie.original_name?.trim() || "Untitled screening";
-  const movieGenres = (movie.genre_ids ?? []).map((id) => genres[id]).filter(Boolean);
+  const title =
+    movie.title?.trim() ||
+    movie.name?.trim() ||
+    movie.original_name?.trim() ||
+    "Untitled screening";
+  const movieGenres = (movie.genre_ids ?? [])
+    .map((id) => genres[id])
+    .filter(Boolean);
   const price = 14 + Math.min(index, 4) * 2;
   const upcoming = collection === "upcoming";
-  const mediaType = mediaTypeOverride ?? (movie.media_type === "tv" ? "tv" : "movie");
+  const mediaType =
+    mediaTypeOverride ?? (movie.media_type === "tv" ? "tv" : "movie");
   const label = segment ? `${segment} · ` : mediaType === "tv" ? "TV · " : "";
   const releaseDate = movie.release_date || movie.first_air_date;
-  const finalGenres = mediaType === "anime" ? ["Anime", ...movieGenres] : movieGenres;
+  const finalGenres =
+    mediaType === "anime" ? ["Anime", ...movieGenres] : movieGenres;
 
   return {
     id: `tmdb-${movie.id}`,
@@ -104,8 +120,12 @@ function mapMovie(
     meta: `${label}${movieGenres[0] ?? "Film"} · TMDB`,
     status: upcoming ? "UPCOMING" : "NOW PLAYING",
     rating: movie.vote_average ? movie.vote_average.toFixed(1) : "—",
-    poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : FALLBACK_POSTER,
-    backdrop: movie.backdrop_path ? `${TMDB_IMAGE_BASE}${movie.backdrop_path}` : FALLBACK_BACKDROP,
+    poster: movie.poster_path
+      ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
+      : FALLBACK_POSTER,
+    backdrop: movie.backdrop_path
+      ? `${TMDB_IMAGE_BASE}${movie.backdrop_path}`
+      : FALLBACK_BACKDROP,
     synopsis:
       movie.overview?.trim() ||
       (upcoming
@@ -113,7 +133,10 @@ function mapMovie(
         : "A current audience favorite selected from TMDB’s popularity and rating signals."),
     showtimes: ["10:30 AM", "1:45 PM", "7:30 PM"],
     genres: finalGenres.length ? finalGenres : ["Film"],
-    release: formatRelease(releaseDate, upcoming ? "Upcoming release" : "Trending now"),
+    release: formatRelease(
+      releaseDate,
+      upcoming ? "Upcoming release" : "Trending now",
+    ),
     price,
     trendScore: movie.popularity ?? movie.vote_average ?? 0,
   };
@@ -121,14 +144,22 @@ function mapMovie(
 
 type TrendScope = { region?: string };
 
-async function fetchTrendEndpoint(path: string, token: string, params?: URLSearchParams) {
+async function fetchTrendEndpoint(
+  path: string,
+  token: string,
+  params?: URLSearchParams,
+) {
   const url = new URL(path);
   url.searchParams.set("language", "en-US");
   params?.forEach((value, key) => url.searchParams.set(key, value));
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const response = await fetchWithServerBackoff(
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+    { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+  );
   if (!response.ok) return [] as TmdbMovie[];
   const data = (await response.json()) as TmdbResponse;
   return data.results ?? [];
@@ -136,12 +167,44 @@ async function fetchTrendEndpoint(path: string, token: string, params?: URLSearc
 
 async function fetchTrendCatalog(token: string, scope: TrendScope) {
   const region = scope.region?.toUpperCase();
-  const movieParams = region ? new URLSearchParams({ region, sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1" }) : undefined;
-  const tvParams = region ? new URLSearchParams({ watch_region: region, sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1" }) : undefined;
-  const animeParams = new URLSearchParams({ with_genres: "16", with_origin_country: "JP", sort_by: "popularity.desc", include_adult: "false", include_video: "false", page: "1", ...(region ? { watch_region: region } : {}) });
+  const movieParams = region
+    ? new URLSearchParams({
+        region,
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        include_video: "false",
+        page: "1",
+      })
+    : undefined;
+  const tvParams = region
+    ? new URLSearchParams({
+        watch_region: region,
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        include_video: "false",
+        page: "1",
+      })
+    : undefined;
+  const animeParams = new URLSearchParams({
+    with_genres: "16",
+    with_origin_country: "JP",
+    sort_by: "popularity.desc",
+    include_adult: "false",
+    include_video: "false",
+    page: "1",
+    ...(region ? { watch_region: region } : {}),
+  });
   const [moviesResult, tvResult, animeResult] = await Promise.all([
-    fetchTrendEndpoint(region ? TMDB_UPCOMING_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/movie/week`, token, movieParams),
-    fetchTrendEndpoint(region ? TMDB_TV_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/tv/week`, token, tvParams),
+    fetchTrendEndpoint(
+      region ? TMDB_UPCOMING_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/movie/week`,
+      token,
+      movieParams,
+    ),
+    fetchTrendEndpoint(
+      region ? TMDB_TV_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/tv/week`,
+      token,
+      tvParams,
+    ),
     fetchTrendEndpoint(TMDB_TV_ENDPOINT, token, animeParams),
   ]);
   const seen = new Set<string>();
@@ -151,7 +214,13 @@ async function fetchTrendCatalog(token: string, scope: TrendScope) {
       const key = `${mediaType}:${item.id}`;
       if (seen.has(key)) return;
       seen.add(key);
-      const mapped = mapMovie(item, results.length + index, "trending", mediaType === "anime" ? "Anime" : undefined, mediaType);
+      const mapped = mapMovie(
+        item,
+        results.length + index,
+        "trending",
+        mediaType === "anime" ? "Anime" : undefined,
+        mediaType,
+      );
       results.push({ ...mapped, trendRegion: region });
     });
   };
@@ -163,7 +232,11 @@ async function fetchTrendCatalog(token: string, scope: TrendScope) {
     .slice(0, 30);
 }
 
-const getCachedTrendCatalog = async (region: string | undefined, revalidate: number, cacheNamespace: string) => {
+const getCachedTrendCatalog = async (
+  region: string | undefined,
+  revalidate: number,
+  cacheNamespace: string,
+) => {
   const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
   if (!token) return null;
   const cacheKey = region?.toUpperCase() || "GLOBAL";
@@ -181,18 +254,40 @@ const getCachedTrendCatalog = async (region: string | undefined, revalidate: num
 };
 
 const getBiweeklyTrendCatalog = (region?: string) =>
-  getCachedTrendCatalog(region, BIWEEKLY_REVALIDATE_SECONDS, "reelscape-biweekly-trending-v1");
+  getCachedTrendCatalog(
+    region,
+    BIWEEKLY_REVALIDATE_SECONDS,
+    "reelscape-biweekly-trending-v1",
+  );
 
 const getDailyTrendCatalog = (region?: string) =>
-  getCachedTrendCatalog(region, DAILY_REVALIDATE_SECONDS, "reelscape-daily-current-reel-v1");
+  getCachedTrendCatalog(
+    region,
+    DAILY_REVALIDATE_SECONDS,
+    "reelscape-daily-current-reel-v1",
+  );
 
 function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
   return trends
     .map((movie, index) => {
-      const genreScore = movie.genres.reduce((score, genre) => score + (profile.genreWeights.get(genre) ?? 0), 0);
-      const preferredGenreScore = movie.genres.filter((genre) => profile.preferredGenres.includes(genre)).length;
-      const mediaScore = profile.mediaTypeWeights.get(movie.mediaType ?? "movie") ?? 0;
-      return { movie, score: (movie.trendScore ?? 0) + genreScore * 0.35 + preferredGenreScore * 1.5 + mediaScore * 0.2 - index * 0.02 };
+      const genreScore = movie.genres.reduce(
+        (score, genre) => score + (profile.genreWeights.get(genre) ?? 0),
+        0,
+      );
+      const preferredGenreScore = movie.genres.filter((genre) =>
+        profile.preferredGenres.includes(genre),
+      ).length;
+      const mediaScore =
+        profile.mediaTypeWeights.get(movie.mediaType ?? "movie") ?? 0;
+      return {
+        movie,
+        score:
+          (movie.trendScore ?? 0) +
+          genreScore * 0.35 +
+          preferredGenreScore * 1.5 +
+          mediaScore * 0.2 -
+          index * 0.02,
+      };
     })
     .sort((a, b) => b.score - a.score)
     .map(({ movie }) => movie);
@@ -203,7 +298,13 @@ export async function getFeaturedScreening({ region }: { region?: string }) {
   return trends?.[0] ?? null;
 }
 
-export async function getCurrentReel({ userId, region }: { userId?: string; region?: string }) {
+export async function getCurrentReel({
+  userId,
+  region,
+}: {
+  userId?: string;
+  region?: string;
+}) {
   const trends = await getDailyTrendCatalog(region);
   if (!trends) return null;
   if (!userId) return trends.slice(0, 12);
@@ -220,14 +321,20 @@ export async function getTrendingMovies(): Promise<Movie[] | null> {
   if (!token) return null;
 
   try {
-    const response = await fetch(TMDB_ENDPOINT, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
+    const response = await fetchWithServerBackoff(
+      TMDB_ENDPOINT,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+      { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+    );
     if (!response.ok) return null;
     const data = (await response.json()) as TmdbResponse;
     const results = data.results?.slice(0, 9) ?? [];
-    return results.length ? results.map((movie, index) => mapMovie(movie, index)) : null;
+    return results.length
+      ? results.map((movie, index) => mapMovie(movie, index))
+      : null;
   } catch {
     return null;
   }
@@ -245,10 +352,14 @@ async function getCuratedFeed(feed: CuratedFeed, token: string) {
     with_original_language: feed.language,
   });
 
-  const response = await fetch(`${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const response = await fetchWithServerBackoff(
+    `${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+    { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+  );
   if (!response.ok) return { feed, movies: [] as TmdbMovie[] };
   const data = (await response.json()) as TmdbResponse;
   return { feed, movies: data.results ?? [] };
@@ -259,7 +370,9 @@ export async function getCuratedMovies(): Promise<Movie[] | null> {
   if (!token) return null;
 
   try {
-    const feeds = await Promise.all(curatedFeeds.map((feed) => getCuratedFeed(feed, token)));
+    const feeds = await Promise.all(
+      curatedFeeds.map((feed) => getCuratedFeed(feed, token)),
+    );
     const selected: Array<{ movie: TmdbMovie; segment: string }> = [];
     const seen = new Set<number>();
 
@@ -268,7 +381,11 @@ export async function getCuratedMovies(): Promise<Movie[] | null> {
         if (seen.has(movie.id)) continue;
         seen.add(movie.id);
         selected.push({ movie, segment: feed.label });
-        if (selected.filter((item) => item.segment === feed.label).length >= feed.quota) break;
+        if (
+          selected.filter((item) => item.segment === feed.label).length >=
+          feed.quota
+        )
+          break;
       }
     }
 
@@ -277,7 +394,9 @@ export async function getCuratedMovies(): Promise<Movie[] | null> {
         .flatMap(({ feed, movies: feedMovies }) =>
           feedMovies.map((movie) => ({ movie, segment: feed.label })),
         )
-        .filter(({ movie }) => !selected.some((item) => item.movie.id === movie.id))
+        .filter(
+          ({ movie }) => !selected.some((item) => item.movie.id === movie.id),
+        )
         .sort(
           (a, b) =>
             (b.movie.popularity ?? 0) - (a.movie.popularity ?? 0) ||
@@ -287,9 +406,11 @@ export async function getCuratedMovies(): Promise<Movie[] | null> {
     }
 
     return selected.length
-      ? selected.slice(0, 10).map(({ movie, segment }, index) =>
-          mapMovie(movie, index, "curated", segment),
-        )
+      ? selected
+          .slice(0, 10)
+          .map(({ movie, segment }, index) =>
+            mapMovie(movie, index, "curated", segment),
+          )
       : null;
   } catch {
     return null;
@@ -324,23 +445,33 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
   });
 
   try {
-    const response = await fetch(`${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
+    const response = await fetchWithServerBackoff(
+      `${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+      { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+    );
     if (!response.ok) return null;
 
     const data = (await response.json()) as TmdbResponse;
     const candidates = (data.results ?? [])
       .filter((movie) => {
         const release = releaseTimestamp(movie.release_date);
-        return Number.isFinite(release) && release <= Date.parse(`${todayValue}T00:00:00Z`);
+        return (
+          Number.isFinite(release) &&
+          release <= Date.parse(`${todayValue}T00:00:00Z`)
+        );
       })
       .sort((a, b) => {
         const ratingDifference = (b.vote_average ?? 0) - (a.vote_average ?? 0);
         if (ratingDifference !== 0) return ratingDifference;
         const voteDifference = (b.vote_count ?? 0) - (a.vote_count ?? 0);
-        return voteDifference || releaseTimestamp(b.release_date) - releaseTimestamp(a.release_date);
+        return (
+          voteDifference ||
+          releaseTimestamp(b.release_date) - releaseTimestamp(a.release_date)
+        );
       })
       .slice(0, 10);
 
@@ -349,7 +480,11 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
     const enriched = await Promise.all(
       candidates.map(async (movie) => {
         try {
-          const details = await getMovieCommercialDetails(movie.id, token, true);
+          const details = await getMovieCommercialDetails(
+            movie.id,
+            token,
+            true,
+          );
           return { ...movie, ...(details ?? {}) };
         } catch {
           return movie;
@@ -376,12 +511,20 @@ export async function getTopReelMovies(): Promise<Movie[] | null> {
   }
 }
 
-async function getMovieCommercialDetails(movieId: number, token: string, includeCredits = false) {
+async function getMovieCommercialDetails(
+  movieId: number,
+  token: string,
+  includeCredits = false,
+) {
   const appendCredits = includeCredits ? "&append_to_response=credits" : "";
-  const response = await fetch(`${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US${appendCredits}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const response = await fetchWithServerBackoff(
+    `${TMDB_MOVIE_ENDPOINT}/${movieId}?language=en-US${appendCredits}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+    { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+  );
   if (!response.ok) return null;
   return (await response.json()) as Pick<
     TmdbMovie,
@@ -409,20 +552,31 @@ export async function getUpcomingMovies(): Promise<Movie[] | null> {
   });
 
   try {
-    const response = await fetch(`${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
+    const response = await fetchWithServerBackoff(
+      `${TMDB_UPCOMING_ENDPOINT}?${params.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+      { maxRetries: 2, timeoutMs: TMDB_REQUEST_TIMEOUT_MS },
+    );
     if (!response.ok) return null;
 
     const data = (await response.json()) as TmdbResponse;
     const candidates = (data.results ?? [])
-      .filter((movie) => releaseTimestamp(movie.release_date) >= Date.parse(`${todayValue}T00:00:00Z`))
+      .filter(
+        (movie) =>
+          releaseTimestamp(movie.release_date) >=
+          Date.parse(`${todayValue}T00:00:00Z`),
+      )
       .sort((a, b) => {
         const popularityDifference = (b.popularity ?? 0) - (a.popularity ?? 0);
         if (popularityDifference !== 0) return popularityDifference;
         const ratingDifference = (b.vote_average ?? 0) - (a.vote_average ?? 0);
-        return ratingDifference || releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date);
+        return (
+          ratingDifference ||
+          releaseTimestamp(a.release_date) - releaseTimestamp(b.release_date)
+        );
       })
       .slice(0, 18);
 

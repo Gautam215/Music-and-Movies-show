@@ -6,7 +6,10 @@ import {
   SPOTIFY_REFRESH_COOKIE,
   spotifyCookieOptions,
 } from "@/lib/spotify-auth";
-import { fetchWithServerBackoff, type ServerRetryOptions } from "@/lib/server-retry";
+import {
+  fetchWithServerBackoff,
+  type ServerRetryOptions,
+} from "@/lib/server-retry";
 
 export type SpotifyToken = {
   access_token?: string;
@@ -41,31 +44,46 @@ type SpotifyResponseSnapshot = {
   body: ArrayBuffer;
 };
 
-const spotifyCatalogCache = new Map<string, { expiresAt: number; response: SpotifyResponseSnapshot }>();
-const spotifyCatalogRequests = new Map<string, Promise<SpotifyResponseSnapshot>>();
+const spotifyCatalogCache = new Map<
+  string,
+  { expiresAt: number; response: SpotifyResponseSnapshot }
+>();
+const spotifyCatalogRequests = new Map<
+  string,
+  Promise<SpotifyResponseSnapshot>
+>();
 
 function retryAfterMs(value: string | null) {
   if (!value) return null;
   const seconds = Number(value);
   if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
   const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? Math.max(0, timestamp - Date.now()) : null;
+  return Number.isFinite(timestamp)
+    ? Math.max(0, timestamp - Date.now())
+    : null;
 }
 
 async function waitForSpotifyRequestSlot() {
   const now = Date.now();
   const scheduledAt = Math.max(now, spotifyNextRequestAt, spotifyCooldownUntil);
   spotifyNextRequestAt = scheduledAt + SPOTIFY_MIN_REQUEST_INTERVAL_MS;
-  if (scheduledAt > now) await new Promise((resolve) => setTimeout(resolve, scheduledAt - now));
+  if (scheduledAt > now)
+    await new Promise((resolve) => setTimeout(resolve, scheduledAt - now));
 }
 
 function noteSpotifyResponse(response: Response) {
   if (response.status !== 429) return;
   const retryAfter = retryAfterMs(response.headers.get("retry-after"));
-  if (retryAfter !== null) spotifyCooldownUntil = Math.max(spotifyCooldownUntil, Date.now() + retryAfter);
+  if (retryAfter !== null)
+    spotifyCooldownUntil = Math.max(
+      spotifyCooldownUntil,
+      Date.now() + retryAfter,
+    );
 }
 
-async function snapshotSpotifyResponse(response: Response): Promise<SpotifyResponseSnapshot> {
+async function snapshotSpotifyResponse(
+  response: Response,
+): Promise<SpotifyResponseSnapshot> {
   return {
     status: response.status,
     headers: Array.from(response.headers.entries()),
@@ -80,7 +98,10 @@ function responseFromSnapshot(snapshot: SpotifyResponseSnapshot) {
   });
 }
 
-function cacheSpotifyCatalogResponse(key: string, response: SpotifyResponseSnapshot) {
+function cacheSpotifyCatalogResponse(
+  key: string,
+  response: SpotifyResponseSnapshot,
+) {
   if (spotifyCatalogCache.size >= SPOTIFY_CATALOG_CACHE_LIMIT) {
     const oldestKey = spotifyCatalogCache.keys().next().value;
     if (oldestKey) spotifyCatalogCache.delete(oldestKey);
@@ -149,7 +170,8 @@ export async function spotifyApiFetch(
   };
 
   let response = await request(state.accessToken);
-  if (response.status !== 401 || !state.refreshToken || state.refreshAttempted) return response;
+  if (response.status !== 401 || !state.refreshToken || state.refreshAttempted)
+    return response;
 
   state.refreshAttempted = true;
   state.refreshedToken = await refreshSpotifyTokenOnce(state.refreshToken);
@@ -164,24 +186,35 @@ export async function spotifyApiFetch(
 async function requestClientCredentialsToken() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!clientId || !clientSecret) throw new Error("Spotify credentials are not configured.");
+  if (!clientId || !clientSecret)
+    throw new Error("Spotify credentials are not configured.");
 
-  const response = await fetchWithServerBackoff("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+  const response = await fetchWithServerBackoff(
+    "https://accounts.spotify.com/api/token",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+      cache: "no-store",
     },
-    body: "grant_type=client_credentials",
-    cache: "no-store",
-  }, { retryUnsafeMethods: true });
-  if (!response.ok) throw new Error(`Spotify authentication failed with ${response.status}.`);
+    { retryUnsafeMethods: true },
+  );
+  if (!response.ok)
+    throw new Error(`Spotify authentication failed with ${response.status}.`);
 
-  const payload = (await response.json()) as { access_token?: string; expires_in?: number };
-  if (!payload.access_token) throw new Error("Spotify did not return an access token.");
+  const payload = (await response.json()) as {
+    access_token?: string;
+    expires_in?: number;
+  };
+  if (!payload.access_token)
+    throw new Error("Spotify did not return an access token.");
   clientCredentialsCache = {
     accessToken: payload.access_token,
-    expiresAt: Date.now() + Math.max((payload.expires_in ?? 3600) - 60, 60) * 1000,
+    expiresAt:
+      Date.now() + Math.max((payload.expires_in ?? 3600) - 60, 60) * 1000,
   };
   return payload.access_token;
 }
@@ -193,14 +226,18 @@ export async function spotifyCatalogFetch(
 ) {
   const cacheKey = new URL(input.toString()).toString();
   const cached = spotifyCatalogCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return responseFromSnapshot(cached.response);
+  if (cached && cached.expiresAt > Date.now())
+    return responseFromSnapshot(cached.response);
   if (cached) spotifyCatalogCache.delete(cacheKey);
 
   const pending = spotifyCatalogRequests.get(cacheKey);
   if (pending) return responseFromSnapshot(await pending);
 
   const getToken = async () => {
-    if (clientCredentialsCache && clientCredentialsCache.expiresAt > Date.now()) {
+    if (
+      clientCredentialsCache &&
+      clientCredentialsCache.expiresAt > Date.now()
+    ) {
       return clientCredentialsCache.accessToken;
     }
     if (!clientCredentialsRequest) {
@@ -224,18 +261,23 @@ export async function spotifyCatalogFetch(
       response = await request(await getToken());
     }
     const snapshot = await snapshotSpotifyResponse(response);
-    if (snapshot.status === 200) cacheSpotifyCatalogResponse(cacheKey, snapshot);
+    if (snapshot.status === 200)
+      cacheSpotifyCatalogResponse(cacheKey, snapshot);
     return snapshot;
   })();
   spotifyCatalogRequests.set(cacheKey, requestPromise);
   try {
     return responseFromSnapshot(await requestPromise);
   } finally {
-    if (spotifyCatalogRequests.get(cacheKey) === requestPromise) spotifyCatalogRequests.delete(cacheKey);
+    if (spotifyCatalogRequests.get(cacheKey) === requestPromise)
+      spotifyCatalogRequests.delete(cacheKey);
   }
 }
 
-export function persistSpotifyToken(response: NextResponse, token: SpotifyToken | null) {
+export function persistSpotifyToken(
+  response: NextResponse,
+  token: SpotifyToken | null,
+) {
   if (!token?.access_token) return response;
 
   response.cookies.set(

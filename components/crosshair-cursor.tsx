@@ -3,22 +3,31 @@
 import { useEffect, useRef } from "react";
 
 const interactiveSelector =
-  "a, button, input, select, textarea, [role=\"button\"], [data-cursor-hover]";
+  'a, button, input, select, textarea, [role="button"], [data-cursor-hover]';
 
 export function MinimalCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const cursor = cursorRef.current;
-    if (!cursor || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (
+      !cursor ||
+      !window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    )
+      return;
 
     let animationFrame = 0;
     let targetX = -100;
     let targetY = -100;
     let currentX = targetX;
     let currentY = targetY;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const followStrength = Number.parseFloat(getComputedStyle(cursor).getPropertyValue("--reelroom-cursor-follow")) || 0.42;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const followStrength =
+      Number.parseFloat(
+        getComputedStyle(cursor).getPropertyValue("--reelroom-cursor-follow"),
+      ) || 0.42;
 
     const animate = () => {
       const blend = reducedMotion ? 1 : followStrength;
@@ -30,7 +39,8 @@ export function MinimalCursor() {
     };
 
     const setHoverState = (target: EventTarget | null) => {
-      const element = target instanceof Element ? target.closest(interactiveSelector) : null;
+      const element =
+        target instanceof Element ? target.closest(interactiveSelector) : null;
       cursor.dataset.hover = element ? "true" : "false";
     };
     const onPointerMove = (event: PointerEvent) => {
@@ -49,7 +59,10 @@ export function MinimalCursor() {
     animationFrame = window.requestAnimationFrame(animate);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
-      document.documentElement.removeEventListener("pointerleave", onPointerLeave);
+      document.documentElement.removeEventListener(
+        "pointerleave",
+        onPointerLeave,
+      );
       window.cancelAnimationFrame(animationFrame);
     };
   }, []);

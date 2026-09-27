@@ -6,7 +6,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Reelscape — find your next screening",
-  description: "A cinematic movie discovery, soundtrack, and ticketing workspace.",
+  description:
+    "A cinematic movie discovery, soundtrack, and ticketing workspace.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -18,6 +19,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className="grain"><MinimalCursor />{children}<FloatingNavigation /><ProfileExperience /></body></html>;
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en">
+      <body className="grain">
+        <MinimalCursor />
+        {children}
+        <FloatingNavigation />
+        <ProfileExperience />
+      </body>
+    </html>
+  );
 }

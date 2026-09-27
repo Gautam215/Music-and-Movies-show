@@ -20,7 +20,11 @@ function songsDestination(request: Request, status: string) {
 
 function clearOAuthCookies(response: NextResponse) {
   response.cookies.set(SPOTIFY_STATE_COOKIE, "", spotifyCookieOptions(0));
-  response.cookies.set(SPOTIFY_CODE_VERIFIER_COOKIE, "", spotifyCookieOptions(0));
+  response.cookies.set(
+    SPOTIFY_CODE_VERIFIER_COOKIE,
+    "",
+    spotifyCookieOptions(0),
+  );
   response.cookies.set(SPOTIFY_POPUP_COOKIE, "", spotifyCookieOptions(0));
   return response;
 }
@@ -38,11 +42,20 @@ function redirectToSongs(request: Request, status: string, popupMode: boolean) {
   const copy = connected
     ? "Returning to Reelscape..."
     : "This window will stay open so you can review the error and try again.";
-  const closeScript = connected ? "window.setTimeout(() => window.close(), 80);" : "";
-  const fallbackScript = connected ? `window.location.replace(${safeDestination});` : "";
+  const closeScript = connected
+    ? "window.setTimeout(() => window.close(), 80);"
+    : "";
+  const fallbackScript = connected
+    ? `window.location.replace(${safeDestination});`
+    : "";
   const response = new NextResponse(
     `<!doctype html><html><head><meta charset="utf-8"><title>${heading}</title></head><body><p>${copy}</p><script>const message=${message};if("BroadcastChannel" in window){const channel=new BroadcastChannel("reelroom-spotify-auth");channel.postMessage(message);channel.close();}if(window.opener&&!window.opener.closed){window.opener.postMessage(message,${safeOrigin});${closeScript}}else{${fallbackScript}}</script></body></html>`,
-    { headers: { "Cache-Control": "no-store", "Content-Type": "text/html; charset=utf-8" } },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/html; charset=utf-8",
+      },
+    },
   );
   return clearOAuthCookies(response);
 }
@@ -57,7 +70,13 @@ export async function GET(request: Request) {
   const codeVerifier = cookieStore.get(SPOTIFY_CODE_VERIFIER_COOKIE)?.value;
   const popupMode = cookieStore.get(SPOTIFY_POPUP_COOKIE)?.value === "1";
 
-  if (oauthError || !code || !returnedState || returnedState !== savedState || !codeVerifier) {
+  if (
+    oauthError ||
+    !code ||
+    !returnedState ||
+    returnedState !== savedState ||
+    !codeVerifier
+  ) {
     return redirectToSongs(request, "error", popupMode);
   }
 
@@ -67,7 +86,8 @@ export async function GET(request: Request) {
       getSpotifyRedirectUri(request),
       codeVerifier,
     );
-    if (!token?.access_token) return redirectToSongs(request, "error", popupMode);
+    if (!token?.access_token)
+      return redirectToSongs(request, "error", popupMode);
 
     const response = redirectToSongs(request, "connected", popupMode);
     response.cookies.set(

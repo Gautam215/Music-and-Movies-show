@@ -2,7 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { ArrowRight, Check, Eye, EyeOff, LogIn, LogOut, Mail, MapPin, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowRight,
+  Check,
+  Eye,
+  EyeOff,
+  LogIn,
+  LogOut,
+  Mail,
+  MapPin,
+  ShieldCheck,
+} from "lucide-react";
 import { ReelscapeLogo } from "@/components/reelscape-logo";
 
 type ProfileSession = {
@@ -18,23 +29,39 @@ type FieldName = "name" | "email" | "password";
 type FieldErrors = Partial<Record<FieldName, string>>;
 
 function haptic(pattern: number | number[] = 8) {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
+  if (typeof navigator !== "undefined" && "vibrate" in navigator)
+    navigator.vibrate(pattern);
 }
 
 function validateField(field: FieldName, value: string, mode: AuthMode) {
-  if (field === "name" && mode === "signup" && value.trim().length < 2) return "Add your name";
-  if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "Use a valid email";
-  if (field === "password" && value.length < 8) return "Use at least 8 characters";
+  if (field === "name" && mode === "signup" && value.trim().length < 2)
+    return "Add your name";
+  if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()))
+    return "Use a valid email";
+  if (field === "password" && value.length < 8)
+    return "Use at least 8 characters";
   return "";
 }
 
 function GoogleMark() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
-      <path fill="#4285F4" d="M21.6 12.23c0-.7-.06-1.37-.18-2H12v3.79h5.38a4.6 4.6 0 0 1-1.99 3.02v2.5h3.22c1.89-1.74 2.99-4.3 2.99-7.31Z" />
-      <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.46l-3.22-2.5c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.58A9.98 9.98 0 0 0 12 22Z" />
-      <path fill="#FBBC05" d="M6.41 13.87a6 6 0 0 1 0-3.74V7.55H3.08a10 10 0 0 0 0 8.9l3.33-2.58Z" />
-      <path fill="#EA4335" d="M12 6c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 2.96 14.7 2 12 2a9.98 9.98 0 0 0-8.92 5.55l3.33 2.58C7.2 7.76 9.4 6 12 6Z" />
+      <path
+        fill="#4285F4"
+        d="M21.6 12.23c0-.7-.06-1.37-.18-2H12v3.79h5.38a4.6 4.6 0 0 1-1.99 3.02v2.5h3.22c1.89-1.74 2.99-4.3 2.99-7.31Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 22c2.7 0 4.96-.9 6.61-2.46l-3.22-2.5c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.58A9.98 9.98 0 0 0 12 22Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.41 13.87a6 6 0 0 1 0-3.74V7.55H3.08a10 10 0 0 0 0 8.9l3.33-2.58Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 2.96 14.7 2 12 2a9.98 9.98 0 0 0-8.92 5.55l3.33 2.58C7.2 7.76 9.4 6 12 6Z"
+      />
     </svg>
   );
 }
@@ -51,17 +78,20 @@ const savedMovies = [
   {
     title: "The Last Light",
     meta: "Drama / Now playing",
-    image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=420&q=85",
+    image:
+      "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=420&q=85",
   },
   {
     title: "Neon Aftercare",
     meta: "Sci-Fi / Now playing",
-    image: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=420&q=85",
+    image:
+      "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=420&q=85",
   },
   {
     title: "Static Bloom",
     meta: "Documentary / Upcoming",
-    image: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=420&q=85",
+    image:
+      "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=420&q=85",
   },
 ];
 
@@ -77,7 +107,11 @@ function readSession() {
     if (!stored) return null;
     const parsed = JSON.parse(stored) as Partial<ProfileSession>;
     return parsed.name && parsed.email
-      ? { name: parsed.name, email: parsed.email, location: parsed.location ?? null }
+      ? {
+          name: parsed.name,
+          email: parsed.email,
+          location: parsed.location ?? null,
+        }
       : null;
   } catch {
     return null;
@@ -85,12 +119,14 @@ function readSession() {
 }
 
 function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "R";
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "R"
+  );
 }
 
 function LiquidWaveCanvas() {
@@ -159,7 +195,11 @@ function LiquidWaveCanvas() {
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 3, -1, -1, 3]),
+      gl.STATIC_DRAW,
+    );
     gl.useProgram(program);
     const position = gl.getAttribLocation(program, "position");
     const resolution = gl.getUniformLocation(program, "resolution");
@@ -185,7 +225,9 @@ function LiquidWaveCanvas() {
     window.addEventListener("pointermove", move);
     window.addEventListener("resize", resize);
     let frame = 0;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     const startedAt = performance.now();
     const render = (now: number) => {
       gl.uniform2f(resolution, canvas.width, canvas.height);
@@ -207,19 +249,34 @@ function LiquidWaveCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="profile-liquid-wave" aria-hidden="true" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="profile-liquid-wave"
+      aria-hidden="true"
+    />
+  );
 }
 
-function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void }) {
+function ProfileLogin({
+  onLogin,
+}: {
+  onLogin: (session: ProfileSession) => void;
+}) {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [focused, setFocused] = useState<FieldName | null>("email");
-  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>(
+    {},
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [feedback, setFeedback] = useState<{ kind: "error" | "info"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "info";
+    message: string;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const isSignup = mode === "signup";
@@ -234,17 +291,26 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
     if (field === "name") setFullName(value);
     if (field === "email") setEmail(value);
     if (field === "password") setPassword(value);
-    if (touched[field]) setErrors((current) => ({ ...current, [field]: validateField(field, value, mode) || undefined }));
+    if (touched[field])
+      setErrors((current) => ({
+        ...current,
+        [field]: validateField(field, value, mode) || undefined,
+      }));
   };
   const touchField = (field: FieldName) => {
     setTouched((current) => ({ ...current, [field]: true }));
-    setErrors((current) => ({ ...current, [field]: validateField(field, values[field], mode) || undefined }));
+    setErrors((current) => ({
+      ...current,
+      [field]: validateField(field, values[field], mode) || undefined,
+    }));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: FieldErrors = {};
-    const fields: FieldName[] = isSignup ? ["name", "email", "password"] : ["email", "password"];
+    const fields: FieldName[] = isSignup
+      ? ["name", "email", "password"]
+      : ["email", "password"];
     fields.forEach((field) => {
       const error = validateField(field, values[field], mode);
       if (error) nextErrors[field] = error;
@@ -253,28 +319,48 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
       haptic([12, 44, 12]);
-      setFeedback({ kind: "error", message: "A couple of details need your attention." });
+      setFeedback({
+        kind: "error",
+        message: "A couple of details need your attention.",
+      });
       return;
     }
 
     haptic(10);
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/auth/${isSignup ? "register" : "signin"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName, email, password }),
-      });
-      const result = (await response.json()) as { error?: string; user?: ProfileSession };
-      if (!response.ok || !result.user) throw new Error(result.error || "Could not sign in.");
-       const nextSession = { name: result.user.name, email: result.user.email, location: result.user.location ?? null };
+      const response = await fetch(
+        `/api/auth/${isSignup ? "register" : "signin"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fullName, email, password }),
+        },
+      );
+      const result = (await response.json()) as {
+        error?: string;
+        user?: ProfileSession;
+      };
+      if (!response.ok || !result.user)
+        throw new Error(result.error || "Could not sign in.");
+      const nextSession = {
+        name: result.user.name,
+        email: result.user.email,
+        location: result.user.location ?? null,
+      };
       window.sessionStorage.setItem(sessionKey, JSON.stringify(nextSession));
       window.dispatchEvent(new Event("reelroom-profile-session"));
       setPassword("");
-      setFeedback({ kind: "info", message: isSignup ? "Account created." : "Signed in successfully." });
+      setFeedback({
+        kind: "info",
+        message: isSignup ? "Account created." : "Signed in successfully.",
+      });
       onLogin(nextSession);
     } catch (error) {
-      setFeedback({ kind: "error", message: error instanceof Error ? error.message : "Could not sign in." });
+      setFeedback({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not sign in.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -282,7 +368,7 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
 
   const toggleMode = () => {
     haptic();
-    setMode((current) => current === "signin" ? "signup" : "signin");
+    setMode((current) => (current === "signin" ? "signup" : "signin"));
     setTouched({});
     setErrors({});
     setFeedback(null);
@@ -293,63 +379,250 @@ function ProfileLogin({ onLogin }: { onLogin: (session: ProfileSession) => void 
   };
 
   return (
-    <section className="profile-auth-card" aria-labelledby="profile-login-title">
+    <section
+      className="profile-auth-card"
+      aria-labelledby="profile-login-title"
+    >
       <div className="profile-auth-card-topline">
         <span className="profile-auth-symbol">R</span>
         <span className="profile-kicker">Private by design / 01</span>
-        <span className="profile-auth-live"><span /> live</span>
+        <span className="profile-auth-live">
+          <span /> live
+        </span>
       </div>
-      <h2 id="profile-login-title">{isSignup ? "Make room for more." : "Welcome back."}</h2>
-      <p>{isSignup ? "Create a quiet place for your saved films, songs, and nights out." : "Your saved films, songs, and next screening are waiting."}</p>
+      <h2 id="profile-login-title">
+        {isSignup ? "Make room for more." : "Welcome back."}
+      </h2>
+      <p>
+        {isSignup
+          ? "Create a quiet place for your saved films, songs, and nights out."
+          : "Your saved films, songs, and next screening are waiting."}
+      </p>
 
       <form onSubmit={submit} noValidate>
         {isSignup ? (
           <div className="profile-field-wrap">
-            <label className="profile-field" data-filled={Boolean(fullName)} data-focused={focused === "name"} data-invalid={Boolean(touched.name && errors.name)} htmlFor="profile-name">
-              <input id="profile-name" name="name" value={fullName} onChange={(event) => updateField("name", event.target.value)} onFocus={() => setFocused("name")} onBlur={() => { setFocused(null); touchField("name"); }} placeholder=" " autoComplete="name" aria-invalid={Boolean(touched.name && errors.name)} aria-describedby={errors.name ? "profile-name-error" : undefined} />
+            <label
+              className="profile-field"
+              data-filled={Boolean(fullName)}
+              data-focused={focused === "name"}
+              data-invalid={Boolean(touched.name && errors.name)}
+              htmlFor="profile-name"
+            >
+              <input
+                id="profile-name"
+                name="name"
+                value={fullName}
+                onChange={(event) => updateField("name", event.target.value)}
+                onFocus={() => setFocused("name")}
+                onBlur={() => {
+                  setFocused(null);
+                  touchField("name");
+                }}
+                placeholder=" "
+                autoComplete="name"
+                aria-invalid={Boolean(touched.name && errors.name)}
+                aria-describedby={
+                  errors.name ? "profile-name-error" : undefined
+                }
+              />
               <span>Full name</span>
             </label>
-            {touched.name && errors.name ? <span id="profile-name-error" className="profile-field-error" role="alert">{errors.name}</span> : null}
+            {touched.name && errors.name ? (
+              <span
+                id="profile-name-error"
+                className="profile-field-error"
+                role="alert"
+              >
+                {errors.name}
+              </span>
+            ) : null}
           </div>
         ) : null}
         <div className="profile-field-wrap">
-          <label className="profile-field" data-filled={Boolean(email)} data-focused={focused === "email"} data-invalid={Boolean(touched.email && errors.email)} htmlFor="profile-email">
-            <input ref={emailRef} id="profile-email" name="email" type="email" value={email} onChange={(event) => updateField("email", event.target.value)} onFocus={() => setFocused("email")} onBlur={() => { setFocused(null); touchField("email"); }} placeholder=" " autoComplete="email" aria-invalid={Boolean(touched.email && errors.email)} aria-describedby={errors.email ? "profile-email-error" : undefined} />
+          <label
+            className="profile-field"
+            data-filled={Boolean(email)}
+            data-focused={focused === "email"}
+            data-invalid={Boolean(touched.email && errors.email)}
+            htmlFor="profile-email"
+          >
+            <input
+              ref={emailRef}
+              id="profile-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => updateField("email", event.target.value)}
+              onFocus={() => setFocused("email")}
+              onBlur={() => {
+                setFocused(null);
+                touchField("email");
+              }}
+              placeholder=" "
+              autoComplete="email"
+              aria-invalid={Boolean(touched.email && errors.email)}
+              aria-describedby={
+                errors.email ? "profile-email-error" : undefined
+              }
+            />
             <span>Email address</span>
           </label>
-          {touched.email && errors.email ? <span id="profile-email-error" className="profile-field-error" role="alert">{errors.email}</span> : null}
+          {touched.email && errors.email ? (
+            <span
+              id="profile-email-error"
+              className="profile-field-error"
+              role="alert"
+            >
+              {errors.email}
+            </span>
+          ) : null}
         </div>
         <div className="profile-field-wrap">
-          <label className="profile-field" data-filled={Boolean(password)} data-focused={focused === "password"} data-invalid={Boolean(touched.password && errors.password)} htmlFor="profile-password">
-            <input id="profile-password" name="password" type={passwordVisible ? "text" : "password"} value={password} onChange={(event) => updateField("password", event.target.value)} onFocus={() => setFocused("password")} onBlur={() => { setFocused(null); touchField("password"); }} placeholder=" " autoComplete={isSignup ? "new-password" : "current-password"} aria-invalid={Boolean(touched.password && errors.password)} aria-describedby={errors.password ? "profile-password-error" : undefined} />
+          <label
+            className="profile-field"
+            data-filled={Boolean(password)}
+            data-focused={focused === "password"}
+            data-invalid={Boolean(touched.password && errors.password)}
+            htmlFor="profile-password"
+          >
+            <input
+              id="profile-password"
+              name="password"
+              type={passwordVisible ? "text" : "password"}
+              value={password}
+              onChange={(event) => updateField("password", event.target.value)}
+              onFocus={() => setFocused("password")}
+              onBlur={() => {
+                setFocused(null);
+                touchField("password");
+              }}
+              placeholder=" "
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              aria-invalid={Boolean(touched.password && errors.password)}
+              aria-describedby={
+                errors.password ? "profile-password-error" : undefined
+              }
+            />
             <span>Password</span>
-            <button type="button" className="profile-password-toggle" onClick={() => { haptic(); setPasswordVisible((current) => !current); }} aria-label={passwordVisible ? "Hide password" : "Show password"}>
-              {passwordVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            <button
+              type="button"
+              className="profile-password-toggle"
+              onClick={() => {
+                haptic();
+                setPasswordVisible((current) => !current);
+              }}
+              aria-label={passwordVisible ? "Hide password" : "Show password"}
+            >
+              {passwordVisible ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
             </button>
           </label>
-          {touched.password && errors.password ? <span id="profile-password-error" className="profile-field-error" role="alert">{errors.password}</span> : null}
+          {touched.password && errors.password ? (
+            <span
+              id="profile-password-error"
+              className="profile-field-error"
+              role="alert"
+            >
+              {errors.password}
+            </span>
+          ) : null}
         </div>
 
         <div className="profile-auth-actions">
-          <button type="button" className="profile-inline-link" onClick={() => showInfo("Password recovery will be connected to the account service.")}>Forgot Password?</button>
-          <span className="profile-form-hint"><ShieldCheck className="size-3.5" /> Encrypted session</span>
+          <button
+            type="button"
+            className="profile-inline-link"
+            onClick={() =>
+              showInfo(
+                "Password recovery will be connected to the account service.",
+              )
+            }
+          >
+            Forgot Password?
+          </button>
+          <span className="profile-form-hint">
+            <ShieldCheck className="size-3.5" /> Encrypted session
+          </span>
         </div>
-        <button type="submit" disabled={submitting} className="profile-auth-submit disabled:cursor-not-allowed disabled:opacity-60"><LogIn className="size-4" /> {submitting ? "Checking..." : isSignup ? "Create account" : "Sign in"} <ArrowRight className="size-4" /></button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="profile-auth-submit disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <LogIn className="size-4" />{" "}
+          {submitting ? "Checking..." : isSignup ? "Create account" : "Sign in"}{" "}
+          <ArrowRight className="size-4" />
+        </button>
       </form>
 
-      <div className="profile-auth-divider"><span /> <span>or continue with</span> <span /></div>
-      <div className="profile-social-grid">
-        <button type="button" onClick={() => showInfo("Apple sign-in will connect when authentication is enabled.")}><AppleMark /> Apple</button>
-        <button type="button" onClick={() => showInfo("Google sign-in will connect when authentication is enabled.")}><GoogleMark /> Google</button>
+      <div className="profile-auth-divider">
+        <span /> <span>or continue with</span> <span />
       </div>
-      {feedback ? <div className={feedback.kind === "error" ? "profile-auth-feedback profile-auth-feedback-error" : "profile-auth-feedback"} role="status" aria-live="polite">{feedback.kind === "error" ? <ShieldCheck className="size-4" /> : <Check className="size-4" />}{feedback.message}</div> : null}
-      <div className="profile-auth-switch">{isSignup ? "Already have an account?" : "New to Reelscape?"} <button type="button" onClick={toggleMode}>{isSignup ? "Sign in" : "Sign up"}</button></div>
-       <div className="profile-auth-note"><ShieldCheck className="size-4" /> Your password is protected by server authentication.</div>
+      <div className="profile-social-grid">
+        <button
+          type="button"
+          onClick={() =>
+            showInfo(
+              "Apple sign-in will connect when authentication is enabled.",
+            )
+          }
+        >
+          <AppleMark /> Apple
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            showInfo(
+              "Google sign-in will connect when authentication is enabled.",
+            )
+          }
+        >
+          <GoogleMark /> Google
+        </button>
+      </div>
+      {feedback ? (
+        <div
+          className={
+            feedback.kind === "error"
+              ? "profile-auth-feedback profile-auth-feedback-error"
+              : "profile-auth-feedback"
+          }
+          role="status"
+          aria-live="polite"
+        >
+          {feedback.kind === "error" ? (
+            <ShieldCheck className="size-4" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          {feedback.message}
+        </div>
+      ) : null}
+      <div className="profile-auth-switch">
+        {isSignup ? "Already have an account?" : "New to Reelscape?"}{" "}
+        <button type="button" onClick={toggleMode}>
+          {isSignup ? "Sign in" : "Sign up"}
+        </button>
+      </div>
+      <div className="profile-auth-note">
+        <ShieldCheck className="size-4" /> Your password is protected by server
+        authentication.
+      </div>
     </section>
   );
 }
 
-function LoggedInProfile({ session, onLogout }: { session: ProfileSession; onLogout: () => void }) {
+function LoggedInProfile({
+  session,
+  onLogout,
+}: {
+  session: ProfileSession;
+  onLogout: () => void;
+}) {
   return (
     <section className="profile-signed-in" aria-labelledby="profile-title">
       <div className="profile-identity">
@@ -357,26 +630,71 @@ function LoggedInProfile({ session, onLogout }: { session: ProfileSession; onLog
         <div>
           <div className="profile-kicker">Profile / active session</div>
           <h2 id="profile-title">{session.name}</h2>
-           <p><Mail className="size-3.5" /> {session.email} <span>·</span> <MapPin className="size-3.5" /> {session.location ?? "Location unavailable"}</p>
+          <p>
+            <Mail className="size-3.5" /> {session.email} <span>·</span>{" "}
+            <MapPin className="size-3.5" />{" "}
+            {session.location ?? "Location unavailable"}
+          </p>
         </div>
-        <button type="button" className="profile-logout" onClick={onLogout}><LogOut className="size-4" /> Logout</button>
+        <button type="button" className="profile-logout" onClick={onLogout}>
+          <LogOut className="size-4" /> Logout
+        </button>
       </div>
 
       <div className="profile-saved-grid">
-        <section className="profile-saved-panel" aria-labelledby="saved-movies-title">
-          <div className="profile-panel-heading"><div><div className="profile-kicker">Saved for later</div><h3 id="saved-movies-title">Movies</h3></div><span>{savedMovies.length} saved</span></div>
+        <section
+          className="profile-saved-panel"
+          aria-labelledby="saved-movies-title"
+        >
+          <div className="profile-panel-heading">
+            <div>
+              <div className="profile-kicker">Saved for later</div>
+              <h3 id="saved-movies-title">Movies</h3>
+            </div>
+            <span>{savedMovies.length} saved</span>
+          </div>
           <div className="profile-movie-list">
-            {savedMovies.map((movie) => <article key={movie.title}><img src={movie.image} alt="" /><div><strong>{movie.title}</strong><span>{movie.meta}</span></div></article>)}
+            {savedMovies.map((movie) => (
+              <article key={movie.title}>
+                <Image width={45} height={54} src={movie.image} alt="" />
+                <div>
+                  <strong>{movie.title}</strong>
+                  <span>{movie.meta}</span>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
-        <section className="profile-saved-panel" aria-labelledby="saved-songs-title">
-          <div className="profile-panel-heading"><div><div className="profile-kicker">Your soundtrack</div><h3 id="saved-songs-title">Songs</h3></div><span>{savedSongs.length} saved</span></div>
+        <section
+          className="profile-saved-panel"
+          aria-labelledby="saved-songs-title"
+        >
+          <div className="profile-panel-heading">
+            <div>
+              <div className="profile-kicker">Your soundtrack</div>
+              <h3 id="saved-songs-title">Songs</h3>
+            </div>
+            <span>{savedSongs.length} saved</span>
+          </div>
           <div className="profile-song-list">
-            {savedSongs.map(([title, artist, movie], index) => <article key={title}><span className="profile-song-index">0{index + 1}</span><div><strong>{title}</strong><span>{artist} · {movie}</span></div></article>)}
+            {savedSongs.map(([title, artist, movie], index) => (
+              <article key={title}>
+                <span className="profile-song-index">0{index + 1}</span>
+                <div>
+                  <strong>{title}</strong>
+                  <span>
+                    {artist} · {movie}
+                  </span>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </div>
-      <div className="profile-security-note"><ShieldCheck className="size-4" /> Your session stays in this browser tab and can be cleared with Logout.</div>
+      <div className="profile-security-note">
+        <ShieldCheck className="size-4" /> Your session stays in this browser
+        tab and can be cleared with Logout.
+      </div>
     </section>
   );
 }
@@ -387,13 +705,25 @@ export function ProfileExperience() {
 
   useEffect(() => {
     const sync = () => {
-      setVisible(window.location.pathname === "/" && window.location.hash === "#profile");
+      setVisible(
+        window.location.pathname === "/" && window.location.hash === "#profile",
+      );
       setSession(readSession());
-      void fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" })
-        .then(async (response) => (response.ok ? (await response.json()) as { user?: ProfileSession | null } : null))
+      void fetch("/api/auth/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      })
+        .then(async (response) =>
+          response.ok
+            ? ((await response.json()) as { user?: ProfileSession | null })
+            : null,
+        )
         .then((result) => {
           if (result?.user) {
-            window.sessionStorage.setItem(sessionKey, JSON.stringify(result.user));
+            window.sessionStorage.setItem(
+              sessionKey,
+              JSON.stringify(result.user),
+            );
             setSession(result.user);
           } else if (result) {
             window.sessionStorage.removeItem(sessionKey);
@@ -429,7 +759,10 @@ export function ProfileExperience() {
   const logout = async () => {
     haptic();
     try {
-      await fetch("/api/auth/signout", { method: "POST", credentials: "same-origin" });
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
     } catch {
       // Clear the local view even when the sign-out request cannot reach the server.
     } finally {
@@ -445,15 +778,25 @@ export function ProfileExperience() {
       <div className="profile-experience-content">
         {session ? (
           <>
-            <div className="profile-experience-topline"><span>REELSCAPE / YOUR SIGNAL</span><span>LIQUID FIELD / 01</span></div>
-            <div className="profile-experience-heading"><div className="profile-kicker">A quieter corner of the reel</div><h1>Your signal.</h1><p>Saved scenes, songs, and the next place to land.</p></div>
+            <div className="profile-experience-topline">
+              <span>REELSCAPE / YOUR SIGNAL</span>
+              <span>LIQUID FIELD / 01</span>
+            </div>
+            <div className="profile-experience-heading">
+              <div className="profile-kicker">A quieter corner of the reel</div>
+              <h1>Your signal.</h1>
+              <p>Saved scenes, songs, and the next place to land.</p>
+            </div>
             <LoggedInProfile session={session} onLogout={logout} />
           </>
         ) : (
           <div className="profile-login-stage">
             <ReelscapeLogo className="profile-login-brand" />
             <ProfileLogin onLogin={setSession} />
-            <div className="profile-login-footer"><span>NO TRACKING BY DEFAULT</span><span>ESC TO RETURN</span></div>
+            <div className="profile-login-footer">
+              <span>NO TRACKING BY DEFAULT</span>
+              <span>ESC TO RETURN</span>
+            </div>
           </div>
         )}
       </div>

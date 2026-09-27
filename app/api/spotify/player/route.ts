@@ -7,7 +7,11 @@ import {
   spotifyPrivateHeaders,
 } from "@/lib/spotify-server";
 
-async function playTrack(uri: string, deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
+async function playTrack(
+  uri: string,
+  deviceId: string,
+  tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>,
+) {
   const url = new URL("https://api.spotify.com/v1/me/player/play");
   url.searchParams.set("device_id", deviceId);
   return spotifyApiFetch(tokenState, url, {
@@ -18,7 +22,10 @@ async function playTrack(uri: string, deviceId: string, tokenState: Awaited<Retu
   });
 }
 
-async function transferPlayback(deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
+async function transferPlayback(
+  deviceId: string,
+  tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>,
+) {
   return spotifyApiFetch(tokenState, "https://api.spotify.com/v1/me/player", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -27,7 +34,11 @@ async function transferPlayback(deviceId: string, tokenState: Awaited<ReturnType
   });
 }
 
-async function startTrack(uri: string, deviceId: string, tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>) {
+async function startTrack(
+  uri: string,
+  deviceId: string,
+  tokenState: Awaited<ReturnType<typeof getSpotifyServerToken>>,
+) {
   const playResponse = await playTrack(uri, deviceId, tokenState);
   if (playResponse.status !== 404) return playResponse;
 
@@ -42,7 +53,10 @@ export async function POST(request: Request) {
   const requestOrigin = new URL(request.url).origin;
   const requestOriginHeader = request.headers.get("origin");
   if (requestOriginHeader && requestOriginHeader !== requestOrigin) {
-    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Invalid request origin." },
+      { status: 403 },
+    );
   }
 
   const body = (await request.json().catch(() => null)) as {
@@ -52,7 +66,12 @@ export async function POST(request: Request) {
   const uri = body?.uri?.trim();
   const deviceId = body?.deviceId?.trim();
 
-  if (!uri?.startsWith("spotify:track:") || uri.length > 120 || !deviceId || deviceId.length > 200) {
+  if (
+    !uri?.startsWith("spotify:track:") ||
+    uri.length > 120 ||
+    !deviceId ||
+    deviceId.length > 200
+  ) {
     return NextResponse.json(
       { error: "A Spotify track and device are required." },
       { status: 400, headers: spotifyPrivateHeaders() },
@@ -68,22 +87,41 @@ export async function POST(request: Request) {
     return clearSpotifyTokenCookies(response);
   }
 
-  const spotifyResponse = await startTrack(uri, deviceId, tokenState);
+  let spotifyResponse: Response;
+  try {
+    spotifyResponse = await startTrack(uri, deviceId, tokenState);
+  } catch (error) {
+    console.error("Spotify playback request failed", error);
+    return persistSpotifyToken(
+      NextResponse.json(
+        { error: "Spotify is temporarily unavailable. Please try again." },
+        { status: 502, headers: spotifyPrivateHeaders() },
+      ),
+      tokenState.refreshedToken,
+    );
+  }
 
   if (!spotifyResponse.ok) {
-    const error = spotifyResponse.status === 403
-      ? "Spotify playback requires an active Premium subscription."
-      : spotifyResponse.status === 404
-        ? "Spotify could not activate the Web Player device. Keep this tab open and try again."
-        : spotifyResponse.status === 401
-          ? "Spotify session expired. Connect Spotify again."
-          : "Spotify could not start this track.";
-    const status = spotifyResponse.status === 401 || spotifyResponse.status === 403
-      ? spotifyResponse.status
-      : 502;
+    const error =
+      spotifyResponse.status === 403
+        ? "Spotify playback requires an active Premium subscription."
+        : spotifyResponse.status === 404
+          ? "Spotify could not activate the Web Player device. Keep this tab open and try again."
+          : spotifyResponse.status === 401
+            ? "Spotify session expired. Connect Spotify again."
+            : "Spotify could not start this track.";
+    const status =
+      spotifyResponse.status === 401 || spotifyResponse.status === 403
+        ? spotifyResponse.status
+        : 502;
     const response = NextResponse.json(
       { error },
-      { status, headers: spotifyPrivateHeaders(spotifyResponse.headers.get("retry-after")) },
+      {
+        status,
+        headers: spotifyPrivateHeaders(
+          spotifyResponse.headers.get("retry-after"),
+        ),
+      },
     );
     return status === 401
       ? clearSpotifyTokenCookies(response)

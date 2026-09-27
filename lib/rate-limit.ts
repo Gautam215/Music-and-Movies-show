@@ -41,18 +41,27 @@ function isEnabled(value: string | undefined) {
 
 function redisConfig() {
   return {
-    url: (process.env.UPSTASH_REDIS_REST_URL ?? process.env.REDIS_REST_URL)?.replace(/\/$/, ""),
+    url: (
+      process.env.UPSTASH_REDIS_REST_URL ?? process.env.REDIS_REST_URL
+    )?.replace(/\/$/, ""),
     token: process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.REDIS_REST_TOKEN,
   };
 }
 
 function clientIdentifier(request: NextRequest) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim();
-  const address = forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+  const forwarded = request.headers
+    .get("x-forwarded-for")
+    ?.split(",", 1)[0]
+    ?.trim();
+  const address =
+    forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
   return address.replace(/[^a-zA-Z0-9:._-]/g, "_").slice(0, 120) || "unknown";
 }
 
-function unavailableResult(limit: number, failClosed: boolean): RateLimitResult {
+function unavailableResult(
+  limit: number,
+  failClosed: boolean,
+): RateLimitResult {
   return {
     allowed: !failClosed,
     limit,
@@ -63,7 +72,11 @@ function unavailableResult(limit: number, failClosed: boolean): RateLimitResult 
   };
 }
 
-function consumeFallbackRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
+function consumeFallbackRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): RateLimitResult {
   const now = Date.now();
   if (fallbackBuckets.size > 2_000) {
     for (const [bucketKey, bucket] of fallbackBuckets) {
@@ -72,9 +85,10 @@ function consumeFallbackRateLimit(key: string, limit: number, windowMs: number):
   }
 
   const current = fallbackBuckets.get(key);
-  const bucket = !current || current.resetAt <= now
-    ? { count: 0, resetAt: now + windowMs }
-    : current;
+  const bucket =
+    !current || current.resetAt <= now
+      ? { count: 0, resetAt: now + windowMs }
+      : current;
   bucket.count += 1;
   fallbackBuckets.set(key, bucket);
   const allowed = bucket.count <= limit;
@@ -89,9 +103,17 @@ function consumeFallbackRateLimit(key: string, limit: number, windowMs: number):
   };
 }
 
-export async function consumeApiRateLimit(request: NextRequest): Promise<RateLimitResult> {
-  const windowMs = positiveInteger(process.env.RATE_LIMIT_WINDOW_MS, DEFAULT_WINDOW_MS);
-  const limit = positiveInteger(process.env.RATE_LIMIT_MAX_REQUESTS, DEFAULT_LIMIT);
+export async function consumeApiRateLimit(
+  request: NextRequest,
+): Promise<RateLimitResult> {
+  const windowMs = positiveInteger(
+    process.env.RATE_LIMIT_WINDOW_MS,
+    DEFAULT_WINDOW_MS,
+  );
+  const limit = positiveInteger(
+    process.env.RATE_LIMIT_MAX_REQUESTS,
+    DEFAULT_LIMIT,
+  );
   const { url, token } = redisConfig();
   const failClosed = isEnabled(process.env.RATE_LIMIT_FAIL_CLOSED);
   const key = `${process.env.RATE_LIMIT_KEY_PREFIX ?? "reelroom:api"}:${clientIdentifier(request)}`;
@@ -118,10 +140,12 @@ export async function consumeApiRateLimit(request: NextRequest): Promise<RateLim
       | { result?: unknown; error?: string };
     const command = Array.isArray(payload) ? payload[0] : payload;
     const result = command?.result;
-    if (command?.error || !Array.isArray(result)) throw new Error("Invalid Redis result");
+    if (command?.error || !Array.isArray(result))
+      throw new Error("Invalid Redis result");
 
     const [allowed, remaining, resetMs] = result.map(Number);
-    if (![allowed, remaining, resetMs].every(Number.isFinite)) throw new Error("Invalid rate-limit values");
+    if (![allowed, remaining, resetMs].every(Number.isFinite))
+      throw new Error("Invalid rate-limit values");
 
     const retryAfterSec = Math.max(1, Math.ceil(resetMs / 1000));
     return {
@@ -136,7 +160,9 @@ export async function consumeApiRateLimit(request: NextRequest): Promise<RateLim
     console.warn("[rate-limit] Redis unavailable", {
       error: error instanceof Error ? error.message : "unknown",
     });
-    return failClosed ? unavailableResult(limit, true) : consumeFallbackRateLimit(key, limit, windowMs);
+    return failClosed
+      ? unavailableResult(limit, true)
+      : consumeFallbackRateLimit(key, limit, windowMs);
   }
 }
 
@@ -145,8 +171,11 @@ export function rateLimitHeaders(result: RateLimitResult) {
     "Cache-Control": "no-store",
     "X-RateLimit-Limit": String(result.limit),
     "X-RateLimit-Remaining": String(result.remaining),
-    "X-RateLimit-Reset": String(Math.ceil((Date.now() + result.resetMs) / 1000)),
+    "X-RateLimit-Reset": String(
+      Math.ceil((Date.now() + result.resetMs) / 1000),
+    ),
   };
-  if (result.retryAfterSec !== undefined) headers["Retry-After"] = String(result.retryAfterSec);
+  if (result.retryAfterSec !== undefined)
+    headers["Retry-After"] = String(result.retryAfterSec);
   return headers;
 }

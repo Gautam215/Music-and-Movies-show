@@ -31,10 +31,15 @@ export async function GET(request: Request) {
     );
   }
 
-    try {
-      const requestUrl = new URL(request.url);
-      const query = requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
-      if (query.length > 120) return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
+  try {
+    const requestUrl = new URL(request.url);
+    const query =
+      requestUrl.searchParams.get("q")?.trim() || "movie soundtrack";
+    if (query.length > 120)
+      return NextResponse.json(
+        { error: "Search query is too long." },
+        { status: 400 },
+      );
     const requestedLimit = Number(requestUrl.searchParams.get("limit") ?? "10");
     const limit = Number.isFinite(requestedLimit)
       ? Math.min(Math.max(Math.floor(requestedLimit), 1), 20)
@@ -45,21 +50,33 @@ export async function GET(request: Request) {
     searchUrl.searchParams.set("limit", String(limit));
     searchUrl.searchParams.set("market", "US");
 
-    const tracksResponse = await spotifyCatalogFetch(searchUrl, { cache: "no-store" });
+    const tracksResponse = await spotifyCatalogFetch(searchUrl, {
+      cache: "no-store",
+    });
 
     if (!tracksResponse.ok) {
-      const error = tracksResponse.status === 403
-        ? "Spotify catalog access requires an active Premium subscription for the app owner."
-        : tracksResponse.status === 429
-          ? "Spotify is rate limiting catalog requests. Please try again shortly."
-          : "Spotify tracks could not be loaded.";
+      const error =
+        tracksResponse.status === 403
+          ? "Spotify catalog access requires an active Premium subscription for the app owner."
+          : tracksResponse.status === 429
+            ? "Spotify is rate limiting catalog requests. Please try again shortly."
+            : "Spotify tracks could not be loaded.";
       return NextResponse.json(
         { error },
         {
-          status: tracksResponse.status === 403 ? 403 : tracksResponse.status === 429 ? 429 : 502,
-          headers: tracksResponse.status === 429
-            ? { "Retry-After": tracksResponse.headers.get("retry-after") ?? "30" }
-            : undefined,
+          status:
+            tracksResponse.status === 403
+              ? 403
+              : tracksResponse.status === 429
+                ? 429
+                : 502,
+          headers:
+            tracksResponse.status === 429
+              ? {
+                  "Retry-After":
+                    tracksResponse.headers.get("retry-after") ?? "30",
+                }
+              : undefined,
         },
       );
     }

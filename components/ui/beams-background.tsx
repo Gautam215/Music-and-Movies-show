@@ -46,10 +46,20 @@ export default function HolographicBeams({
       canvas.height = height;
     };
 
-    const drawBeam = (x: number, t: number, color: string, widthMod: number) => {
+    const drawBeam = (
+      x: number,
+      t: number,
+      color: string,
+      widthMod: number,
+    ) => {
       const beamHeight = height * (0.6 + noise(x, t * 0.5) * 0.4);
       const beamWidth = (width / density) * widthMod;
-      const gradient = context.createLinearGradient(x, height, x, height - beamHeight);
+      const gradient = context.createLinearGradient(
+        x,
+        height,
+        x,
+        height - beamHeight,
+      );
       gradient.addColorStop(0, color);
       gradient.addColorStop(1, "transparent");
       context.fillStyle = gradient;
@@ -69,12 +79,30 @@ export default function HolographicBeams({
 
       for (let index = 0; index <= density; index += 1) {
         const x = index * beamWidth;
-        const redAlpha = (opacity / 100) * (0.5 + 0.5 * Math.cos(index * 0.5 + time));
-        drawBeam(x - aberration, time + index * 0.1, `rgba(255, 0, 0, ${redAlpha * 0.5})`, 1.5);
-        const blueAlpha = (opacity / 100) * (0.5 + 0.5 * Math.sin(index * 0.6 + time * 1.1));
-        drawBeam(x + aberration, time + index * 0.12 + 10, `rgba(0, 50, 255, ${blueAlpha * 0.5})`, 1.5);
-        const coreAlpha = (opacity / 100) * (0.6 + 0.4 * Math.sin(index * 0.3 - time));
-        drawBeam(x, time + index * 0.1 + 5, `rgba(200, 255, 255, ${coreAlpha * 0.3})`, 0.8);
+        const redAlpha =
+          (opacity / 100) * (0.5 + 0.5 * Math.cos(index * 0.5 + time));
+        drawBeam(
+          x - aberration,
+          time + index * 0.1,
+          `rgba(255, 0, 0, ${redAlpha * 0.5})`,
+          1.5,
+        );
+        const blueAlpha =
+          (opacity / 100) * (0.5 + 0.5 * Math.sin(index * 0.6 + time * 1.1));
+        drawBeam(
+          x + aberration,
+          time + index * 0.12 + 10,
+          `rgba(0, 50, 255, ${blueAlpha * 0.5})`,
+          1.5,
+        );
+        const coreAlpha =
+          (opacity / 100) * (0.6 + 0.4 * Math.sin(index * 0.3 - time));
+        drawBeam(
+          x,
+          time + index * 0.1 + 5,
+          `rgba(200, 255, 255, ${coreAlpha * 0.3})`,
+          0.8,
+        );
       }
 
       animationFrame = requestAnimationFrame(draw);
@@ -93,7 +121,10 @@ export default function HolographicBeams({
   return (
     <div
       ref={containerRef}
-      className={cn("pointer-events-none absolute inset-0 z-0 overflow-hidden bg-black", className)}
+      className={cn(
+        "pointer-events-none absolute inset-0 z-0 overflow-hidden bg-black",
+        className,
+      )}
       style={style}
       {...props}
     >

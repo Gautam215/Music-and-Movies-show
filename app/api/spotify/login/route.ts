@@ -63,7 +63,11 @@ export async function GET(request: Request) {
     spotifyCookieOptions(10 * 60),
   );
   if (popupMode) {
-    response.cookies.set(SPOTIFY_POPUP_COOKIE, "1", spotifyCookieOptions(10 * 60));
+    response.cookies.set(
+      SPOTIFY_POPUP_COOKIE,
+      "1",
+      spotifyCookieOptions(10 * 60),
+    );
   }
   return response;
 }

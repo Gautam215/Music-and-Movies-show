@@ -10,7 +10,10 @@ export async function GET(request: Request) {
   const requestOrigin = new URL(request.url).origin;
   const requestOriginHeader = request.headers.get("origin");
   if (requestOriginHeader && requestOriginHeader !== requestOrigin) {
-    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Invalid request origin." },
+      { status: 403 },
+    );
   }
 
   const tokenState = await getSpotifyServerToken();

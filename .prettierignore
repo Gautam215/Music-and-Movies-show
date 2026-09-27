@@ -1,4 +1,4 @@
 .next
 node_modules
 outputs
-public/reelroom-screenshot.png
+tsconfig.tsbuildinfo

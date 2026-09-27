@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ButtonHTMLAttributes, CSSProperties, FormEvent, ReactNode } from "react";
+import Image from "next/image";
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  FormEvent,
+  ReactNode,
+} from "react";
 import {
   ArrowRight,
   Armchair,
@@ -110,7 +116,13 @@ type ProfileUser = {
 };
 
 const emptyCheckoutErrors: Partial<Record<CheckoutField, string>> = {};
-const checkoutFields: CheckoutField[] = ["name", "email", "cardNumber", "expiry", "cvc"];
+const checkoutFields: CheckoutField[] = [
+  "name",
+  "email",
+  "cardNumber",
+  "expiry",
+  "cvc",
+];
 const dismissTransientsEvent = "reelroom-dismiss-transients";
 
 function validateCheckoutField(field: CheckoutField, value: string) {
@@ -131,21 +143,28 @@ function validateCheckoutField(field: CheckoutField, value: string) {
 }
 
 function formatCardNumber(value: string) {
-  return value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 16)
+    .replace(/(\d{4})(?=\d)/g, "$1 ");
 }
 
 function formatExpiry(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 4);
-  return digits.length > 2 ? `${digits.slice(0, 2)} / ${digits.slice(2)}` : digits;
+  return digits.length > 2
+    ? `${digits.slice(0, 2)} / ${digits.slice(2)}`
+    : digits;
 }
 
 function profileInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "R";
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "R"
+  );
 }
 
 async function fetchSpotifySession() {
@@ -163,7 +182,8 @@ function requestSpotifySession(
   force = false,
 ) {
   if (requestRef.current) return requestRef.current;
-  if (!force && Date.now() < nextAllowedAtRef.current) return Promise.resolve(null);
+  if (!force && Date.now() < nextAllowedAtRef.current)
+    return Promise.resolve(null);
 
   nextAllowedAtRef.current = Date.now() + 15_000;
   const request = fetchSpotifySession();
@@ -174,24 +194,30 @@ function requestSpotifySession(
   return request;
 }
 
-function recordUserSignal(signal: {
-  type: "favorite" | "booking" | "listen";
-  title: string;
-  tmdbId?: number;
-  mediaType?: Movie["mediaType"];
-  genres?: string[];
-  metadata?: Record<string, string>;
-}, enabled = true) {
+function recordUserSignal(
+  signal: {
+    type: "favorite" | "booking" | "listen";
+    title: string;
+    tmdbId?: number;
+    mediaType?: Movie["mediaType"];
+    genres?: string[];
+    metadata?: Record<string, string>;
+  },
+  enabled = true,
+) {
   if (!enabled) return Promise.resolve(null);
   return fetchWithBackoff("/api/user-signals", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify(signal),
-  }).then((response) => {
-    if (response.ok) window.dispatchEvent(new Event("reelroom-notifications-updated"));
-    return response;
-  }).catch(() => null);
+  })
+    .then((response) => {
+      if (response.ok)
+        window.dispatchEvent(new Event("reelroom-notifications-updated"));
+      return response;
+    })
+    .catch(() => null);
 }
 
 function formatPlaybackTime(milliseconds: number) {
@@ -400,12 +426,9 @@ function Button({
     <button
       className={cn(
         "reelroom-action-button inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition duration-500 ease-out hover:-translate-y-px focus-visible:outline-none",
-        variant === "primary" &&
-          "border-amber bg-amber text-canvas",
-        variant === "surface" &&
-          "border-border bg-surface-2 text-ink",
-        variant === "ghost" &&
-          "border-border bg-transparent text-ink-2",
+        variant === "primary" && "border-amber bg-amber text-canvas",
+        variant === "surface" && "border-border bg-surface-2 text-ink",
+        variant === "ghost" && "border-border bg-transparent text-ink-2",
         className,
       )}
       {...props}
@@ -435,14 +458,22 @@ function SectionTitle({
   const Heading = headingLevel;
 
   return (
-    <div className={cn(compact ? "mb-2" : "mb-5", "flex min-w-0 max-w-full items-end justify-between gap-4")}>
+    <div
+      className={cn(
+        compact ? "mb-2" : "mb-5",
+        "flex min-w-0 max-w-full items-end justify-between gap-4",
+      )}
+    >
       <div className="min-w-0">
         <span className="font-mono text-[10px] uppercase tracking-[.16em] text-amber">
           {eyebrow}
         </span>
         <Heading
           id={titleId}
-          className={cn(compact ? "mt-1 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl", "font-display font-semibold leading-none tracking-[-.05em] text-ink")}
+          className={cn(
+            compact ? "mt-1 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl",
+            "font-display font-semibold leading-none tracking-[-.05em] text-ink",
+          )}
         >
           {title}
         </Heading>
@@ -504,9 +535,12 @@ function FeaturedScreening({
     <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
       <div>
         <div className="relative min-h-[22rem] overflow-hidden rounded-2xl md:min-h-[31rem]">
-          <img
+          <Image
+            fill
+            priority
             src={item.poster}
             alt={`${item.title} poster`}
+            sizes="(max-width: 768px) 100vw, 42vw"
             className="size-full object-cover transition duration-700 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-canvas/95 via-canvas/25 to-transparent" />
@@ -577,107 +611,119 @@ function CurrentReelSection({
   const gridRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section className="reelroom-home-panel relative space-y-7" aria-live="polite">
-        <div className="flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
-              Current reel / {city}
+    <section
+      className="reelroom-home-panel relative space-y-7"
+      aria-live="polite"
+    >
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+            Current reel / {city}
+          </span>
+          <h2 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-4xl">
+            The current reel
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="shrink-0 font-mono text-[10px] text-amber"
+        >
+          View all films ↗
+        </button>
+      </div>
+      <div ref={gridRef} className="reelroom-movie-grid-shell">
+        <div className="reelroom-movie-grid" aria-label="Current films">
+          {shelfMovies.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onOpen(item)}
+              onMouseEnter={() => onActivate(item)}
+              onFocus={() => onActivate(item)}
+              style={
+                {
+                  "--reelroom-float-delay": `${(index % 6) * -0.35}s`,
+                } as CSSProperties
+              }
+              className={cn(
+                "reelroom-movie-card group text-left",
+                item.id === activeMovie.id && "reelroom-movie-card-active",
+              )}
+            >
+              <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl">
+                <Image
+                  fill
+                  src={item.poster}
+                  alt={`${item.title} poster`}
+                  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 14vw"
+                  className="size-full object-cover transition duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent opacity-80" />
+                <span className="absolute inset-x-3 bottom-3 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
+                  {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
+                </span>
+              </div>
+              <strong
+                className={cn(
+                  "mt-3 block truncate font-display text-sm font-semibold",
+                  item.id === activeMovie.id ? "text-amber" : "text-ink",
+                )}
+              >
+                {item.title}
+              </strong>
+              <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
+                {item.release} ·{" "}
+                {item.rating === "—" ? "NR" : `★ ${item.rating}`}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="relative">
+        <div key={activeMovie.id} className="reelroom-reel-preview">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.12em] text-amber">
+            <span>
+              {activeMovie.status === "UPCOMING" ? "Upcoming" : "Now playing"}
             </span>
-            <h2 className="mt-2 font-display text-3xl font-semibold leading-none tracking-[-.07em] text-ink sm:text-4xl">
-              The current reel
-            </h2>
+            <span className="text-muted">{activeMovie.release}</span>
+            <span className="text-muted">{activeMovie.meta}</span>
+            <span className="text-muted">
+              {activeMovie.rating === "—" ? "NR" : `★ ${activeMovie.rating}`}
+            </span>
+            <span className="text-muted">${activeMovie.price}</span>
+          </div>
+          <h3 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
+            {activeMovie.title}
+          </h3>
+          <p className="mt-3 max-w-3xl text-xs leading-6 text-ink-2">
+            {activeMovie.synopsis}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {activeMovie.genres.map((genre) => (
+              <span
+                key={genre}
+                className="font-mono text-[10px] uppercase tracking-[.12em] text-muted"
+              >
+                {genre}
+              </span>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+            <span className="text-amber">Showtimes</span>
+            {activeMovie.showtimes.map((showtime) => (
+              <span key={showtime}>{showtime}</span>
+            ))}
           </div>
           <button
             type="button"
-            onClick={onViewAll}
-            className="shrink-0 font-mono text-[10px] text-amber"
+            onClick={() => onOpen(activeMovie)}
+            className="mt-5 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-amber"
           >
-            View all films ↗
+            Open film details <ArrowRight className="size-3.5" />
           </button>
         </div>
-        <div ref={gridRef} className="reelroom-movie-grid-shell">
-          <div className="reelroom-movie-grid" aria-label="Current films">
-            {shelfMovies.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onOpen(item)}
-                onMouseEnter={() => onActivate(item)}
-                onFocus={() => onActivate(item)}
-                style={{ "--reelroom-float-delay": `${(index % 6) * -0.35}s` } as CSSProperties}
-                className={cn(
-                  "reelroom-movie-card group text-left",
-                  item.id === activeMovie.id && "reelroom-movie-card-active",
-                )}
-              >
-                <div className="relative aspect-[2/2.8] overflow-hidden rounded-xl">
-                  <img
-                    src={item.poster}
-                    alt={`${item.title} poster`}
-                    className="size-full object-cover transition duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-canvas/80 via-transparent to-transparent opacity-80" />
-                  <span className="absolute inset-x-3 bottom-3 truncate font-mono text-[9px] uppercase tracking-[.08em] text-white drop-shadow">
-                    {item.status === "UPCOMING" ? "Upcoming" : "Now playing"}
-                  </span>
-                </div>
-                <strong
-                  className={cn(
-                    "mt-3 block truncate font-display text-sm font-semibold",
-                    item.id === activeMovie.id ? "text-amber" : "text-ink",
-                  )}
-                >
-                  {item.title}
-                </strong>
-                <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-[.06em] text-muted">
-                  {item.release} · {item.rating === "—" ? "NR" : `★ ${item.rating}`}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="relative">
-          <div key={activeMovie.id} className="reelroom-reel-preview">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[.12em] text-amber">
-              <span>{activeMovie.status === "UPCOMING" ? "Upcoming" : "Now playing"}</span>
-              <span className="text-muted">{activeMovie.release}</span>
-              <span className="text-muted">{activeMovie.meta}</span>
-              <span className="text-muted">
-                {activeMovie.rating === "—" ? "NR" : `★ ${activeMovie.rating}`}
-              </span>
-              <span className="text-muted">${activeMovie.price}</span>
-            </div>
-            <h3 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
-              {activeMovie.title}
-            </h3>
-            <p className="mt-3 max-w-3xl text-xs leading-6 text-ink-2">
-              {activeMovie.synopsis}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {activeMovie.genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="font-mono text-[10px] uppercase tracking-[.12em] text-muted"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-              <span className="text-amber">Showtimes</span>
-              {activeMovie.showtimes.map((showtime) => (
-                <span key={showtime}>{showtime}</span>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => onOpen(activeMovie)}
-              className="mt-5 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-amber"
-            >
-              Open film details <ArrowRight className="size-3.5" />
-            </button>
-          </div>
-        </div>
+      </div>
     </section>
   );
 }
@@ -706,7 +752,11 @@ function MoreAccessMenu({
       className={cn(
         header ? "reelroom-header-menu" : "reelroom-more-menu",
         "z-50 w-52 rounded-xl border border-border bg-surface p-1 shadow-cinematic",
-        header ? "absolute right-0 top-11" : mobile ? "fixed bottom-20 right-4" : "absolute bottom-12 left-0",
+        header
+          ? "absolute right-0 top-11"
+          : mobile
+            ? "fixed bottom-20 right-4"
+            : "absolute bottom-12 left-0",
         mobile && "lg:hidden",
       )}
       role="menu"
@@ -714,12 +764,12 @@ function MoreAccessMenu({
     >
       {items.map(([id, label, Icon]) => (
         <button
-            key={id}
-            type="button"
-            role="menuitem"
-            onClick={() => onNavigate(id)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-          >
+          key={id}
+          type="button"
+          role="menuitem"
+          onClick={() => onNavigate(id)}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+        >
           <Icon className="size-4 text-amber" />
           {label}
         </button>
@@ -750,11 +800,15 @@ export function ReelroomApp({
   const heroMovie = featuredMovie ?? catalog[0] ?? movies[0];
   const [page, setPageState] = useState<NavId>("home");
   const [routeReady, setRouteReady] = useState(false);
-  const [profileUser, setProfileUser] = useState<ProfileUser | null>(initialProfile ?? null);
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(
+    initialProfile ?? null,
+  );
   const [profileSessionReady, setProfileSessionReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
-  const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(null);
+  const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(
+    null,
+  );
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -773,16 +827,21 @@ export function ReelroomApp({
   const [booking, setBooking] = useState(false);
   const [checkoutClosing, setCheckoutClosing] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
-  const [checkoutMethod, setCheckoutMethod] = useState<"card" | "apple" | "google">("card");
+  const [checkoutMethod, setCheckoutMethod] = useState<
+    "card" | "apple" | "google"
+  >("card");
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
-    name: "",
-    email: "",
+    name: initialProfile?.name ?? "",
+    email: initialProfile?.email ?? "",
     cardNumber: "",
     expiry: "",
     cvc: "",
   });
-  const [checkoutTouched, setCheckoutTouched] = useState<Partial<Record<CheckoutField, boolean>>>({});
-  const [checkoutErrors, setCheckoutErrors] = useState<Partial<Record<CheckoutField, string>>>(emptyCheckoutErrors);
+  const [checkoutTouched, setCheckoutTouched] = useState<
+    Partial<Record<CheckoutField, boolean>>
+  >({});
+  const [checkoutErrors, setCheckoutErrors] =
+    useState<Partial<Record<CheckoutField, string>>>(emptyCheckoutErrors);
   const [notice, setNotice] = useState<string | null>(null);
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -791,10 +850,15 @@ export function ReelroomApp({
   const [moreOpen, setMoreOpen] = useState(false);
   const [spotifyCatalog, setSpotifyCatalog] = useState<Song[]>([]);
   const [selectedSoundtrack, setSelectedSoundtrack] = useState<Song[]>([]);
+  const [selectedSoundtrackMovieId, setSelectedSoundtrackMovieId] = useState<
+    string | null
+  >(null);
   const [soundtrackLoading, setSoundtrackLoading] = useState(false);
   const [spotifyPlaylistName, setSpotifyPlaylistName] = useState("Hehe");
   const [spotifyPlaylistLoading, setSpotifyPlaylistLoading] = useState(false);
-  const [spotifyPlaylistError, setSpotifyPlaylistError] = useState<string | null>(null);
+  const [spotifyPlaylistError, setSpotifyPlaylistError] = useState<
+    string | null
+  >(null);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [spotifyConnecting, setSpotifyConnecting] = useState(false);
   const [spotifyReady, setSpotifyReady] = useState(false);
@@ -809,12 +873,16 @@ export function ReelroomApp({
   const [spotifySearchQuery, setSpotifySearchQuery] = useState("");
   const [spotifySearchResults, setSpotifySearchResults] = useState<Song[]>([]);
   const [spotifySearchLoading, setSpotifySearchLoading] = useState(false);
-  const [spotifySearchError, setSpotifySearchError] = useState<string | null>(null);
+  const [spotifySearchError, setSpotifySearchError] = useState<string | null>(
+    null,
+  );
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
   const [preferencesReady, setPreferencesReady] = useState(false);
-  const [soundtrackColors, setSoundtrackColors] = useState(fallbackSoundtrackColors);
+  const [soundtrackColors, setSoundtrackColors] = useState(
+    fallbackSoundtrackColors,
+  );
   const preferencesRef = useRef<HTMLElement>(null);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceIdRef = useRef<string | null>(null);
@@ -822,14 +890,17 @@ export function ReelroomApp({
   const spotifyTrackUriRef = useRef<string | null>(null);
   const spotifyManualPauseRef = useRef(false);
   const spotifyAutoAdvanceRef = useRef<string | null>(null);
-  const playAdjacentTrackRef = useRef<((direction: -1 | 1, automatic?: boolean) => Promise<void>) | null>(null);
+  const playAdjacentTrackRef = useRef<
+    ((direction: -1 | 1, automatic?: boolean) => Promise<void>) | null
+  >(null);
   const spotifySearchInputRef = useRef<HTMLInputElement>(null);
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
   const soundtrackAbortRef = useRef<AbortController | null>(null);
   const spotifyAuthWindowRef = useRef<Window | null>(null);
   const spotifyPlaylistRequestRef = useRef<Promise<void> | null>(null);
   const spotifyPlaylistRetryAtRef = useRef(0);
-  const spotifySessionRequestRef = useRef<Promise<SpotifySession | null> | null>(null);
+  const spotifySessionRequestRef =
+    useRef<Promise<SpotifySession | null> | null>(null);
   const spotifySessionNextAllowedAtRef = useRef(0);
   const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
@@ -844,16 +915,26 @@ export function ReelroomApp({
     let cancelled = false;
     const syncProfile = async () => {
       try {
-        const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
         if (!response.ok) throw new Error("Session lookup failed");
         const result = (await response.json()) as { user?: ProfileUser | null };
         if (!cancelled) {
-          setProfileUser(result.user ?? null);
+          const nextUser = result.user ?? null;
+          setProfileUser(nextUser);
+          setCheckoutForm((current) => ({
+            ...current,
+            name: nextUser?.name ?? "",
+            email: nextUser?.email ?? "",
+          }));
           setProfileSessionReady(true);
         }
       } catch {
         if (!cancelled) {
           setProfileUser(null);
+          setCheckoutForm((current) => ({ ...current, name: "", email: "" }));
           setProfileSessionReady(true);
         }
       }
@@ -880,16 +961,20 @@ export function ReelroomApp({
 
     let cancelled = false;
     const loadPlaylist = () => {
-      if (cancelled || spotifyPlaylistRequestRef.current) return spotifyPlaylistRequestRef.current;
+      if (cancelled || spotifyPlaylistRequestRef.current)
+        return spotifyPlaylistRequestRef.current;
       if (Date.now() < spotifyPlaylistRetryAtRef.current) return null;
 
       const request = (async () => {
         setSpotifyPlaylistLoading(true);
         try {
-          const response = await fetchWithBackoff("/api/spotify/playlist?name=Hehe", {
-            cache: "no-store",
-            credentials: "same-origin",
-          });
+          const response = await fetchWithBackoff(
+            "/api/spotify/playlist?name=Hehe",
+            {
+              cache: "no-store",
+              credentials: "same-origin",
+            },
+          );
           const payload = (await response.json().catch(() => null)) as {
             playlistName?: string;
             songs?: Song[];
@@ -900,12 +985,16 @@ export function ReelroomApp({
             if (response.status !== 429) setSpotifyCatalog([]);
             if (response.status === 429) {
               const retryAfter = Number(response.headers.get("retry-after"));
-              spotifyPlaylistRetryAtRef.current = Date.now() + Math.max(
-                Number.isFinite(retryAfter) ? retryAfter * 1000 : 30_000,
-                15_000,
-              );
+              spotifyPlaylistRetryAtRef.current =
+                Date.now() +
+                Math.max(
+                  Number.isFinite(retryAfter) ? retryAfter * 1000 : 30_000,
+                  15_000,
+                );
             } else spotifyPlaylistRetryAtRef.current = Date.now() + 30_000;
-            setSpotifyPlaylistError(payload?.error ?? "Hehe playlist tracks are unavailable.");
+            setSpotifyPlaylistError(
+              payload?.error ?? "Hehe playlist tracks are unavailable.",
+            );
             return;
           }
           spotifyPlaylistRetryAtRef.current = Date.now() + 60_000;
@@ -923,7 +1012,8 @@ export function ReelroomApp({
       })();
       spotifyPlaylistRequestRef.current = request;
       void request.finally(() => {
-        if (spotifyPlaylistRequestRef.current === request) spotifyPlaylistRequestRef.current = null;
+        if (spotifyPlaylistRequestRef.current === request)
+          spotifyPlaylistRequestRef.current = null;
       });
       return request;
     };
@@ -945,25 +1035,28 @@ export function ReelroomApp({
 
   useEffect(() => {
     soundtrackAbortRef.current?.abort();
-    setSelectedSoundtrack([]);
-    setSoundtrackLoading(false);
     if (!selected) return;
 
     const controller = new AbortController();
     soundtrackAbortRef.current = controller;
-    setSoundtrackLoading(true);
 
-    fetchWithBackoff(`/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=8`, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
+    const loadSoundtrack = async () => {
+      setSelectedSoundtrackMovieId(null);
+      setSoundtrackLoading(true);
+      try {
+        const response = await fetchWithBackoff(
+          `/api/spotify/tracks?q=${encodeURIComponent(`${selected.title} soundtrack`)}&limit=8`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
         const payload = (await response.json().catch(() => null)) as {
           songs?: Song[];
         } | null;
-        if (!response.ok) return [];
+        if (!response.ok) return;
         const seen = new Set<string>();
-        return (payload?.songs ?? [])
+        const songs = (payload?.songs ?? [])
           .filter((song) => {
             const key = `${song.title.trim().toLowerCase()}:${song.artist.trim().toLowerCase()}`;
             if (seen.has(key)) return false;
@@ -971,14 +1064,18 @@ export function ReelroomApp({
             return true;
           })
           .slice(0, 2);
-      })
-      .then((songs) => {
-        if (!controller.signal.aborted) setSelectedSoundtrack(songs);
-      })
-      .catch(() => undefined)
-      .finally(() => {
+        if (!controller.signal.aborted) {
+          setSelectedSoundtrack(songs);
+          setSelectedSoundtrackMovieId(selected.id);
+        }
+      } catch {
+        // The details view remains useful when Spotify is unavailable.
+      } finally {
         if (!controller.signal.aborted) setSoundtrackLoading(false);
-      });
+      }
+    };
+
+    void loadSoundtrack();
 
     return () => controller.abort();
   }, [selected]);
@@ -995,19 +1092,24 @@ export function ReelroomApp({
   useEffect(() => {
     if (!spotifyConnected && !spotifyConnecting) return;
     const syncSession = () => {
-      void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef).then((session) => {
-        if (session?.connected) {
-          setSpotifyConnecting(false);
-          setSpotifyConnected(true);
-          if (!spotifyReady) setSpotifyStatus("Preparing player");
-          return;
-        }
-        if (spotifyConnected) {
-          setSpotifyConnected(false);
-          setSpotifyReady(false);
-          setSpotifyStatus("Reconnect Spotify");
-        }
-      }).catch(() => undefined);
+      void requestSpotifySession(
+        spotifySessionRequestRef,
+        spotifySessionNextAllowedAtRef,
+      )
+        .then((session) => {
+          if (session?.connected) {
+            setSpotifyConnecting(false);
+            setSpotifyConnected(true);
+            if (!spotifyReady) setSpotifyStatus("Preparing player");
+            return;
+          }
+          if (spotifyConnected) {
+            setSpotifyConnected(false);
+            setSpotifyReady(false);
+            setSpotifyStatus("Reconnect Spotify");
+          }
+        })
+        .catch(() => undefined);
     };
     window.addEventListener("focus", syncSession);
     document.addEventListener("visibilitychange", syncSession);
@@ -1019,7 +1121,10 @@ export function ReelroomApp({
 
   useEffect(() => {
     let cancelled = false;
-    requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef)
+    requestSpotifySession(
+      spotifySessionRequestRef,
+      spotifySessionNextAllowedAtRef,
+    )
       .then((session) => {
         if (!cancelled && session?.connected) {
           setSpotifyConnected(true);
@@ -1041,22 +1146,30 @@ export function ReelroomApp({
       spotifyAuthWindowRef.current = null;
       if (event.data.status === "connected") {
         setSpotifyStatus("Checking Spotify session");
-        void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef, true).then((session) => {
-          if (cancelled) return;
-          if (session?.connected) {
-            setSpotifyConnected(true);
-            setSpotifyStatus("Preparing player");
-            setSpotifyError(null);
-          } else {
-            setSpotifyStatus("Connect Spotify");
-            setSpotifyError("Spotify did not return a usable playback session.");
-          }
-        }).catch(() => {
-          if (!cancelled) {
-            setSpotifyStatus("Connect Spotify");
-            setSpotifyError("Spotify session verification failed.");
-          }
-        });
+        void requestSpotifySession(
+          spotifySessionRequestRef,
+          spotifySessionNextAllowedAtRef,
+          true,
+        )
+          .then((session) => {
+            if (cancelled) return;
+            if (session?.connected) {
+              setSpotifyConnected(true);
+              setSpotifyStatus("Preparing player");
+              setSpotifyError(null);
+            } else {
+              setSpotifyStatus("Connect Spotify");
+              setSpotifyError(
+                "Spotify did not return a usable playback session.",
+              );
+            }
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setSpotifyStatus("Connect Spotify");
+              setSpotifyError("Spotify session verification failed.");
+            }
+          });
       } else {
         setSpotifyStatus("Connect Spotify");
         setSpotifyError("Spotify connection was not completed.");
@@ -1076,28 +1189,43 @@ export function ReelroomApp({
 
     const cleanUrl = new URL(window.location.href);
     cleanUrl.searchParams.delete("spotify");
-    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-    setSpotifyConnecting(false);
+    window.history.replaceState(
+      {},
+      "",
+      `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`,
+    );
 
     if (status !== "connected") {
-      setSpotifyStatus("Connect Spotify");
-      setSpotifyError("Spotify connection was not completed.");
+      queueMicrotask(() => {
+        setSpotifyStatus("Connect Spotify");
+        setSpotifyError("Spotify connection was not completed.");
+      });
       return;
     }
 
-    setSpotifyStatus("Checking Spotify session");
-    void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef, true).then((session) => {
-      if (session?.connected) {
-        setSpotifyConnected(true);
-        setSpotifyStatus("Preparing player");
-        setSpotifyError(null);
-      } else {
-        setSpotifyStatus("Connect Spotify");
-        setSpotifyError("Spotify did not return a usable playback session.");
-      }
-    }).catch(() => {
-      setSpotifyStatus("Connect Spotify");
-      setSpotifyError("Spotify session verification failed.");
+    queueMicrotask(() => {
+      setSpotifyStatus("Checking Spotify session");
+      void requestSpotifySession(
+        spotifySessionRequestRef,
+        spotifySessionNextAllowedAtRef,
+        true,
+      )
+        .then((session) => {
+          if (session?.connected) {
+            setSpotifyConnected(true);
+            setSpotifyStatus("Preparing player");
+            setSpotifyError(null);
+          } else {
+            setSpotifyStatus("Connect Spotify");
+            setSpotifyError(
+              "Spotify did not return a usable playback session.",
+            );
+          }
+        })
+        .catch(() => {
+          setSpotifyStatus("Connect Spotify");
+          setSpotifyError("Spotify session verification failed.");
+        });
     });
   }, []);
 
@@ -1119,10 +1247,16 @@ export function ReelroomApp({
         name: "Reelscape Web Player",
         volume: 0.72,
         getOAuthToken: (callback) => {
-          fetchWithBackoff("/api/spotify/token", { cache: "no-store", credentials: "same-origin" })
+          fetchWithBackoff("/api/spotify/token", {
+            cache: "no-store",
+            credentials: "same-origin",
+          })
             .then(async (response) => {
-              const payload = (await response.json()) as { accessToken?: string };
-              if (!response.ok || !payload.accessToken) throw new Error("Spotify session expired");
+              const payload = (await response.json()) as {
+                accessToken?: string;
+              };
+              if (!response.ok || !payload.accessToken)
+                throw new Error("Spotify session expired");
               callback(payload.accessToken);
             })
             .catch(() => {
@@ -1142,65 +1276,97 @@ export function ReelroomApp({
         setSpotifyReady(false);
         setSpotifyStatus("Player offline");
       });
-      player.addListener("player_state_changed", (state: SpotifyPlayerState | null) => {
-        const track = state?.track_window.current_track;
-        const trackUri = track?.uri ?? null;
-        const position = state?.position ?? 0;
-        const duration = state?.duration ?? track?.duration_ms ?? 0;
-        spotifyTrackUriRef.current = trackUri;
-        setSpotifyTrackUri(track?.uri ?? null);
-        setSpotifyPaused(state?.paused ?? true);
-        setSpotifyPositionMs(position);
-        setSpotifyDurationMs(duration);
-        setPlaying(state?.paused ? null : track?.name ?? null);
+      player.addListener(
+        "player_state_changed",
+        (state: SpotifyPlayerState | null) => {
+          const track = state?.track_window.current_track;
+          const trackUri = track?.uri ?? null;
+          const position = state?.position ?? 0;
+          const duration = state?.duration ?? track?.duration_ms ?? 0;
+          spotifyTrackUriRef.current = trackUri;
+          setSpotifyTrackUri(track?.uri ?? null);
+          setSpotifyPaused(state?.paused ?? true);
+          setSpotifyPositionMs(position);
+          setSpotifyDurationMs(duration);
+          setPlaying(state?.paused ? null : (track?.name ?? null));
 
-        const requestNextTrack = () => {
-          if (!trackUri || spotifyAutoAdvanceRef.current === trackUri) return;
-          clearSpotifyEndTimer();
-          spotifyAutoAdvanceRef.current = trackUri;
-          void playAdjacentTrackRef.current?.(1, true);
-        };
+          const requestNextTrack = () => {
+            if (!trackUri || spotifyAutoAdvanceRef.current === trackUri) return;
+            clearSpotifyEndTimer();
+            spotifyAutoAdvanceRef.current = trackUri;
+            void playAdjacentTrackRef.current?.(1, true);
+          };
 
-        if (state?.paused) {
-          // A user pause clears the end timer, while an SDK end event is
-          // allowed to finish the timer or advance immediately near the end.
-          if (spotifyManualPauseRef.current) clearSpotifyEndTimer();
-          if (!spotifyManualPauseRef.current && duration > 0 && position >= duration - 750) {
-            requestNextTrack();
+          if (state?.paused) {
+            // A user pause clears the end timer, while an SDK end event is
+            // allowed to finish the timer or advance immediately near the end.
+            if (spotifyManualPauseRef.current) clearSpotifyEndTimer();
+            if (
+              !spotifyManualPauseRef.current &&
+              duration > 0 &&
+              position >= duration - 750
+            ) {
+              requestNextTrack();
+            }
+            return;
           }
-          return;
-        }
 
-        spotifyManualPauseRef.current = false;
-        clearSpotifyEndTimer();
-        if (trackUri && duration > 0) {
-          spotifyEndTimerRef.current = window.setTimeout(() => {
-            if (spotifyManualPauseRef.current || spotifyTrackUriRef.current !== trackUri) return;
-            requestNextTrack();
-          }, Math.max(duration - position, 0) + 450);
-        }
-      });
-      player.addListener("initialization_error", ({ message }: { message: string }) => {
-        setSpotifyError(message);
-        setSpotifyStatus("Player unavailable");
-      });
-      player.addListener("authentication_error", ({ message }: { message: string }) => {
-        setSpotifyError(message);
-        setSpotifyStatus("Reconnect Spotify");
-        setSpotifyConnected(false);
-      });
-      player.addListener("account_error", ({ message }: { message: string }) => {
-        setSpotifyError("An active Spotify Premium account is required for playback.");
-        setSpotifyStatus("Premium required");
-      });
+          spotifyManualPauseRef.current = false;
+          clearSpotifyEndTimer();
+          if (trackUri && duration > 0) {
+            spotifyEndTimerRef.current = window.setTimeout(
+              () => {
+                if (
+                  spotifyManualPauseRef.current ||
+                  spotifyTrackUriRef.current !== trackUri
+                )
+                  return;
+                requestNextTrack();
+              },
+              Math.max(duration - position, 0) + 450,
+            );
+          }
+        },
+      );
+      player.addListener(
+        "initialization_error",
+        ({ message }: { message: string }) => {
+          setSpotifyError(message);
+          setSpotifyStatus("Player unavailable");
+        },
+      );
+      player.addListener(
+        "authentication_error",
+        ({ message }: { message: string }) => {
+          setSpotifyError(message);
+          setSpotifyStatus("Reconnect Spotify");
+          setSpotifyConnected(false);
+        },
+      );
+      player.addListener(
+        "account_error",
+        ({ message }: { message: string }) => {
+          setSpotifyError(
+            "An active Spotify Premium account is required for playback.",
+          );
+          setSpotifyStatus("Premium required");
+        },
+      );
       spotifyPlayerRef.current = player;
-      player.connect().then((connected) => {
-        if (!connected && !cancelled) setSpotifyStatus("Player unavailable");
-      }).catch((error) => {
-        if (cancelled) return;
-        setSpotifyStatus("Player unavailable");
-        setSpotifyError(error instanceof Error ? error.message : "Spotify could not connect the player.");
-      });
+      player
+        .connect()
+        .then((connected) => {
+          if (!connected && !cancelled) setSpotifyStatus("Player unavailable");
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setSpotifyStatus("Player unavailable");
+          setSpotifyError(
+            error instanceof Error
+              ? error.message
+              : "Spotify could not connect the player.",
+          );
+        });
     };
 
     if (window.Spotify) {
@@ -1212,7 +1378,8 @@ export function ReelroomApp({
     }
 
     const existingScript = document.getElementById("spotify-player-sdk");
-    const script = (existingScript ?? document.createElement("script")) as HTMLScriptElement;
+    const script = (existingScript ??
+      document.createElement("script")) as HTMLScriptElement;
     const onLoad = () => setupPlayer();
     const previousReady = window.onSpotifyWebPlaybackSDKReady;
     window.onSpotifyWebPlaybackSDKReady = setupPlayer;
@@ -1236,7 +1403,9 @@ export function ReelroomApp({
 
   useEffect(() => {
     if (!spotifySearchOpen) return;
-    const frame = window.requestAnimationFrame(() => spotifySearchInputRef.current?.focus());
+    const frame = window.requestAnimationFrame(() =>
+      spotifySearchInputRef.current?.focus(),
+    );
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSpotifySearchOpen(false);
     };
@@ -1256,7 +1425,11 @@ export function ReelroomApp({
     if (typeof window === "undefined") return;
     const nextHash = nextPage === "home" ? "" : `#${nextPage}`;
     if (window.location.hash === nextHash) return;
-    window.history.pushState({ page: nextPage }, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+    window.history.pushState(
+      { page: nextPage },
+      "",
+      `${window.location.pathname}${window.location.search}${nextHash}`,
+    );
   };
 
   useEffect(() => {
@@ -1279,8 +1452,12 @@ export function ReelroomApp({
 
   useEffect(() => {
     try {
-      const savedReleaseAlerts = window.localStorage.getItem("reelroom.releaseAlerts");
-      const savedBookingUpdates = window.localStorage.getItem("reelroom.bookingUpdates");
+      const savedReleaseAlerts = window.localStorage.getItem(
+        "reelroom.releaseAlerts",
+      );
+      const savedBookingUpdates = window.localStorage.getItem(
+        "reelroom.bookingUpdates",
+      );
       if (savedReleaseAlerts !== null) {
         // Local storage is an external source, so hydrate these preferences after mount.
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -1297,18 +1474,16 @@ export function ReelroomApp({
   }, []);
 
   useEffect(() => {
-    setCheckoutForm((current) => ({
-      ...current,
-      name: profileUser?.name ?? "",
-      email: profileUser?.email ?? "",
-    }));
-  }, [profileUser]);
-
-  useEffect(() => {
     if (!preferencesReady) return;
     try {
-      window.localStorage.setItem("reelroom.releaseAlerts", String(releaseAlerts));
-      window.localStorage.setItem("reelroom.bookingUpdates", String(bookingUpdates));
+      window.localStorage.setItem(
+        "reelroom.releaseAlerts",
+        String(releaseAlerts),
+      );
+      window.localStorage.setItem(
+        "reelroom.bookingUpdates",
+        String(bookingUpdates),
+      );
     } catch {
       // Preferences remain usable when storage is blocked.
     }
@@ -1318,7 +1493,7 @@ export function ReelroomApp({
     let cancelled = false;
     const extractColor = (source: string, fallback: string) =>
       new Promise<string>((resolve) => {
-        const image = new Image();
+        const image = new window.Image();
         image.crossOrigin = "anonymous";
         image.onload = () => {
           const canvas = document.createElement("canvas");
@@ -1331,14 +1506,25 @@ export function ReelroomApp({
           }
           try {
             context.drawImage(image, 0, 0, canvas.width, canvas.height);
-            const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            const pixels = context.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height,
+            ).data;
             let red = 0;
             let green = 0;
             let blue = 0;
             let samples = 0;
             for (let index = 0; index < pixels.length; index += 16) {
-              const brightness = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
-              if (pixels[index + 3] < 120 || brightness < 18 || brightness > 245) continue;
+              const brightness =
+                (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+              if (
+                pixels[index + 3] < 120 ||
+                brightness < 18 ||
+                brightness > 245
+              )
+                continue;
               red += pixels[index];
               green += pixels[index + 1];
               blue += pixels[index + 2];
@@ -1363,7 +1549,10 @@ export function ReelroomApp({
 
     Promise.all(
       spotifyCatalog.map((song, index) =>
-        extractColor(song.art, fallbackSoundtrackColors[index % fallbackSoundtrackColors.length]),
+        extractColor(
+          song.art,
+          fallbackSoundtrackColors[index % fallbackSoundtrackColors.length],
+        ),
       ),
     ).then((colors) => {
       if (!cancelled) setSoundtrackColors(colors);
@@ -1374,7 +1563,10 @@ export function ReelroomApp({
   }, [spotifyCatalog]);
 
   useEffect(() => {
-    document.title = page === "profile" ? "Reelscape — Profile" : "Reelscape — find your next screening";
+    document.title =
+      page === "profile"
+        ? "Reelscape — Profile"
+        : "Reelscape — find your next screening";
   }, [page]);
 
   useEffect(() => {
@@ -1382,11 +1574,15 @@ export function ReelroomApp({
     const closeOnOutsidePointer = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest(".reelroom-desktop-overflow, .reelroom-header-overflow")) return;
+      if (
+        target.closest(".reelroom-desktop-overflow, .reelroom-header-overflow")
+      )
+        return;
       setMoreOpen(false);
     };
     document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [moreOpen]);
 
   useEffect(() => {
@@ -1402,9 +1598,12 @@ export function ReelroomApp({
     const dismissOnOutsidePointer = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest(
-        ".reelroom-floating-nav, .notification-center-panel, .notification-center-trigger, .reelroom-checkout-panel, .reelroom-detail-panel, .reelroom-more-menu, .reelroom-header-menu, #spotify-search-panel",
-      )) return;
+      if (
+        target.closest(
+          ".reelroom-floating-nav, .notification-center-panel, .notification-center-trigger, .reelroom-checkout-panel, .reelroom-detail-panel, .reelroom-more-menu, .reelroom-header-menu, #spotify-search-panel",
+        )
+      )
+        return;
       window.dispatchEvent(new Event(dismissTransientsEvent));
     };
 
@@ -1464,7 +1663,7 @@ export function ReelroomApp({
       window.removeEventListener("scroll", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-    }, [spotifyCatalog]);
+  }, [spotifyCatalog]);
 
   const filteredSongs = spotifyConnected ? spotifyCatalog : [];
   const visiblePlaylistError = spotifyConnected ? spotifyPlaylistError : null;
@@ -1473,16 +1672,21 @@ export function ReelroomApp({
     const movie = [...catalog, ...movies].find((item) => item.id === id);
     const alreadySaved = favorites.includes(id);
     if (!alreadySaved && movie) {
-      void recordUserSignal({
-        type: "favorite",
-        title: movie.title,
-        tmdbId: movie.tmdbId,
-        mediaType: movie.mediaType,
-        genres: movie.genres,
-      }, canRecordUserActivity);
+      void recordUserSignal(
+        {
+          type: "favorite",
+          title: movie.title,
+          tmdbId: movie.tmdbId,
+          mediaType: movie.mediaType,
+          genres: movie.genres,
+        },
+        canRecordUserActivity,
+      );
     }
     setFavorites((current) => {
-      return alreadySaved ? current.filter((item) => item !== id) : [...current, id];
+      return alreadySaved
+        ? current.filter((item) => item !== id)
+        : [...current, id];
     });
   };
   const announce = (message: string) => {
@@ -1528,13 +1732,14 @@ export function ReelroomApp({
     }, 240);
   };
   const updateCheckoutField = (field: CheckoutField, rawValue: string) => {
-    const value = field === "cardNumber"
-      ? formatCardNumber(rawValue)
-      : field === "expiry"
-        ? formatExpiry(rawValue)
-        : field === "cvc"
-          ? rawValue.replace(/\D/g, "").slice(0, 4)
-          : rawValue;
+    const value =
+      field === "cardNumber"
+        ? formatCardNumber(rawValue)
+        : field === "expiry"
+          ? formatExpiry(rawValue)
+          : field === "cvc"
+            ? rawValue.replace(/\D/g, "").slice(0, 4)
+            : rawValue;
     setCheckoutForm((current) => ({ ...current, [field]: value }));
     if (checkoutTouched[field]) {
       setCheckoutErrors((current) => ({
@@ -1553,7 +1758,9 @@ export function ReelroomApp({
   const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (checkoutMethod !== "card") {
-      announce("Express gateway API will be connected when the provider is supplied.");
+      announce(
+        "Express gateway API will be connected when the provider is supplied.",
+      );
       return;
     }
     const nextErrors: Partial<Record<CheckoutField, string>> = {};
@@ -1561,21 +1768,30 @@ export function ReelroomApp({
       const error = validateCheckoutField(field, checkoutForm[field]);
       if (error) nextErrors[field] = error;
     });
-    setCheckoutTouched({ name: true, email: true, cardNumber: true, expiry: true, cvc: true });
+    setCheckoutTouched({
+      name: true,
+      email: true,
+      cardNumber: true,
+      expiry: true,
+      cvc: true,
+    });
     setCheckoutErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
     setCheckoutStatus("loading");
     window.setTimeout(() => {
       setCheckoutStatus("success");
-      void recordUserSignal({
-        type: "booking",
-        title: ticketMovie.title,
-        tmdbId: ticketMovie.tmdbId,
-        mediaType: ticketMovie.mediaType,
-        genres: ticketMovie.genres,
-        metadata: { date: selectedDayOption.date, showtime: activeShowtime },
-      }, canRecordUserActivity);
+      void recordUserSignal(
+        {
+          type: "booking",
+          title: ticketMovie.title,
+          tmdbId: ticketMovie.tmdbId,
+          mediaType: ticketMovie.mediaType,
+          genres: ticketMovie.genres,
+          metadata: { date: selectedDayOption.date, showtime: activeShowtime },
+        },
+        canRecordUserActivity,
+      );
       window.setTimeout(() => {
         setBooking(false);
         setCheckoutStatus("idle");
@@ -1621,12 +1837,14 @@ export function ReelroomApp({
   };
   const connectSpotify = () => {
     if (spotifyConnecting) return;
-    const useSameTab = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const useSameTab = window.matchMedia(
+      "(max-width: 767px), (pointer: coarse)",
+    ).matches;
     if (useSameTab) {
       setSpotifyConnecting(true);
       setSpotifyError(null);
       setSpotifyStatus("Waiting for Spotify");
-      window.location.assign("/api/spotify/login");
+      window.open("/api/spotify/login", "_self");
       return;
     }
 
@@ -1639,7 +1857,7 @@ export function ReelroomApp({
       setSpotifyConnecting(true);
       setSpotifyError(null);
       setSpotifyStatus("Waiting for Spotify");
-      window.location.assign("/api/spotify/login");
+      window.open("/api/spotify/login", "_self");
       return;
     }
     spotifyAuthWindowRef.current = authWindow;
@@ -1672,20 +1890,28 @@ export function ReelroomApp({
     setSpotifySearchError(null);
 
     try {
-      const response = await fetchWithBackoff(`/api/spotify/tracks?q=${encodeURIComponent(query)}`, {
-        cache: "no-store",
-        signal: controller.signal,
-      });
+      const response = await fetchWithBackoff(
+        `/api/spotify/tracks?q=${encodeURIComponent(query)}`,
+        {
+          cache: "no-store",
+          signal: controller.signal,
+        },
+      );
       const payload = (await response.json().catch(() => null)) as {
         songs?: Song[];
         error?: string;
       } | null;
-      if (!response.ok) throw new Error(payload?.error ?? "Spotify search is unavailable.");
+      if (!response.ok)
+        throw new Error(payload?.error ?? "Spotify search is unavailable.");
       setSpotifySearchResults(payload?.songs ?? []);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setSpotifySearchResults([]);
-      setSpotifySearchError(error instanceof Error ? error.message : "Spotify search is unavailable.");
+      setSpotifySearchError(
+        error instanceof Error
+          ? error.message
+          : "Spotify search is unavailable.",
+      );
     } finally {
       if (spotifySearchAbortRef.current === controller) {
         spotifySearchAbortRef.current = null;
@@ -1721,7 +1947,9 @@ export function ReelroomApp({
       clearSpotifyEndTimer();
       spotifyManualPauseRef.current = false;
       if (!song.spotifyUri) {
-        setSpotifyError("This track is not available in the Spotify catalog yet.");
+        setSpotifyError(
+          "This track is not available in the Spotify catalog yet.",
+        );
         return;
       }
       const response = await fetchWithBackoff("/api/spotify/player", {
@@ -1730,21 +1958,32 @@ export function ReelroomApp({
         body: JSON.stringify({ uri: song.spotifyUri, deviceId }),
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setSpotifyError(payload?.error ?? "Spotify could not start this track.");
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setSpotifyError(
+          payload?.error ?? "Spotify could not start this track.",
+        );
         return;
       }
       setSpotifyError(null);
       setSpotifyTrackUri(song.spotifyUri);
       setPlaying(song.title);
-      void recordUserSignal({
-        type: "listen",
-        title: song.title,
-        metadata: { artist: song.artist, movie: song.movie },
-      }, canRecordUserActivity);
+      void recordUserSignal(
+        {
+          type: "listen",
+          title: song.title,
+          metadata: { artist: song.artist, movie: song.movie },
+        },
+        canRecordUserActivity,
+      );
     } catch (error) {
       if (automatic) spotifyAutoAdvanceRef.current = null;
-      setSpotifyError(error instanceof Error ? error.message : "Spotify could not start this track.");
+      setSpotifyError(
+        error instanceof Error
+          ? error.message
+          : "Spotify could not start this track.",
+      );
     }
   };
   const toggleSpotifyPlayback = async () => {
@@ -1778,7 +2017,10 @@ export function ReelroomApp({
       const currentState = await player.getCurrentState?.();
       const currentPosition = currentState?.position ?? spotifyPositionMs;
       const duration = currentState?.duration ?? spotifyDurationMs;
-      const targetPosition = Math.min(Math.max(currentPosition + offsetMs, 0), Math.max(duration, 0));
+      const targetPosition = Math.min(
+        Math.max(currentPosition + offsetMs, 0),
+        Math.max(duration, 0),
+      );
       await player.seek(targetPosition);
       setSpotifyPositionMs(targetPosition);
     } catch {
@@ -1794,7 +2036,10 @@ export function ReelroomApp({
     try {
       await player.activateElement();
       const duration = spotifyDurationMs || positionMs;
-      const targetPosition = Math.min(Math.max(positionMs, 0), Math.max(duration, 0));
+      const targetPosition = Math.min(
+        Math.max(positionMs, 0),
+        Math.max(duration, 0),
+      );
       await player.seek(targetPosition);
       setSpotifyPositionMs(targetPosition);
     } catch {
@@ -1807,22 +2052,31 @@ export function ReelroomApp({
       announce("Connect Spotify to browse the recommended tracks.");
       return;
     }
-    const currentIndex = playableSongs.findIndex((song) => song.spotifyUri === spotifyTrackUri);
-    const targetIndex = currentIndex === -1
-      ? direction === 1 ? 0 : playableSongs.length - 1
-      : (currentIndex + direction + playableSongs.length) % playableSongs.length;
+    const currentIndex = playableSongs.findIndex(
+      (song) => song.spotifyUri === spotifyTrackUri,
+    );
+    const targetIndex =
+      currentIndex === -1
+        ? direction === 1
+          ? 0
+          : playableSongs.length - 1
+        : (currentIndex + direction + playableSongs.length) %
+          playableSongs.length;
     const targetSong = playableSongs[targetIndex];
     if (targetSong.spotifyUri === spotifyTrackUri) {
-      if (automatic || spotifyPaused) await toggleSpotifySong(targetSong, automatic);
+      if (automatic || spotifyPaused)
+        await toggleSpotifySong(targetSong, automatic);
       return;
     }
     await toggleSpotifySong(targetSong, automatic);
   };
   useEffect(() => {
     playAdjacentTrackRef.current = playAdjacentTrack;
-  }, [playAdjacentTrack]);
+  });
   const isSongPlaying = (song: Song) =>
-    song.spotifyUri ? spotifyTrackUri === song.spotifyUri && !spotifyPaused : playing === song.title;
+    song.spotifyUri
+      ? spotifyTrackUri === song.spotifyUri && !spotifyPaused
+      : playing === song.title;
   const focusPreferences = () => {
     const section = preferencesRef.current;
     if (!section) return;
@@ -1857,18 +2111,23 @@ export function ReelroomApp({
     new Map([...catalog, ...movies].map((movie) => [movie.id, movie])).values(),
   ).slice(0, 10);
   const updatesMoviesByCategory: MovieUpdateFeeds = {
-    trending: dailyUpdates?.trending.length ? dailyUpdates.trending : shelfMovies.slice(0, 9),
+    trending: dailyUpdates?.trending.length
+      ? dailyUpdates.trending
+      : shelfMovies.slice(0, 9),
     comingSoon: dailyUpdates?.comingSoon.length
       ? dailyUpdates.comingSoon
-      : [...catalog.filter((item) => item.status === "UPCOMING"), ...movies.filter((item) => item.status === "UPCOMING")].slice(0, 9),
+      : [
+          ...catalog.filter((item) => item.status === "UPCOMING"),
+          ...movies.filter((item) => item.status === "UPCOMING"),
+        ].slice(0, 9),
   };
   const currentReel = (
     <CurrentReelSection
       activeMovie={activeReelMovie}
-       city={profileUser?.location ?? preferredCity}
+      city={profileUser?.location ?? preferredCity}
       shelfMovies={shelfMovies}
       onActivate={(movie) => setActiveReelMovieId(movie.id)}
-       onOpen={openMovie}
+      onOpen={openMovie}
       onViewAll={() => setPage("movies")}
     />
   );
@@ -1941,7 +2200,7 @@ export function ReelroomApp({
       distance={8}
       elevation={7}
       focus={[0.7, 0.48]}
-       scrim="none"
+      scrim="none"
       glow={1.2}
       starBrightness={0.55}
       spinSpeed={0.36}
@@ -1949,7 +2208,7 @@ export function ReelroomApp({
       <div className="relative z-10 flex min-h-[44rem] items-center p-4 sm:min-h-[42rem] sm:p-6 md:min-h-[38rem] md:p-8 lg:min-h-[34rem] lg:p-8">
         <FeaturedScreening
           item={heroMovie}
-           onOpen={openMovie}
+          onOpen={openMovie}
           onBook={() => setPage("tickets")}
         />
       </div>
@@ -2061,7 +2320,10 @@ export function ReelroomApp({
 
   const updatesWithWheel = (
     <div className="w-full">
-       <UpdatesCarousel moviesByCategory={updatesMoviesByCategory} onOpen={openMovie} />
+      <UpdatesCarousel
+        moviesByCategory={updatesMoviesByCategory}
+        onOpen={openMovie}
+      />
     </div>
   );
   const loginPage = (
@@ -2075,7 +2337,8 @@ export function ReelroomApp({
             Welcome back
           </h1>
           <p className="mt-2 max-w-sm text-xs leading-5 text-ink-2">
-            Log in to keep your saved films, ticket history, and release alerts together.
+            Log in to keep your saved films, ticket history, and release alerts
+            together.
           </p>
         </div>
         <form
@@ -2088,18 +2351,36 @@ export function ReelroomApp({
               const response = await fetch("/api/auth/signin", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: authEmail, password: authPassword }),
+                body: JSON.stringify({
+                  email: authEmail,
+                  password: authPassword,
+                }),
               });
-               const result = (await response.json()) as { error?: string; user?: ProfileUser };
-               if (!response.ok) throw new Error(result.error || "Could not sign in.");
-               announce(`Welcome back${result.user?.name ? `, ${result.user.name}` : ""}.`);
-               if (result.user) setProfileUser(result.user);
-               setAuthPassword("");
-               setPage("home");
-               window.dispatchEvent(new Event("reelroom-profile-session"));
-               router.refresh();
+              const result = (await response.json()) as {
+                error?: string;
+                user?: ProfileUser;
+              };
+              if (!response.ok)
+                throw new Error(result.error || "Could not sign in.");
+              announce(
+                `Welcome back${result.user?.name ? `, ${result.user.name}` : ""}.`,
+              );
+              if (result.user) {
+                setProfileUser(result.user);
+                setCheckoutForm((current) => ({
+                  ...current,
+                  name: result.user?.name ?? "",
+                  email: result.user?.email ?? "",
+                }));
+              }
+              setAuthPassword("");
+              setPage("home");
+              window.dispatchEvent(new Event("reelroom-profile-session"));
+              router.refresh();
             } catch (error) {
-              setAuthError(error instanceof Error ? error.message : "Could not sign in.");
+              setAuthError(
+                error instanceof Error ? error.message : "Could not sign in.",
+              );
             } finally {
               setAuthSubmitting(false);
             }
@@ -2133,20 +2414,37 @@ export function ReelroomApp({
               className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
-          {authError ? <p role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">{authError}</p> : null}
-          <Button type="submit" disabled={authSubmitting} variant="primary" className="h-10 w-full min-h-0 disabled:cursor-not-allowed disabled:opacity-60">
+          {authError ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-200"
+            >
+              {authError}
+            </p>
+          ) : null}
+          <Button
+            type="submit"
+            disabled={authSubmitting}
+            variant="primary"
+            className="h-10 w-full min-h-0 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <LogIn className="size-4" />
             {authSubmitting ? "Checking..." : "Log in"}
           </Button>
-          <a href="/register" className="block text-center font-mono text-[10px] uppercase tracking-[.14em] text-amber hover:text-ink">
+          <a
+            href="/register"
+            className="block text-center font-mono text-[10px] uppercase tracking-[.14em] text-amber hover:text-ink"
+          >
             New here? Create an account
           </a>
         </form>
       </section>
       <section className="relative min-h-[22rem] overflow-hidden md:min-h-[calc(100vh-7rem)]">
-        <img
+        <Image
+          fill
           src="/astronaut.png"
           alt="Astronaut floating through a violet star field"
+          sizes="(max-width: 768px) 100vw, 50vw"
           className="reelroom-login-astronaut absolute inset-0 size-full object-contain object-[58%_center] mix-blend-screen"
         />
         <div className="relative flex min-h-[22rem] flex-col items-center justify-end px-6 pb-6 md:min-h-[calc(100vh-7rem)] md:pb-8">
@@ -2161,7 +2459,10 @@ export function ReelroomApp({
   );
 
   const songsPage = (
-    <div className="reelroom-soundtrack-page space-y-5" style={soundtrackAtmosphereStyle}>
+    <div
+      className="reelroom-soundtrack-page space-y-5"
+      style={soundtrackAtmosphereStyle}
+    >
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[.16] bg-[#08090b] shadow-[0_40px_120px_rgba(0,0,0,.38)]">
         <div
           className="absolute inset-0 scale-105 bg-cover bg-center opacity-25 blur-[1px]"
@@ -2183,7 +2484,8 @@ export function ReelroomApp({
                   Sound that feels like a private concert
                 </h1>
                 <p className="max-w-xl text-base leading-relaxed text-ink-2 sm:text-lg">
-                  Recommended tracks for the scene, synced from your {spotifyPlaylistName} playlist and ready for the next frame.
+                  Recommended tracks for the scene, synced from your{" "}
+                  {spotifyPlaylistName} playlist and ready for the next frame.
                 </p>
               </div>
 
@@ -2200,7 +2502,11 @@ export function ReelroomApp({
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => document.getElementById("reelroom-recommended-tracks")?.scrollIntoView({ behavior: "smooth" })}
+                  onClick={() =>
+                    document
+                      .getElementById("reelroom-recommended-tracks")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
                   className="reelroom-playlist-button h-11 rounded-full px-5 text-xs"
                 >
                   View playlist
@@ -2213,7 +2519,9 @@ export function ReelroomApp({
                     <Headphones className="size-4" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-sm font-semibold tracking-[-.02em] text-ink">{spotifyPlaylistName} / recommended</h2>
+                    <h2 className="text-sm font-semibold tracking-[-.02em] text-ink">
+                      {spotifyPlaylistName} / recommended
+                    </h2>
                     <p className="mt-0.5 max-w-[28rem] text-xs leading-5 text-ink-2">
                       {spotifyPlaylistLoading
                         ? "Syncing the tracks attached to this scene..."
@@ -2231,20 +2539,33 @@ export function ReelroomApp({
             <div className="reelroom-player-card relative isolate overflow-hidden rounded-[2rem] border border-white/[.12] p-5 sm:p-7">
               <div className="relative z-10">
                 <div className="reelroom-player-header flex items-center gap-5">
-                  <div className="reelroom-player-art size-32 shrink-0 overflow-hidden rounded-[1.65rem] sm:size-40">
+                  <div className="reelroom-player-art relative size-32 shrink-0 overflow-hidden rounded-[1.65rem] sm:size-40">
                     {activeSong?.art ? (
-                      <img src={activeSong.art} alt="" className="size-full object-cover" />
+                      <Image
+                        fill
+                        src={activeSong.art}
+                        alt=""
+                        sizes="(max-width: 640px) 128px, 160px"
+                        className="size-full object-cover"
+                      />
                     ) : (
-                      <div className="grid size-full place-items-center text-4xl font-semibold text-white/50">♪</div>
+                      <div className="grid size-full place-items-center text-4xl font-semibold text-white/50">
+                        ♪
+                      </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-mono text-[10px] uppercase tracking-[.28em] text-ink-2">Now playing</p>
+                      <p className="font-mono text-[10px] uppercase tracking-[.28em] text-ink-2">
+                        Now playing
+                      </p>
                       <button
                         type="button"
                         aria-label="Open track menu"
-                        onClick={() => activeSong && announce("Track options are ready for this scene.")}
+                        onClick={() =>
+                          activeSong &&
+                          announce("Track options are ready for this scene.")
+                        }
                         className="reelroom-player-menu shrink-0"
                       >
                         <EllipsisVertical className="size-4" />
@@ -2278,14 +2599,29 @@ export function ReelroomApp({
                     type="range"
                     min="0"
                     max={Math.max(spotifyDurationMs, 1)}
-                    value={Math.min(spotifyPositionMs, Math.max(spotifyDurationMs, 1))}
-                    onChange={(event) => void seekSpotifyTo(Number(event.currentTarget.value))}
-                    disabled={!spotifyTrackUri || !spotifyReady || !spotifyDurationMs}
+                    value={Math.min(
+                      spotifyPositionMs,
+                      Math.max(spotifyDurationMs, 1),
+                    )}
+                    onChange={(event) =>
+                      void seekSpotifyTo(Number(event.currentTarget.value))
+                    }
+                    disabled={
+                      !spotifyTrackUri || !spotifyReady || !spotifyDurationMs
+                    }
                     aria-label="Track progress"
-                    style={{ "--reelroom-progress": `${playbackProgress}%` } as CSSProperties}
+                    style={
+                      {
+                        "--reelroom-progress": `${playbackProgress}%`,
+                      } as CSSProperties
+                    }
                   />
                   <div className="mt-2 flex items-center justify-between font-mono text-[10px] tracking-[.08em] text-ink-2">
-                    <span>{activeSong ? formatPlaybackTime(spotifyPositionMs) : "00:00"}</span>
+                    <span>
+                      {activeSong
+                        ? formatPlaybackTime(spotifyPositionMs)
+                        : "00:00"}
+                    </span>
                     <span>{activeSong?.duration ?? "--:--"}</span>
                   </div>
                 </div>
@@ -2300,7 +2636,11 @@ export function ReelroomApp({
                           startListening();
                           return;
                         }
-                        void toggleSpotifySong(filteredSongs[Math.floor(Math.random() * filteredSongs.length)]);
+                        void toggleSpotifySong(
+                          filteredSongs[
+                            Math.floor(Math.random() * filteredSongs.length)
+                          ],
+                        );
                       }}
                       className="reelroom-player-control"
                     >
@@ -2320,18 +2660,27 @@ export function ReelroomApp({
                     </button>
                     <button
                       type="button"
-                      aria-label={spotifyPaused ? "Play current track" : "Pause current track"}
+                      aria-label={
+                        spotifyPaused
+                          ? "Play current track"
+                          : "Pause current track"
+                      }
                       onClick={() => {
                         if (!activeSong) {
                           connectSpotify();
                           return;
                         }
-                        if (spotifyTrackUri === activeSong.spotifyUri) void toggleSpotifyPlayback();
+                        if (spotifyTrackUri === activeSong.spotifyUri)
+                          void toggleSpotifyPlayback();
                         else void toggleSpotifySong(activeSong);
                       }}
                       className="reelroom-player-play"
                     >
-                      {spotifyPaused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
+                      {spotifyPaused ? (
+                        <Play className="size-5 fill-current" />
+                      ) : (
+                        <Pause className="size-5 fill-current" />
+                      )}
                     </button>
                     <button
                       type="button"
@@ -2348,7 +2697,9 @@ export function ReelroomApp({
                     <button
                       type="button"
                       aria-label="Repeat track"
-                      onClick={() => announce("Repeat is controlled by your Spotify player.")}
+                      onClick={() =>
+                        announce("Repeat is controlled by your Spotify player.")
+                      }
                       className="reelroom-player-control"
                     >
                       <Repeat className="size-4" />
@@ -2356,22 +2707,29 @@ export function ReelroomApp({
                     <button
                       type="button"
                       aria-label="Spotify volume"
-                      onClick={() => announce("Volume is controlled by Spotify.")}
+                      onClick={() =>
+                        announce("Volume is controlled by Spotify.")
+                      }
                       className="reelroom-player-control"
                     >
                       <Volume2 className="size-4" />
                     </button>
                   </div>
                 </div>
-
               </div>
             </div>
 
             {spotifyError || visiblePlaylistError ? (
               <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber/30 bg-amber/[.08] px-4 py-3">
-                <p className="max-w-xl text-xs text-amber">{spotifyError ?? visiblePlaylistError}</p>
+                <p className="max-w-xl text-xs text-amber">
+                  {spotifyError ?? visiblePlaylistError}
+                </p>
                 {visiblePlaylistError ? (
-                  <button type="button" onClick={connectSpotify} className="font-mono text-[10px] uppercase tracking-[.1em] text-ink underline decoration-amber/70 underline-offset-4">
+                  <button
+                    type="button"
+                    onClick={connectSpotify}
+                    className="font-mono text-[10px] uppercase tracking-[.1em] text-ink underline decoration-amber/70 underline-offset-4"
+                  >
                     Reconnect Spotify
                   </button>
                 ) : null}
@@ -2406,7 +2764,10 @@ export function ReelroomApp({
               Press escape to close
             </span>
           </div>
-          <form onSubmit={searchSpotify} className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <form
+            onSubmit={searchSpotify}
+            className="mt-5 flex flex-col gap-2 sm:flex-row"
+          >
             <label className="relative min-w-0 flex-1">
               <span className="sr-only">Search Spotify tracks</span>
               <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -2449,23 +2810,35 @@ export function ReelroomApp({
                       key={song.id ?? song.spotifyUri ?? song.title}
                       className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 transition hover:border-white/25 hover:bg-white/[.08]"
                     >
-                      <img
+                      <Image
+                        width={56}
+                        height={56}
                         src={song.art}
                         alt=""
                         className="size-14 shrink-0 rounded-xl object-cover"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-semibold text-ink">{song.title}</h3>
-                        <p className="mt-1 truncate text-xs text-ink-2">{song.artist} · {song.movie}</p>
+                        <h3 className="truncate text-sm font-semibold text-ink">
+                          {song.title}
+                        </h3>
+                        <p className="mt-1 truncate text-xs text-ink-2">
+                          {song.artist} · {song.movie}
+                        </p>
                       </div>
-                      <span className="shrink-0 font-mono text-[10px] text-muted">{song.duration}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted">
+                        {song.duration}
+                      </span>
                       <button
                         type="button"
                         onClick={() => void toggleSpotifySong(song)}
                         aria-label={`${songPlaying ? "Pause" : "Play"} ${song.title}`}
                         className="grid size-9 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
                       >
-                        {songPlaying ? <Pause className="size-3.5 fill-current" /> : <Play className="size-3.5 fill-current" />}
+                        {songPlaying ? (
+                          <Pause className="size-3.5 fill-current" />
+                        ) : (
+                          <Play className="size-3.5 fill-current" />
+                        )}
                       </button>
                     </article>
                   );
@@ -2480,7 +2853,10 @@ export function ReelroomApp({
         </div>
       </section>
 
-      <section id="reelroom-recommended-tracks" className="reelroom-recommendations mx-auto w-full max-w-[33rem]">
+      <section
+        id="reelroom-recommended-tracks"
+        className="reelroom-recommendations mx-auto w-full max-w-[33rem]"
+      >
         <div className="reelroom-recommendations-header mb-3 flex items-center justify-between gap-3 px-1 sm:px-2">
           <div className="min-w-0">
             <span className="font-mono text-[10px] uppercase tracking-[.2em] text-amber">
@@ -2491,13 +2867,17 @@ export function ReelroomApp({
                 Recommended tracks
               </h2>
               <span className="reelroom-track-count-badge shrink-0">
-              {filteredSongs.length} tracks
+                {filteredSongs.length} tracks
               </span>
             </div>
           </div>
           <button
             type="button"
-            aria-label={spotifyTrackListOpen ? "Hide recommended tracks" : "Show recommended tracks"}
+            aria-label={
+              spotifyTrackListOpen
+                ? "Hide recommended tracks"
+                : "Show recommended tracks"
+            }
             aria-expanded={spotifyTrackListOpen}
             onClick={() => setSpotifyTrackListOpen((open) => !open)}
             className="grid size-9 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
@@ -2511,13 +2891,24 @@ export function ReelroomApp({
               <span className="reelroom-reelscape-eyebrow font-mono text-[10px] uppercase tracking-[.2em]">
                 ReelScape player
               </span>
-              <span className="reelroom-reelscape-status" data-active={Boolean(spotifyTrackUri && !spotifyPaused)}>
+              <span
+                className="reelroom-reelscape-status"
+                data-active={Boolean(spotifyTrackUri && !spotifyPaused)}
+              >
                 <span aria-hidden="true" />
-                {spotifyTrackUri ? spotifyPaused ? "Paused" : "Playing" : spotifyConnected ? "Ready" : "Offline"}
+                {spotifyTrackUri
+                  ? spotifyPaused
+                    ? "Paused"
+                    : "Playing"
+                  : spotifyConnected
+                    ? "Ready"
+                    : "Offline"}
               </span>
             </div>
             <h3 className="mt-2 truncate font-display text-xl font-semibold tracking-[-.055em] text-ink sm:text-2xl">
-              {spotifyTrackUri ? "Now playing from Spotify" : "A player for the long way home"}
+              {spotifyTrackUri
+                ? "Now playing from Spotify"
+                : "A player for the long way home"}
             </h3>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-ink-2">
               {spotifyConnected
@@ -2536,41 +2927,47 @@ export function ReelroomApp({
             ) : null}
           </div>
           <div className="reelroom-reelscape-controls flex shrink-0 items-center gap-1.5 self-start lg:self-auto">
-              <button
-                type="button"
-                onClick={() => void seekSpotify(-10_000)}
-                disabled={!spotifyTrackUri || !spotifyReady}
-                aria-label="Rewind 10 seconds"
-                className="reelroom-reelscape-control"
-              >
-                <Rewind className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => void toggleSpotifyPlayback()}
-                disabled={!spotifyTrackUri || !spotifyReady}
-                aria-label={spotifyPaused ? "Resume current track" : "Pause current track"}
-                className="reelroom-reelscape-control reelroom-reelscape-play"
-              >
-                {spotifyPaused ? <Play className="size-4 fill-current" /> : <Pause className="size-4 fill-current" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => void seekSpotify(10_000)}
-                disabled={!spotifyTrackUri || !spotifyReady}
-                aria-label="Fast-forward 10 seconds"
-                className="reelroom-reelscape-control"
-              >
-                <FastForward className="size-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Open ReelScape player menu"
-                onClick={() => announce("ReelScape handover options are ready.")}
-                className="reelroom-reelscape-menu"
-              >
-                <EllipsisVertical className="size-4" />
-              </button>
+            <button
+              type="button"
+              onClick={() => void seekSpotify(-10_000)}
+              disabled={!spotifyTrackUri || !spotifyReady}
+              aria-label="Rewind 10 seconds"
+              className="reelroom-reelscape-control"
+            >
+              <Rewind className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void toggleSpotifyPlayback()}
+              disabled={!spotifyTrackUri || !spotifyReady}
+              aria-label={
+                spotifyPaused ? "Resume current track" : "Pause current track"
+              }
+              className="reelroom-reelscape-control reelroom-reelscape-play"
+            >
+              {spotifyPaused ? (
+                <Play className="size-4 fill-current" />
+              ) : (
+                <Pause className="size-4 fill-current" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => void seekSpotify(10_000)}
+              disabled={!spotifyTrackUri || !spotifyReady}
+              aria-label="Fast-forward 10 seconds"
+              className="reelroom-reelscape-control"
+            >
+              <FastForward className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Open ReelScape player menu"
+              onClick={() => announce("ReelScape handover options are ready.")}
+              className="reelroom-reelscape-menu"
+            >
+              <EllipsisVertical className="size-4" />
+            </button>
           </div>
         </div>
       </section>
@@ -2579,7 +2976,9 @@ export function ReelroomApp({
         <div className="mx-auto w-full max-w-[33rem]">
           {spotifyPlaylistLoading ? (
             <section className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-5 text-center shadow-cinematic backdrop-blur-xl">
-              <p className="font-mono text-[10px] uppercase tracking-[.16em] text-muted">Syncing {spotifyPlaylistName} recommendations...</p>
+              <p className="font-mono text-[10px] uppercase tracking-[.16em] text-muted">
+                Syncing {spotifyPlaylistName} recommendations...
+              </p>
             </section>
           ) : filteredSongs.length ? (
             <section className="reelroom-track-list max-h-[31rem] overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl">
@@ -2590,19 +2989,35 @@ export function ReelroomApp({
                     className="reelroom-track-row group mx-auto flex min-w-0 items-center gap-4 px-2 py-4 sm:gap-5 sm:px-3"
                     data-playing={isSongPlaying(song)}
                   >
-                    <img src={song.art} alt="" className="reelroom-track-art size-11 shrink-0 rounded-xl object-cover sm:size-12" />
+                    <Image
+                      width={48}
+                      height={48}
+                      src={song.art}
+                      alt=""
+                      className="reelroom-track-art size-11 shrink-0 rounded-xl object-cover sm:size-12"
+                    />
                     <div className="min-w-0 flex-1">
-                      <h3 className="reelroom-track-title truncate text-sm font-semibold text-ink">{song.title}</h3>
-                      <p className="reelroom-track-artist mt-1 truncate text-xs text-ink-2">{song.artist}</p>
+                      <h3 className="reelroom-track-title truncate text-sm font-semibold text-ink">
+                        {song.title}
+                      </h3>
+                      <p className="reelroom-track-artist mt-1 truncate text-xs text-ink-2">
+                        {song.artist}
+                      </p>
                     </div>
-                    <span className="reelroom-track-time shrink-0 font-mono text-[10px]">{song.duration}</span>
+                    <span className="reelroom-track-time shrink-0 font-mono text-[10px]">
+                      {song.duration}
+                    </span>
                     <button
                       type="button"
                       onClick={() => void toggleSpotifySong(song)}
                       aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
                       className="reelroom-track-play grid size-8 shrink-0 place-items-center rounded-full"
                     >
-                      {isSongPlaying(song) ? <Pause className="size-3 fill-current" /> : <Play className="size-3 fill-current" />}
+                      {isSongPlaying(song) ? (
+                        <Pause className="size-3 fill-current" />
+                      ) : (
+                        <Play className="size-3 fill-current" />
+                      )}
                     </button>
                   </article>
                 ))}
@@ -2611,10 +3026,14 @@ export function ReelroomApp({
           ) : (
             <section className="rounded-[1.5rem] border border-white/[.1] bg-surface/55 p-5 text-center shadow-cinematic backdrop-blur-xl">
               <p className="font-display text-lg font-semibold tracking-[-.05em] text-ink">
-                {spotifyConnected ? `${spotifyPlaylistName} has no playable tracks yet.` : "Connect Spotify to load the Hehe playlist."}
+                {spotifyConnected
+                  ? `${spotifyPlaylistName} has no playable tracks yet.`
+                  : "Connect Spotify to load the Hehe playlist."}
               </p>
               <p className="mt-2 text-sm text-ink-2">
-                {spotifyConnected ? "Add tracks to the playlist and return here to sync them automatically." : "Your recommended tracks will appear here after authorization."}
+                {spotifyConnected
+                  ? "Add tracks to the playlist and return here to sync them automatically."
+                  : "Your recommended tracks will appear here after authorization."}
               </p>
             </section>
           )}
@@ -2670,27 +3089,58 @@ export function ReelroomApp({
   const goldenSeats = new Set(["C3", "C4", "C5", "C6"]);
   const activeShowtime = ticketMovie.showtimes.includes(showtime)
     ? showtime
-    : ticketMovie.showtimes[0] ?? showtime;
+    : (ticketMovie.showtimes[0] ?? showtime);
   const showtimeDays = [
-    { id: "today", label: "Today", date: "Thu 16 Oct", times: ticketMovie.showtimes },
-    { id: "tomorrow", label: "Tomorrow", date: "Fri 17 Oct", times: ticketMovie.showtimes.slice().reverse() },
-    { id: "weekend", label: "Weekend", date: "Sat 18 Oct", times: ticketMovie.showtimes.slice(1).concat(ticketMovie.showtimes[0] ?? []) },
+    {
+      id: "today",
+      label: "Today",
+      date: "Thu 16 Oct",
+      times: ticketMovie.showtimes,
+    },
+    {
+      id: "tomorrow",
+      label: "Tomorrow",
+      date: "Fri 17 Oct",
+      times: ticketMovie.showtimes.slice().reverse(),
+    },
+    {
+      id: "weekend",
+      label: "Weekend",
+      date: "Sat 18 Oct",
+      times: ticketMovie.showtimes
+        .slice(1)
+        .concat(ticketMovie.showtimes[0] ?? []),
+    },
   ];
-  const selectedDayOption = showtimeDays.find((day) => day.id === selectedDay) ?? showtimeDays[0];
-  const seatPrice = (seat: string) => ticketMovie.price + (seat.startsWith("A") ? 3 : seat.startsWith("B") ? 1 : 0);
-  const ticketSubtotal = selectedSeats.reduce((total, seat) => total + seatPrice(seat), 0);
+  const selectedDayOption =
+    showtimeDays.find((day) => day.id === selectedDay) ?? showtimeDays[0];
+  const seatPrice = (seat: string) =>
+    ticketMovie.price +
+    (seat.startsWith("A") ? 3 : seat.startsWith("B") ? 1 : 0);
+  const ticketSubtotal = selectedSeats.reduce(
+    (total, seat) => total + seatPrice(seat),
+    0,
+  );
   const bookingFee = selectedSeats.length ? 4.8 : 0;
   const groupDiscount = selectedSeats.length >= 4 ? -4.8 : 0;
   const ticketTotal = ticketSubtotal + bookingFee + groupDiscount;
   const checkoutTax = Math.round(ticketSubtotal * 0.18 * 100) / 100;
   const checkoutShipping = 0;
-  const checkoutTotal = ticketSubtotal + checkoutTax + checkoutShipping + bookingFee + groupDiscount;
+  const checkoutTotal =
+    ticketSubtotal +
+    checkoutTax +
+    checkoutShipping +
+    bookingFee +
+    groupDiscount;
   const chooseSmartGroup = () => {
     const rows = ["A", "B", "C", "D", "E"];
     const target = Math.min(Math.max(groupSize, 1), 6);
     for (const row of rows) {
       for (let start = 1; start <= 9 - target; start += 1) {
-        const candidateSeats = Array.from({ length: target }, (_, index) => `${row}${start + index}`);
+        const candidateSeats = Array.from(
+          { length: target },
+          (_, index) => `${row}${start + index}`,
+        );
         if (candidateSeats.every((seat) => !occupied.has(seat))) {
           setSelectedSeats(candidateSeats);
           announce(`${target} adjacent seats found in row ${row}.`);
@@ -2701,7 +3151,10 @@ export function ReelroomApp({
     announce("No adjacent group block is available in this room.");
   };
   const panSeatMap = (direction: number) => {
-    seatMapViewportRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
+    seatMapViewportRef.current?.scrollBy({
+      left: direction * 220,
+      behavior: "smooth",
+    });
   };
   const shareBookingSession = async () => {
     const roomUrl = new URL(window.location.href);
@@ -2727,51 +3180,140 @@ export function ReelroomApp({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="reelroom-booking-workspace min-w-0 rounded-[1.65rem] border border-white/[.12] bg-surface/55 p-4 shadow-cinematic backdrop-blur-xl sm:p-6">
           <div className="mb-6 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-            <span className="rounded-full bg-amber px-3 py-1.5 text-canvas">01 Show</span>
+            <span className="rounded-full bg-amber px-3 py-1.5 text-canvas">
+              01 Show
+            </span>
             <span className="h-px w-7 bg-border" />
-            <span className={cn("rounded-full px-3 py-1.5", selectedSeats.length ? "bg-cobalt/15 text-cobalt" : "")}>02 Seats</span>
+            <span
+              className={cn(
+                "rounded-full px-3 py-1.5",
+                selectedSeats.length ? "bg-cobalt/15 text-cobalt" : "",
+              )}
+            >
+              02 Seats
+            </span>
             <span className="h-px w-7 bg-border" />
             <span className="rounded-full px-3 py-1.5">03 Checkout</span>
-            <span className="ml-auto inline-flex items-center gap-1.5 text-mint"><Wifi className="size-3" /> Live room</span>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-mint">
+              <Wifi className="size-3" /> Live room
+            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 border-b border-border pb-5">
-            <img src={ticketMovie.poster} alt="" className="size-16 rounded-xl object-cover shadow-lg" />
+            <Image
+              width={64}
+              height={64}
+              src={ticketMovie.poster}
+              alt=""
+              className="size-16 rounded-xl object-cover shadow-lg"
+            />
             <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">Tonight / Greater Noida · Dolby Cinema</div>
-              <h2 className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">{ticketMovie.title}</h2>
-              <p className="mt-1 text-xs text-muted">{ticketMovie.meta} · The Orpheum · Screen 04</p>
+              <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+                Tonight / Greater Noida · Dolby Cinema
+              </div>
+              <h2 className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">
+                {ticketMovie.title}
+              </h2>
+              <p className="mt-1 text-xs text-muted">
+                {ticketMovie.meta} · The Orpheum · Screen 04
+              </p>
             </div>
             <div className="rounded-2xl border border-white/[.1] bg-white/[.04] px-3 py-2 text-right">
-              <span className="block font-mono text-[9px] uppercase tracking-[.12em] text-muted">Your hold</span>
-              <strong className="mt-1 block font-mono text-sm text-amber">08:42</strong>
+              <span className="block font-mono text-[9px] uppercase tracking-[.12em] text-muted">
+                Your hold
+              </span>
+              <strong className="mt-1 block font-mono text-sm text-amber">
+                08:42
+              </strong>
             </div>
           </div>
 
           <section className="mt-6" aria-labelledby="showtime-heading">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">01 / choose the rhythm</span>
-                <h3 id="showtime-heading" className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Find your room.</h3>
-                <p className="mt-1 text-xs text-ink-2">Three ways to choose the same calm, considered screening.</p>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+                  01 / choose the rhythm
+                </span>
+                <h3
+                  id="showtime-heading"
+                  className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink"
+                >
+                  Find your room.
+                </h3>
+                <p className="mt-1 text-xs text-ink-2">
+                  Three ways to choose the same calm, considered screening.
+                </p>
               </div>
-              <div className="flex rounded-full border border-border bg-surface-2/70 p-1" role="tablist" aria-label="Showtime view">
-                {(["cards", "timeline", "days"] as ShowtimeView[]).map((view) => (
-                  <button key={view} type="button" role="tab" aria-selected={showtimeView === view} onClick={() => setShowtimeView(view)} className={cn("rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.1em] transition", showtimeView === view ? "bg-ink text-canvas" : "text-muted hover:text-ink")}>
-                    {view === "cards" ? "Frosted" : view === "timeline" ? "Timeline" : "Days"}
-                  </button>
-                ))}
+              <div
+                className="flex rounded-full border border-border bg-surface-2/70 p-1"
+                role="tablist"
+                aria-label="Showtime view"
+              >
+                {(["cards", "timeline", "days"] as ShowtimeView[]).map(
+                  (view) => (
+                    <button
+                      key={view}
+                      type="button"
+                      role="tab"
+                      aria-selected={showtimeView === view}
+                      onClick={() => setShowtimeView(view)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.1em] transition",
+                        showtimeView === view
+                          ? "bg-ink text-canvas"
+                          : "text-muted hover:text-ink",
+                      )}
+                    >
+                      {view === "cards"
+                        ? "Frosted"
+                        : view === "timeline"
+                          ? "Timeline"
+                          : "Days"}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 
             {showtimeView === "cards" ? (
               <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {ticketMovie.showtimes.map((time, index) => (
-                  <button key={time} type="button" onClick={() => setShowtime(time)} className={cn("reelroom-showtime-card group rounded-2xl border p-4 text-left", activeShowtime === time ? "reelroom-showtime-card-active" : "border-border bg-surface-2/55 hover:border-white/30")}>
-                    <span className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-muted"><span>{index === 0 ? "Good morning" : index === ticketMovie.showtimes.length - 1 ? "Last light" : "Open room"}</span><span className={activeShowtime === time ? "text-mint" : "text-amber"}>●</span></span>
-                    <strong className="mt-4 block font-display text-xl tracking-[-.05em] text-ink">{time}</strong>
-                    <span className="mt-1 block text-[10px] text-ink-2">Dolby Atmos · {Math.max(3, 18 - index * 3)} seats left</span>
-                    <span className="mt-4 block font-mono text-[10px] text-amber">from ₹{ticketMovie.price + (index ? 0 : 2)}</span>
+                  <button
+                    key={time}
+                    type="button"
+                    onClick={() => setShowtime(time)}
+                    className={cn(
+                      "reelroom-showtime-card group rounded-2xl border p-4 text-left",
+                      activeShowtime === time
+                        ? "reelroom-showtime-card-active"
+                        : "border-border bg-surface-2/55 hover:border-white/30",
+                    )}
+                  >
+                    <span className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-muted">
+                      <span>
+                        {index === 0
+                          ? "Good morning"
+                          : index === ticketMovie.showtimes.length - 1
+                            ? "Last light"
+                            : "Open room"}
+                      </span>
+                      <span
+                        className={
+                          activeShowtime === time ? "text-mint" : "text-amber"
+                        }
+                      >
+                        ●
+                      </span>
+                    </span>
+                    <strong className="mt-4 block font-display text-xl tracking-[-.05em] text-ink">
+                      {time}
+                    </strong>
+                    <span className="mt-1 block text-[10px] text-ink-2">
+                      Dolby Atmos · {Math.max(3, 18 - index * 3)} seats left
+                    </span>
+                    <span className="mt-4 block font-mono text-[10px] text-amber">
+                      from ₹{ticketMovie.price + (index ? 0 : 2)}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -2780,10 +3322,31 @@ export function ReelroomApp({
                 <div className="relative flex min-w-[34rem] items-start justify-between gap-3 pt-2">
                   <div className="absolute left-3 right-3 top-[1.05rem] h-px bg-border" />
                   {ticketMovie.showtimes.map((time, index) => (
-                    <button key={time} type="button" onClick={() => setShowtime(time)} className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center">
-                      <span className={cn("size-3 rounded-full border-2 border-surface-2 transition duration-300 group-hover:scale-125", activeShowtime === time ? "bg-amber shadow-[0_0_0_5px_rgba(217,200,255,.12),0_0_22px_rgba(217,200,255,.62)]" : "bg-surface-3") } />
-                      <span className={cn("font-display text-base tracking-[-.03em]", activeShowtime === time ? "text-ink" : "text-ink-2")}>{time}</span>
-                      <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted">{index % 2 ? "Open room" : "Low light"}</span>
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => setShowtime(time)}
+                      className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center"
+                    >
+                      <span
+                        className={cn(
+                          "size-3 rounded-full border-2 border-surface-2 transition duration-300 group-hover:scale-125",
+                          activeShowtime === time
+                            ? "bg-amber shadow-[0_0_0_5px_rgba(217,200,255,.12),0_0_22px_rgba(217,200,255,.62)]"
+                            : "bg-surface-3",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "font-display text-base tracking-[-.03em]",
+                          activeShowtime === time ? "text-ink" : "text-ink-2",
+                        )}
+                      >
+                        {time}
+                      </span>
+                      <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                        {index % 2 ? "Open room" : "Low light"}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -2792,17 +3355,48 @@ export function ReelroomApp({
               <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(11rem,.7fr)_minmax(0,1.3fr)]">
                 <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:content-start">
                   {showtimeDays.map((day) => (
-                    <button key={day.id} type="button" onClick={() => { setSelectedDay(day.id); setShowtime(day.times[0] ?? activeShowtime); }} className={cn("min-w-[7.2rem] rounded-2xl border p-3 text-left transition sm:min-w-0", selectedDay === day.id ? "border-amber/60 bg-amber/10" : "border-border bg-surface-2/50 hover:border-white/25")}>
-                      <span className="block font-mono text-[9px] uppercase tracking-[.1em] text-muted">{day.label}</span>
-                      <strong className="mt-2 block font-display text-sm text-ink">{day.date}</strong>
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDay(day.id);
+                        setShowtime(day.times[0] ?? activeShowtime);
+                      }}
+                      className={cn(
+                        "min-w-[7.2rem] rounded-2xl border p-3 text-left transition sm:min-w-0",
+                        selectedDay === day.id
+                          ? "border-amber/60 bg-amber/10"
+                          : "border-border bg-surface-2/50 hover:border-white/25",
+                      )}
+                    >
+                      <span className="block font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                        {day.label}
+                      </span>
+                      <strong className="mt-2 block font-display text-sm text-ink">
+                        {day.date}
+                      </strong>
                     </button>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {selectedDayOption.times.map((time) => (
-                    <button key={`${selectedDay}-${time}`} type="button" onClick={() => setShowtime(time)} className={cn("rounded-2xl border px-3 py-3 text-left", activeShowtime === time ? "border-cobalt bg-cobalt/15" : "border-border bg-surface-2/50 hover:border-white/25")}>
-                      <strong className="block font-display text-sm text-ink">{time}</strong>
-                      <span className="mt-1 block text-[10px] text-muted">Dolby · ₹{ticketMovie.price}</span>
+                    <button
+                      key={`${selectedDay}-${time}`}
+                      type="button"
+                      onClick={() => setShowtime(time)}
+                      className={cn(
+                        "rounded-2xl border px-3 py-3 text-left",
+                        activeShowtime === time
+                          ? "border-cobalt bg-cobalt/15"
+                          : "border-border bg-surface-2/50 hover:border-white/25",
+                      )}
+                    >
+                      <strong className="block font-display text-sm text-ink">
+                        {time}
+                      </strong>
+                      <span className="mt-1 block text-[10px] text-muted">
+                        Dolby · ₹{ticketMovie.price}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -2812,81 +3406,283 @@ export function ReelroomApp({
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[.1] bg-white/[.035] p-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-cobalt/15 text-cobalt"><Users className="size-4" /></div>
-              <div className="min-w-0"><strong className="block text-xs text-ink">Booking with friends?</strong><span className="mt-0.5 block truncate text-[10px] text-muted">Smart seating finds one clean block. Shared session keeps everyone in sync.</span></div>
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-cobalt/15 text-cobalt">
+                <Users className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <strong className="block text-xs text-ink">
+                  Booking with friends?
+                </strong>
+                <span className="mt-0.5 block truncate text-[10px] text-muted">
+                  Smart seating finds one clean block. Shared session keeps
+                  everyone in sync.
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center rounded-full border border-border bg-surface-2/70 p-1">
-                <button type="button" className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3" onClick={() => setGroupSize((size) => Math.max(1, size - 1))} aria-label="Decrease group size"><Minus className="size-3" /></button>
-                <span className="w-7 text-center font-mono text-[10px] text-ink">{groupSize}</span>
-                <button type="button" className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3" onClick={() => setGroupSize((size) => Math.min(6, size + 1))} aria-label="Increase group size"><Plus className="size-3" /></button>
+                <button
+                  type="button"
+                  className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
+                  onClick={() => setGroupSize((size) => Math.max(1, size - 1))}
+                  aria-label="Decrease group size"
+                >
+                  <Minus className="size-3" />
+                </button>
+                <span className="w-7 text-center font-mono text-[10px] text-ink">
+                  {groupSize}
+                </span>
+                <button
+                  type="button"
+                  className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
+                  onClick={() => setGroupSize((size) => Math.min(6, size + 1))}
+                  aria-label="Increase group size"
+                >
+                  <Plus className="size-3" />
+                </button>
               </div>
-              <button type="button" onClick={chooseSmartGroup} className="inline-flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink hover:bg-cobalt/90"><Sparkles className="size-3" /> Smart group</button>
-              <button type="button" onClick={() => void shareBookingSession()} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink-2 hover:border-ink-2 hover:text-ink"><Share2 className="size-3" /> {sessionCopied ? "Copied" : "Share room"}</button>
+              <button
+                type="button"
+                onClick={chooseSmartGroup}
+                className="inline-flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink hover:bg-cobalt/90"
+              >
+                <Sparkles className="size-3" /> Smart group
+              </button>
+              <button
+                type="button"
+                onClick={() => void shareBookingSession()}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink-2 hover:border-ink-2 hover:text-ink"
+              >
+                <Share2 className="size-3" />{" "}
+                {sessionCopied ? "Copied" : "Share room"}
+              </button>
             </div>
           </div>
 
-          <section className="reelroom-seat-map-section mt-6 rounded-[1.5rem] border border-white/[.1] bg-surface-2/45 p-4 sm:p-5" aria-labelledby="seat-map-heading">
+          <section
+            className="reelroom-seat-map-section mt-6 rounded-[1.5rem] border border-white/[.1] bg-surface-2/45 p-4 sm:p-5"
+            aria-labelledby="seat-map-heading"
+          >
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">02 / sightline studio · screen 04</span>
-                <h3 id="seat-map-heading" className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Choose your view.</h3>
-                <p className="mt-1 max-w-lg text-xs leading-5 text-ink-2">Every seat is a little different. Read the room, tune the eye-level, and settle into the angle that fits.</p>
+                <span className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+                  02 / sightline studio · screen 04
+                </span>
+                <h3
+                  id="seat-map-heading"
+                  className="mt-1 font-display text-2xl font-semibold tracking-[-.055em] text-ink"
+                >
+                  Choose your view.
+                </h3>
+                <p className="mt-1 max-w-lg text-xs leading-5 text-ink-2">
+                  Every seat is a little different. Read the room, tune the
+                  eye-level, and settle into the angle that fits.
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] text-ink-2">
-                <span className="flex items-center gap-1.5"><span className="size-2 rounded-full border border-white/35 bg-white/10" /> Available</span>
-                <span className="flex items-center gap-1.5 text-amber"><span className="size-2 rounded-full border border-amber/70 bg-amber/50" /> Selected</span>
-                <span className="flex items-center gap-1.5 text-muted"><span className="size-2 rounded-full border border-white/10 bg-white/5" /> Taken</span>
-                <span className="flex items-center gap-1.5 text-cobalt"><span className="size-2 rounded-full border border-cobalt/60 bg-cobalt/30" /> Golden zone</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full border border-white/35 bg-white/10" />{" "}
+                  Available
+                </span>
+                <span className="flex items-center gap-1.5 text-amber">
+                  <span className="size-2 rounded-full border border-amber/70 bg-amber/50" />{" "}
+                  Selected
+                </span>
+                <span className="flex items-center gap-1.5 text-muted">
+                  <span className="size-2 rounded-full border border-white/10 bg-white/5" />{" "}
+                  Taken
+                </span>
+                <span className="flex items-center gap-1.5 text-cobalt">
+                  <span className="size-2 rounded-full border border-cobalt/60 bg-cobalt/30" />{" "}
+                  Golden zone
+                </span>
               </div>
             </div>
 
             <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]">
               <div className="min-w-0">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface/55 p-2">
-                  <div className="flex rounded-full border border-border bg-surface-2/65 p-1" role="tablist" aria-label="Seat view lens">
+                  <div
+                    className="flex rounded-full border border-border bg-surface-2/65 p-1"
+                    role="tablist"
+                    aria-label="Seat view lens"
+                  >
                     {(["radar", "eye", "golden"] as SeatLens[]).map((lens) => (
-                      <button key={lens} type="button" role="tab" aria-selected={seatLens === lens} onClick={() => setSeatLens(lens)} className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition", seatLens === lens ? "bg-ink text-canvas" : "text-muted hover:text-ink")}>{lens === "radar" ? <Radar className="size-3" /> : lens === "eye" ? <Eye className="size-3" /> : <Sparkles className="size-3" />}{lens === "radar" ? "Radar" : lens === "eye" ? "Eye-level" : "Golden zon"}</button>
+                      <button
+                        key={lens}
+                        type="button"
+                        role="tab"
+                        aria-selected={seatLens === lens}
+                        onClick={() => setSeatLens(lens)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
+                          seatLens === lens
+                            ? "bg-ink text-canvas"
+                            : "text-muted hover:text-ink",
+                        )}
+                      >
+                        {lens === "radar" ? (
+                          <Radar className="size-3" />
+                        ) : lens === "eye" ? (
+                          <Eye className="size-3" />
+                        ) : (
+                          <Sparkles className="size-3" />
+                        )}
+                        {lens === "radar"
+                          ? "Radar"
+                          : lens === "eye"
+                            ? "Eye-level"
+                            : "Golden zon"}
+                      </button>
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => panSeatMap(-1)} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3" aria-label="Pan seats left"><ChevronLeft className="size-3.5" /></button>
-                    <button type="button" onClick={() => setSeatZoom((current) => Math.max(.85, current - .15))} disabled={seatZoom <= .85} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30" aria-label="Zoom out seat map"><Minus className="size-3.5" /></button>
-                    <span className="w-10 text-center font-mono text-[9px] text-muted">{Math.round(seatZoom * 100)}%</span>
-                    <button type="button" onClick={() => setSeatZoom((current) => Math.min(1.6, current + .15))} disabled={seatZoom >= 1.6} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30" aria-label="Zoom in seat map"><Plus className="size-3.5" /></button>
-                    <button type="button" onClick={() => panSeatMap(1)} className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3" aria-label="Pan seats right"><ChevronRight className="size-3.5" /></button>
+                    <button
+                      type="button"
+                      onClick={() => panSeatMap(-1)}
+                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
+                      aria-label="Pan seats left"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeatZoom((current) => Math.max(0.85, current - 0.15))
+                      }
+                      disabled={seatZoom <= 0.85}
+                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
+                      aria-label="Zoom out seat map"
+                    >
+                      <Minus className="size-3.5" />
+                    </button>
+                    <span className="w-10 text-center font-mono text-[9px] text-muted">
+                      {Math.round(seatZoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeatZoom((current) => Math.min(1.6, current + 0.15))
+                      }
+                      disabled={seatZoom >= 1.6}
+                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
+                      aria-label="Zoom in seat map"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => panSeatMap(1)}
+                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
+                      aria-label="Pan seats right"
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
                   </div>
                 </div>
 
                 <div className="reelroom-sightline-stage rounded-[1.35rem] border border-border bg-canvas/45 p-3 sm:p-5">
-                  <div className="reelroom-screen mx-auto mb-4 max-w-sm text-center font-mono text-[9px] tracking-[.24em] text-ink-2">SCREEN / {eyeLevel} eye-line</div>
-                  <div ref={seatMapViewportRef} className="reelroom-seat-map-viewport relative mx-auto w-full max-w-xl overflow-x-auto rounded-2xl border border-border bg-canvas/45 p-3 sm:p-5">
-                    {seatLens === "radar" ? <div className="reelroom-sightline-radar" aria-hidden="true"><span /><span /><span /></div> : null}
-                    <div className="reelroom-seat-map relative z-10 mx-auto grid min-w-[19rem] gap-2.5" style={{ width: `${seatZoom * 100}%` }}>
+                  <div className="reelroom-screen mx-auto mb-4 max-w-sm text-center font-mono text-[9px] tracking-[.24em] text-ink-2">
+                    SCREEN / {eyeLevel} eye-line
+                  </div>
+                  <div
+                    ref={seatMapViewportRef}
+                    className="reelroom-seat-map-viewport relative mx-auto w-full max-w-xl overflow-x-auto rounded-2xl border border-border bg-canvas/45 p-3 sm:p-5"
+                  >
+                    {seatLens === "radar" ? (
+                      <div
+                        className="reelroom-sightline-radar"
+                        aria-hidden="true"
+                      >
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    ) : null}
+                    <div
+                      className="reelroom-seat-map relative z-10 mx-auto grid min-w-[19rem] gap-2.5"
+                      style={{ width: `${seatZoom * 100}%` }}
+                    >
                       {["A", "B", "C", "D", "E"].map((row) => (
-                        <div key={row} className="reelroom-seat-row grid grid-cols-[18px_repeat(8,minmax(0,1fr))_18px] items-center gap-1.5">
-                          <span className="text-center font-mono text-[9px] text-muted">{row}</span>
+                        <div
+                          key={row}
+                          className="reelroom-seat-row grid grid-cols-[18px_repeat(8,minmax(0,1fr))_18px] items-center gap-1.5"
+                        >
+                          <span className="text-center font-mono text-[9px] text-muted">
+                            {row}
+                          </span>
                           {Array.from({ length: 8 }, (_, index) => {
                             const seat = `${row}${index + 1}`;
                             const isOccupied = occupied.has(seat);
                             const isSelected = selectedSeats.includes(seat);
                             const isGolden = goldenSeats.has(seat);
                             return (
-                              <button key={seat} type="button" disabled={isOccupied} aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`} onMouseEnter={() => setHoveredSeat(seat)} onFocus={() => setHoveredSeat(seat)} onMouseLeave={() => setHoveredSeat(null)} onBlur={() => setHoveredSeat(null)} onClick={() => setSelectedSeats((current) => isSelected ? current.filter((item) => item !== seat) : [...current, seat])} className={cn("reelroom-seat group/seat relative aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber", isOccupied && "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60", isSelected && "border-amber/75 bg-amber/15 text-amber shadow-[0_8px_22px_rgba(217,200,255,.12)] hover:bg-amber/20", !isOccupied && !isSelected && "border-white/15 bg-white/[.035] text-ink-2 hover:border-white/35 hover:bg-white/[.1] hover:text-ink hover:shadow-[0_10px_22px_rgba(0,0,0,.22)]", isGolden && !isOccupied && !isSelected && "border-cobalt/45 bg-cobalt/[.06]")}>
-                                <Armchair className="mx-auto size-4 transition-transform duration-300 group-hover/seat:scale-110" aria-hidden="true" />
-                                {isGolden ? <span className="absolute right-1 top-1 text-[7px] text-cobalt">✦</span> : null}
+                              <button
+                                key={seat}
+                                type="button"
+                                disabled={isOccupied}
+                                aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`}
+                                onMouseEnter={() => setHoveredSeat(seat)}
+                                onFocus={() => setHoveredSeat(seat)}
+                                onMouseLeave={() => setHoveredSeat(null)}
+                                onBlur={() => setHoveredSeat(null)}
+                                onClick={() =>
+                                  setSelectedSeats((current) =>
+                                    isSelected
+                                      ? current.filter((item) => item !== seat)
+                                      : [...current, seat],
+                                  )
+                                }
+                                className={cn(
+                                  "reelroom-seat group/seat relative aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
+                                  isOccupied &&
+                                    "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60",
+                                  isSelected &&
+                                    "border-amber/75 bg-amber/15 text-amber shadow-[0_8px_22px_rgba(217,200,255,.12)] hover:bg-amber/20",
+                                  !isOccupied &&
+                                    !isSelected &&
+                                    "border-white/15 bg-white/[.035] text-ink-2 hover:border-white/35 hover:bg-white/[.1] hover:text-ink hover:shadow-[0_10px_22px_rgba(0,0,0,.22)]",
+                                  isGolden &&
+                                    !isOccupied &&
+                                    !isSelected &&
+                                    "border-cobalt/45 bg-cobalt/[.06]",
+                                )}
+                              >
+                                <Armchair
+                                  className="mx-auto size-4 transition-transform duration-300 group-hover/seat:scale-110"
+                                  aria-hidden="true"
+                                />
+                                {isGolden ? (
+                                  <span className="absolute right-1 top-1 text-[7px] text-cobalt">
+                                    ✦
+                                  </span>
+                                ) : null}
                                 <span className="sr-only">{seat}</span>
                               </button>
                             );
                           })}
-                          <span className="text-center font-mono text-[9px] text-muted">{row}</span>
+                          <span className="text-center font-mono text-[9px] text-muted">
+                            {row}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.1em] text-muted"><Maximize2 className="size-3 text-amber" /> Drag horizontally to pan the room</div>
-                    {hoveredSeat ? <div className="rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 font-mono text-[9px] text-amber">{hoveredSeat} · {goldenSeats.has(hoveredSeat) ? "Golden zon" : hoveredSeat.startsWith("A") ? "Closer view" : "Balanced view"}</div> : null}
+                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                      <Maximize2 className="size-3 text-amber" /> Drag
+                      horizontally to pan the room
+                    </div>
+                    {hoveredSeat ? (
+                      <div className="rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 font-mono text-[9px] text-amber">
+                        {hoveredSeat} ·{" "}
+                        {goldenSeats.has(hoveredSeat)
+                          ? "Golden zon"
+                          : hoveredSeat.startsWith("A")
+                            ? "Closer view"
+                            : "Balanced view"}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -2894,52 +3690,233 @@ export function ReelroomApp({
               <aside className="reelroom-seat-inspector rounded-[1.25rem] border border-white/[.1] bg-white/[.035] p-4">
                 {seatLens === "radar" ? (
                   <>
-                    <div className="flex items-center gap-2 text-cobalt"><Radar className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Sightline obstruction radar</span></div>
-                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">The center stays clear.</h4>
-                    <p className="mt-2 text-[11px] leading-5 text-ink-2">The radar estimates heads and railings between you and the screen. Mid-room seats keep the cleanest cone.</p>
+                    <div className="flex items-center gap-2 text-cobalt">
+                      <Radar className="size-4" />
+                      <span className="font-mono text-[9px] uppercase tracking-[.14em]">
+                        Sightline obstruction radar
+                      </span>
+                    </div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">
+                      The center stays clear.
+                    </h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">
+                      The radar estimates heads and railings between you and the
+                      screen. Mid-room seats keep the cleanest cone.
+                    </p>
                     <div className="mt-5 space-y-3">
-                      {["Center axis", "Left edge", "Right edge"].map((label, index) => <div key={label}><div className="mb-1 flex justify-between font-mono text-[9px] uppercase tracking-[.08em] text-muted"><span>{label}</span><span className="text-mint">{index === 0 ? "98%" : index === 1 ? "82%" : "88%"}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-surface-3"><span className="block h-full rounded-full bg-gradient-to-r from-cobalt to-mint" style={{ width: `${[98, 82, 88][index]}%` }} /></div></div>)}
+                      {["Center axis", "Left edge", "Right edge"].map(
+                        (label, index) => (
+                          <div key={label}>
+                            <div className="mb-1 flex justify-between font-mono text-[9px] uppercase tracking-[.08em] text-muted">
+                              <span>{label}</span>
+                              <span className="text-mint">
+                                {index === 0
+                                  ? "98%"
+                                  : index === 1
+                                    ? "82%"
+                                    : "88%"}
+                              </span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
+                              <span
+                                className="block h-full rounded-full bg-gradient-to-r from-cobalt to-mint"
+                                style={{ width: `${[98, 82, 88][index]}%` }}
+                              />
+                            </div>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </>
                 ) : seatLens === "eye" ? (
                   <>
-                    <div className="flex items-center gap-2 text-amber"><Eye className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Custom eye-level</span></div>
-                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">Tune the horizon.</h4>
-                    <p className="mt-2 text-[11px] leading-5 text-ink-2">Preview how the screen lands from your row before you commit.</p>
-                    <div className="reelroom-eye-preview mt-5"><span className={cn("reelroom-eye-preview-line", eyeLevel)} /><span className="reelroom-eye-preview-screen" /></div>
-                    <div className="mt-4 grid grid-cols-3 gap-1.5">{(["front", "middle", "rear"] as EyeLevel[]).map((level) => <button key={level} type="button" onClick={() => setEyeLevel(level)} className={cn("rounded-lg border px-2 py-2 font-mono text-[9px] uppercase tracking-[.08em]", eyeLevel === level ? "border-amber/60 bg-amber/10 text-amber" : "border-border text-muted hover:text-ink")}>{level}</button>)}</div>
+                    <div className="flex items-center gap-2 text-amber">
+                      <Eye className="size-4" />
+                      <span className="font-mono text-[9px] uppercase tracking-[.14em]">
+                        Custom eye-level
+                      </span>
+                    </div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">
+                      Tune the horizon.
+                    </h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">
+                      Preview how the screen lands from your row before you
+                      commit.
+                    </p>
+                    <div className="reelroom-eye-preview mt-5">
+                      <span
+                        className={cn("reelroom-eye-preview-line", eyeLevel)}
+                      />
+                      <span className="reelroom-eye-preview-screen" />
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-1.5">
+                      {(["front", "middle", "rear"] as EyeLevel[]).map(
+                        (level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => setEyeLevel(level)}
+                            className={cn(
+                              "rounded-lg border px-2 py-2 font-mono text-[9px] uppercase tracking-[.08em]",
+                              eyeLevel === level
+                                ? "border-amber/60 bg-amber/10 text-amber"
+                                : "border-border text-muted hover:text-ink",
+                            )}
+                          >
+                            {level}
+                          </button>
+                        ),
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 text-amber"><Sparkles className="size-4" /><span className="font-mono text-[9px] uppercase tracking-[.14em]">Golden zon</span></div>
-                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">Balanced, not boring.</h4>
-                    <p className="mt-2 text-[11px] leading-5 text-ink-2">The highlighted seats sit inside the theater&apos;s sweet spot: centered sound, gentle distance, no neck strain.</p>
-                    <div className="mt-5 rounded-xl border border-cobalt/25 bg-cobalt/10 p-3 text-[10px] leading-5 text-cobalt">✦ C3–C6 are the recommended Golden zon for this room.</div>
+                    <div className="flex items-center gap-2 text-amber">
+                      <Sparkles className="size-4" />
+                      <span className="font-mono text-[9px] uppercase tracking-[.14em]">
+                        Golden zon
+                      </span>
+                    </div>
+                    <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">
+                      Balanced, not boring.
+                    </h4>
+                    <p className="mt-2 text-[11px] leading-5 text-ink-2">
+                      The highlighted seats sit inside the theater&apos;s sweet
+                      spot: centered sound, gentle distance, no neck strain.
+                    </p>
+                    <div className="mt-5 rounded-xl border border-cobalt/25 bg-cobalt/10 p-3 text-[10px] leading-5 text-cobalt">
+                      ✦ C3–C6 are the recommended Golden zon for this room.
+                    </div>
                   </>
                 )}
-                <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-[10px] text-muted"><ShieldCheck className="size-3.5 text-mint" /> Seating map updates instantly when the room changes.</div>
+                <div className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-[10px] text-muted">
+                  <ShieldCheck className="size-3.5 text-mint" /> Seating map
+                  updates instantly when the room changes.
+                </div>
               </aside>
             </div>
-            <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-full border border-border bg-surface/65 px-4 py-2.5 font-mono text-[10px] text-ink-2"><Clock3 className="size-3.5 text-amber" /> Seats are held for 08:42 after selection.</div>
+            <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-full border border-border bg-surface/65 px-4 py-2.5 font-mono text-[10px] text-ink-2">
+              <Clock3 className="size-3.5 text-amber" /> Seats are held for
+              08:42 after selection.
+            </div>
           </section>
         </div>
 
         {!isLastLightDetailsVisible ? (
           <aside className="reelroom-order-summary h-fit rounded-[1.5rem] border border-white/[.12] bg-surface-2/80 p-5 shadow-cinematic backdrop-blur-xl lg:sticky lg:top-5">
-            <div className="flex items-center justify-between gap-3"><div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">Order summary</div><span className="inline-flex items-center gap-1 font-mono text-[9px] text-mint"><Wifi className="size-3" /> synced</span></div>
-            <h3 className="mt-2 font-display text-2xl font-semibold tracking-[-.055em] text-ink">Your screening.</h3>
-            <div className="my-5 flex gap-3 border-b border-border pb-5"><img src={ticketMovie.poster} alt="" className="size-16 rounded-xl object-cover" /><div className="min-w-0"><strong className="block truncate font-display text-sm text-ink">{ticketMovie.title}</strong><span className="mt-1 block font-mono text-[10px] text-amber">{selectedDayOption.date} · {activeShowtime}</span><span className="mt-1 block font-mono text-[10px] text-muted">The Orpheum · Dolby Cinema</span></div></div>
-            <div className="space-y-3 text-xs text-ink-2">
-              <div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-2"><CalendarDays className="size-3.5 text-amber" /> Date & time</span><button type="button" onClick={() => document.getElementById("showtime-heading")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="font-mono text-[10px] text-amber">Modify</button></div>
-              <div className="flex justify-between gap-3"><span>Seats × {selectedSeats.length}</span><strong className="max-w-[10rem] text-right text-ink">{selectedSeats.length ? selectedSeats.join(", ") : "Select seats"}</strong></div>
-              <div className="flex justify-between gap-3"><span>Tickets</span><strong className="text-ink">₹{ticketSubtotal.toFixed(2)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Booking fee</span><strong className="text-ink">₹{bookingFee.toFixed(2)}</strong></div>
-              {groupDiscount ? <div className="flex justify-between gap-3 text-mint"><span>Group saving</span><strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong></div> : null}
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
+                Order summary
+              </div>
+              <span className="inline-flex items-center gap-1 font-mono text-[9px] text-mint">
+                <Wifi className="size-3" /> synced
+              </span>
             </div>
-            <div className="mt-5 flex items-end justify-between border-t border-border pt-4"><span className="font-display text-base font-semibold text-ink">Total</span><strong className="font-display text-2xl tracking-[-.05em] text-amber">₹{ticketTotal.toFixed(2)}</strong></div>
-            <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-[10px] leading-5 text-ink-2"><span className="mb-1 block font-mono uppercase tracking-[.1em] text-muted">Shared room</span>{sharedSession ? "You and 2 friends are choosing together." : "Invite friends to choose seats in the same room."}<button type="button" onClick={() => void shareBookingSession()} className="mt-2 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt"><Copy className="size-3" /> {sessionCopied ? "Link copied" : "Copy invite link"}</button></div>
-             <Button variant="primary" disabled={!selectedSeats.length} onClick={openCheckout} className="mt-5 w-full">{selectedSeats.length ? "Continue to checkout" : "Select your seats"}<ArrowRight className="size-4" /></Button>
-            <p className="mt-3 flex items-start gap-2 text-[10px] leading-5 text-muted"><ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" /> Demo mode: payment is not processed. Production hands off to a PCI-compliant provider.</p>
+            <h3 className="mt-2 font-display text-2xl font-semibold tracking-[-.055em] text-ink">
+              Your screening.
+            </h3>
+            <div className="my-5 flex gap-3 border-b border-border pb-5">
+              <Image
+                width={64}
+                height={64}
+                src={ticketMovie.poster}
+                alt=""
+                className="size-16 rounded-xl object-cover"
+              />
+              <div className="min-w-0">
+                <strong className="block truncate font-display text-sm text-ink">
+                  {ticketMovie.title}
+                </strong>
+                <span className="mt-1 block font-mono text-[10px] text-amber">
+                  {selectedDayOption.date} · {activeShowtime}
+                </span>
+                <span className="mt-1 block font-mono text-[10px] text-muted">
+                  The Orpheum · Dolby Cinema
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3 text-xs text-ink-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="size-3.5 text-amber" /> Date & time
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById("showtime-heading")
+                      ?.scrollIntoView({ behavior: "smooth", block: "center" })
+                  }
+                  className="font-mono text-[10px] text-amber"
+                >
+                  Modify
+                </button>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Seats × {selectedSeats.length}</span>
+                <strong className="max-w-[10rem] text-right text-ink">
+                  {selectedSeats.length
+                    ? selectedSeats.join(", ")
+                    : "Select seats"}
+                </strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Tickets</span>
+                <strong className="text-ink">
+                  ₹{ticketSubtotal.toFixed(2)}
+                </strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Booking fee</span>
+                <strong className="text-ink">₹{bookingFee.toFixed(2)}</strong>
+              </div>
+              {groupDiscount ? (
+                <div className="flex justify-between gap-3 text-mint">
+                  <span>Group saving</span>
+                  <strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong>
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-5 flex items-end justify-between border-t border-border pt-4">
+              <span className="font-display text-base font-semibold text-ink">
+                Total
+              </span>
+              <strong className="font-display text-2xl tracking-[-.05em] text-amber">
+                ₹{ticketTotal.toFixed(2)}
+              </strong>
+            </div>
+            <div className="mt-4 rounded-xl border border-border bg-surface/60 p-3 text-[10px] leading-5 text-ink-2">
+              <span className="mb-1 block font-mono uppercase tracking-[.1em] text-muted">
+                Shared room
+              </span>
+              {sharedSession
+                ? "You and 2 friends are choosing together."
+                : "Invite friends to choose seats in the same room."}
+              <button
+                type="button"
+                onClick={() => void shareBookingSession()}
+                className="mt-2 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt"
+              >
+                <Copy className="size-3" />{" "}
+                {sessionCopied ? "Link copied" : "Copy invite link"}
+              </button>
+            </div>
+            <Button
+              variant="primary"
+              disabled={!selectedSeats.length}
+              onClick={openCheckout}
+              className="mt-5 w-full"
+            >
+              {selectedSeats.length
+                ? "Continue to checkout"
+                : "Select your seats"}
+              <ArrowRight className="size-4" />
+            </Button>
+            <p className="mt-3 flex items-start gap-2 text-[10px] leading-5 text-muted">
+              <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" />{" "}
+              Demo mode: payment is not processed. Production hands off to a
+              PCI-compliant provider.
+            </p>
           </aside>
         ) : null}
       </div>
@@ -2958,17 +3935,17 @@ export function ReelroomApp({
         />
         <div className="flex w-full max-w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface/75 p-4 backdrop-blur-md">
           <div className="flex min-w-0 max-w-full items-center gap-3">
-             <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
-               {profileInitials(profileUser?.name ?? "Reelscape")}
-             </div>
-             <div className="min-w-0">
-               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
-                 {profileUser?.name ?? "Sign in to load your profile"}
-               </h2>
-               <p className="mt-1 text-xs text-ink-2">
-                 {profileUser?.location ?? "Location will appear after sign in"}
-                 {profileUser?.email ? ` · ${profileUser.email}` : ""}
-               </p>
+            <div className="grid size-12 place-items-center rounded-full bg-amber font-display text-lg font-bold text-canvas">
+              {profileInitials(profileUser?.name ?? "Reelscape")}
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
+                {profileUser?.name ?? "Sign in to load your profile"}
+              </h2>
+              <p className="mt-1 text-xs text-ink-2">
+                {profileUser?.location ?? "Location will appear after sign in"}
+                {profileUser?.email ? ` · ${profileUser.email}` : ""}
+              </p>
             </div>
           </div>
           <Button
@@ -2996,9 +3973,11 @@ export function ReelroomApp({
               .map((item) => (
                 <div
                   key={item.id}
-                    className="flex items-center gap-3 border-b border-border py-1.5 last:border-0"
+                  className="flex items-center gap-3 border-b border-border py-1.5 last:border-0"
                 >
-                  <img
+                  <Image
+                    width={40}
+                    height={40}
                     src={item.poster}
                     alt={`${item.title} movie poster`}
                     className="size-10 rounded-md object-cover"
@@ -3207,12 +4186,16 @@ export function ReelroomApp({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative isolate min-h-[35rem] overflow-hidden sm:min-h-[32rem]">
-          <img
-            src={selected.backdrop}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-[-2rem] size-[calc(100%+4rem)] object-cover blur-2xl opacity-75"
-          />
+          <div className="absolute inset-[-2rem]">
+            <Image
+              fill
+              src={selected.backdrop}
+              alt=""
+              aria-hidden="true"
+              sizes="(max-width: 768px) 100vw, 80vw"
+              className="object-cover blur-2xl opacity-75"
+            />
+          </div>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,7,11,.12),rgba(6,7,11,.7)_50%,rgba(6,7,11,.98))]" />
           <div className="absolute inset-0 bg-gradient-to-r from-canvas/70 via-transparent to-canvas/35" />
           <button
@@ -3229,11 +4212,15 @@ export function ReelroomApp({
                 <span className="rounded-full border border-amber/50 bg-canvas/35 px-3 py-1.5 text-amber backdrop-blur-md">
                   {selected.status === "UPCOMING" ? "Upcoming" : "Feature"}
                 </span>
-                <span className="hidden sm:inline">Reelscape / screening notes</span>
+                <span className="hidden sm:inline">
+                  Reelscape / screening notes
+                </span>
               </div>
             </div>
             <div className="mt-auto grid gap-6 p-5 sm:p-8 md:grid-cols-[13rem_minmax(0,1fr)] md:items-end">
-              <img
+              <Image
+                width={208}
+                height={291}
                 src={selected.poster}
                 alt={`${selected.title} poster`}
                 className="aspect-[2/2.8] w-36 rounded-xl object-cover shadow-2xl ring-1 ring-white/15 md:w-full"
@@ -3270,7 +4257,8 @@ export function ReelroomApp({
                     <Heart
                       className={cn(
                         "size-4",
-                        favorites.includes(selected.id) && "fill-amber text-amber",
+                        favorites.includes(selected.id) &&
+                          "fill-amber text-amber",
                       )}
                     />{" "}
                     {favorites.includes(selected.id) ? "Saved" : "Save film"}
@@ -3287,7 +4275,9 @@ export function ReelroomApp({
             </div>
           </div>
         </div>
-        {!soundtrackLoading && selectedSoundtrack.length ? (
+        {selectedSoundtrackMovieId === selected.id &&
+        !soundtrackLoading &&
+        selectedSoundtrack.length ? (
           <section className="border-t border-border bg-surface p-5 sm:p-8">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -3308,7 +4298,9 @@ export function ReelroomApp({
                   key={song.id ?? `${song.title}-${song.artist}`}
                   className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
                 >
-                  <img
+                  <Image
+                    width={48}
+                    height={48}
                     src={song.art || selected.poster}
                     alt={`${song.title} artwork`}
                     className="size-12 rounded-lg object-cover"
@@ -3371,14 +4363,19 @@ export function ReelroomApp({
               <div className="mt-7 font-mono text-[10px] uppercase tracking-[.22em] text-mint">
                 Payment confirmed
               </div>
-              <h2 id="checkout-title" className="mt-3 font-display text-4xl font-semibold tracking-[-.08em] text-ink sm:text-5xl">
+              <h2
+                id="checkout-title"
+                className="mt-3 font-display text-4xl font-semibold tracking-[-.08em] text-ink sm:text-5xl"
+              >
                 Your seats are yours.
               </h2>
               <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-ink-2">
-                A confirmation is ready for {checkoutForm.email}. We&apos;ll keep the ticket in your Reelscape profile.
+                A confirmation is ready for {checkoutForm.email}. We&apos;ll
+                keep the ticket in your Reelscape profile.
               </p>
               <div className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-4 py-2 font-mono text-[10px] uppercase tracking-[.1em] text-ink-2">
-                <Ticket className="size-3.5 text-amber" /> {ticketMovie.title} · {selectedDayOption.date}
+                <Ticket className="size-3.5 text-amber" /> {ticketMovie.title} ·{" "}
+                {selectedDayOption.date}
               </div>
             </div>
           </div>
@@ -3387,14 +4384,23 @@ export function ReelroomApp({
             <header className="flex items-start justify-between gap-6 border-b border-white/[.1] px-5 py-5 sm:px-8 sm:py-7">
               <div>
                 <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.2em] text-amber">
-                  <span className="grid size-5 place-items-center rounded-full border border-amber/40 bg-amber/10">03</span>
+                  <span className="grid size-5 place-items-center rounded-full border border-amber/40 bg-amber/10">
+                    03
+                  </span>
                   Checkout / secure handoff
                 </div>
-                <h2 id="checkout-title" className="mt-3 font-display text-3xl font-semibold tracking-[-.07em] text-ink sm:text-4xl">
+                <h2
+                  id="checkout-title"
+                  className="mt-3 font-display text-3xl font-semibold tracking-[-.07em] text-ink sm:text-4xl"
+                >
                   Almost at the credits.
                 </h2>
-                <p id="checkout-description" className="mt-2 max-w-xl text-sm leading-6 text-ink-2">
-                  Finish with a few details. Your payment provider will receive the handoff only after you confirm.
+                <p
+                  id="checkout-description"
+                  className="mt-2 max-w-xl text-sm leading-6 text-ink-2"
+                >
+                  Finish with a few details. Your payment provider will receive
+                  the handoff only after you confirm.
                 </p>
               </div>
               <button
@@ -3407,35 +4413,57 @@ export function ReelroomApp({
               </button>
             </header>
 
-            <form onSubmit={submitCheckout} className="grid gap-0 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,.7fr)]">
+            <form
+              onSubmit={submitCheckout}
+              className="grid gap-0 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,.7fr)]"
+            >
               <div className="min-w-0 space-y-6 p-5 sm:p-8">
                 <section aria-labelledby="express-title">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Fast lane</div>
-                      <h3 id="express-title" className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink">Express payment</h3>
+                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+                        Fast lane
+                      </div>
+                      <h3
+                        id="express-title"
+                        className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink"
+                      >
+                        Express payment
+                      </h3>
                     </div>
-                    <span className="font-mono text-[9px] uppercase tracking-[.12em] text-muted">Gateway API pending</span>
+                    <span className="font-mono text-[9px] uppercase tracking-[.12em] text-muted">
+                      Gateway API pending
+                    </span>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {([
-                      ["apple", "Apple Pay", "Face ID / Touch ID"],
-                      ["google", "Google Pay", "Saved payment"],
-                    ] as const).map(([method, label, detail]) => (
+                    {(
+                      [
+                        ["apple", "Apple Pay", "Face ID / Touch ID"],
+                        ["google", "Google Pay", "Saved payment"],
+                      ] as const
+                    ).map(([method, label, detail]) => (
                       <button
                         key={method}
                         type="button"
                         onClick={() => setCheckoutMethod(method)}
                         className={cn(
                           "reelroom-express-button group flex min-h-[4.2rem] items-center justify-between gap-3 rounded-2xl border px-4 text-left transition",
-                          checkoutMethod === method ? "border-amber/65 bg-amber/[.12] text-ink" : "border-white/10 bg-white/[.045] text-ink-2 hover:border-white/25 hover:bg-white/[.08]",
+                          checkoutMethod === method
+                            ? "border-amber/65 bg-amber/[.12] text-ink"
+                            : "border-white/10 bg-white/[.045] text-ink-2 hover:border-white/25 hover:bg-white/[.08]",
                         )}
                       >
                         <span>
-                          <strong className="block text-sm text-ink">{label}</strong>
-                          <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.08em] text-muted">{detail}</span>
+                          <strong className="block text-sm text-ink">
+                            {label}
+                          </strong>
+                          <span className="mt-1 block font-mono text-[9px] uppercase tracking-[.08em] text-muted">
+                            {detail}
+                          </span>
                         </span>
-                        <span className="rounded-full border border-white/10 px-2 py-1 font-mono text-[8px] uppercase tracking-[.08em] text-muted transition group-hover:border-amber/40 group-hover:text-amber">API later</span>
+                        <span className="rounded-full border border-white/10 px-2 py-1 font-mono text-[8px] uppercase tracking-[.08em] text-muted transition group-hover:border-amber/40 group-hover:text-amber">
+                          API later
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -3444,21 +4472,54 @@ export function ReelroomApp({
                     onClick={() => setCheckoutMethod("card")}
                     className={cn(
                       "reelroom-payment-method mt-3 flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition",
-                      checkoutMethod === "card" ? "border-cobalt/60 bg-cobalt/[.1]" : "border-white/10 bg-white/[.035] hover:border-white/25",
+                      checkoutMethod === "card"
+                        ? "border-cobalt/60 bg-cobalt/[.1]"
+                        : "border-white/10 bg-white/[.035] hover:border-white/25",
                     )}
                   >
-                    <span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg bg-white text-[10px] font-bold text-[#182033]">CARD</span><span><strong className="block text-xs text-ink">Card details</strong><span className="mt-1 block text-[10px] text-muted">Secure provider handoff</span></span></span>
-                    <span className={cn("size-2 rounded-full", checkoutMethod === "card" ? "bg-cobalt shadow-[0_0_14px_rgba(94,121,255,.9)]" : "bg-white/15")} />
+                    <span className="flex items-center gap-3">
+                      <span className="grid size-8 place-items-center rounded-lg bg-white text-[10px] font-bold text-[#182033]">
+                        CARD
+                      </span>
+                      <span>
+                        <strong className="block text-xs text-ink">
+                          Card details
+                        </strong>
+                        <span className="mt-1 block text-[10px] text-muted">
+                          Secure provider handoff
+                        </span>
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "size-2 rounded-full",
+                        checkoutMethod === "card"
+                          ? "bg-cobalt shadow-[0_0_14px_rgba(94,121,255,.9)]"
+                          : "bg-white/15",
+                      )}
+                    />
                   </button>
                 </section>
 
-                <section className="border-t border-white/[.1] pt-6" aria-labelledby="details-title">
+                <section
+                  className="border-t border-white/[.1] pt-6"
+                  aria-labelledby="details-title"
+                >
                   <div className="flex items-end justify-between gap-3">
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Minimal details</div>
-                      <h3 id="details-title" className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink">Ready when you are.</h3>
+                      <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+                        Minimal details
+                      </div>
+                      <h3
+                        id="details-title"
+                        className="mt-2 font-display text-xl font-semibold tracking-[-.05em] text-ink"
+                      >
+                        Ready when you are.
+                      </h3>
                     </div>
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-mint"><Check className="size-3" /> autofill ready</span>
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-mint">
+                      <Check className="size-3" /> autofill ready
+                    </span>
                   </div>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -3468,13 +4529,25 @@ export function ReelroomApp({
                         id="checkout-name"
                         name="name"
                         value={checkoutForm.name}
-                        onChange={(event) => updateCheckoutField("name", event.target.value)}
+                        onChange={(event) =>
+                          updateCheckoutField("name", event.target.value)
+                        }
                         onBlur={() => touchCheckoutField("name")}
                         autoComplete="name"
-                        aria-invalid={Boolean(checkoutTouched.name && checkoutErrors.name)}
-                        className={cn(checkoutTouched.name && checkoutErrors.name && "reelroom-checkout-input-error")}
+                        aria-invalid={Boolean(
+                          checkoutTouched.name && checkoutErrors.name,
+                        )}
+                        className={cn(
+                          checkoutTouched.name &&
+                            checkoutErrors.name &&
+                            "reelroom-checkout-input-error",
+                        )}
                       />
-                      {checkoutTouched.name && checkoutErrors.name ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.name}</span> : null}
+                      {checkoutTouched.name && checkoutErrors.name ? (
+                        <span className="reelroom-checkout-error" role="alert">
+                          {checkoutErrors.name}
+                        </span>
+                      ) : null}
                     </label>
                     <label className="reelroom-checkout-field">
                       <span>Email for confirmation</span>
@@ -3483,13 +4556,25 @@ export function ReelroomApp({
                         name="email"
                         type="email"
                         value={checkoutForm.email}
-                        onChange={(event) => updateCheckoutField("email", event.target.value)}
+                        onChange={(event) =>
+                          updateCheckoutField("email", event.target.value)
+                        }
                         onBlur={() => touchCheckoutField("email")}
                         autoComplete="email"
-                        aria-invalid={Boolean(checkoutTouched.email && checkoutErrors.email)}
-                        className={cn(checkoutTouched.email && checkoutErrors.email && "reelroom-checkout-input-error")}
+                        aria-invalid={Boolean(
+                          checkoutTouched.email && checkoutErrors.email,
+                        )}
+                        className={cn(
+                          checkoutTouched.email &&
+                            checkoutErrors.email &&
+                            "reelroom-checkout-input-error",
+                        )}
                       />
-                      {checkoutTouched.email && checkoutErrors.email ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.email}</span> : null}
+                      {checkoutTouched.email && checkoutErrors.email ? (
+                        <span className="reelroom-checkout-error" role="alert">
+                          {checkoutErrors.email}
+                        </span>
+                      ) : null}
                     </label>
                   </div>
 
@@ -3502,14 +4587,34 @@ export function ReelroomApp({
                           name="cardNumber"
                           inputMode="numeric"
                           value={checkoutForm.cardNumber}
-                          onChange={(event) => updateCheckoutField("cardNumber", event.target.value)}
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "cardNumber",
+                              event.target.value,
+                            )
+                          }
                           onBlur={() => touchCheckoutField("cardNumber")}
                           autoComplete="cc-number"
                           placeholder="1234 5678 9012 3456"
-                          aria-invalid={Boolean(checkoutTouched.cardNumber && checkoutErrors.cardNumber)}
-                          className={cn(checkoutTouched.cardNumber && checkoutErrors.cardNumber && "reelroom-checkout-input-error")}
+                          aria-invalid={Boolean(
+                            checkoutTouched.cardNumber &&
+                            checkoutErrors.cardNumber,
+                          )}
+                          className={cn(
+                            checkoutTouched.cardNumber &&
+                              checkoutErrors.cardNumber &&
+                              "reelroom-checkout-input-error",
+                          )}
                         />
-                        {checkoutTouched.cardNumber && checkoutErrors.cardNumber ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.cardNumber}</span> : null}
+                        {checkoutTouched.cardNumber &&
+                        checkoutErrors.cardNumber ? (
+                          <span
+                            className="reelroom-checkout-error"
+                            role="alert"
+                          >
+                            {checkoutErrors.cardNumber}
+                          </span>
+                        ) : null}
                       </label>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <label className="reelroom-checkout-field">
@@ -3519,14 +4624,29 @@ export function ReelroomApp({
                             name="expiry"
                             inputMode="numeric"
                             value={checkoutForm.expiry}
-                            onChange={(event) => updateCheckoutField("expiry", event.target.value)}
+                            onChange={(event) =>
+                              updateCheckoutField("expiry", event.target.value)
+                            }
                             onBlur={() => touchCheckoutField("expiry")}
                             autoComplete="cc-exp"
                             placeholder="MM / YY"
-                            aria-invalid={Boolean(checkoutTouched.expiry && checkoutErrors.expiry)}
-                            className={cn(checkoutTouched.expiry && checkoutErrors.expiry && "reelroom-checkout-input-error")}
+                            aria-invalid={Boolean(
+                              checkoutTouched.expiry && checkoutErrors.expiry,
+                            )}
+                            className={cn(
+                              checkoutTouched.expiry &&
+                                checkoutErrors.expiry &&
+                                "reelroom-checkout-input-error",
+                            )}
                           />
-                          {checkoutTouched.expiry && checkoutErrors.expiry ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.expiry}</span> : null}
+                          {checkoutTouched.expiry && checkoutErrors.expiry ? (
+                            <span
+                              className="reelroom-checkout-error"
+                              role="alert"
+                            >
+                              {checkoutErrors.expiry}
+                            </span>
+                          ) : null}
                         </label>
                         <label className="reelroom-checkout-field">
                           <span>Security code</span>
@@ -3535,29 +4655,65 @@ export function ReelroomApp({
                             name="cvc"
                             inputMode="numeric"
                             value={checkoutForm.cvc}
-                            onChange={(event) => updateCheckoutField("cvc", event.target.value)}
+                            onChange={(event) =>
+                              updateCheckoutField("cvc", event.target.value)
+                            }
                             onBlur={() => touchCheckoutField("cvc")}
                             autoComplete="cc-csc"
                             placeholder="CVC"
-                            aria-invalid={Boolean(checkoutTouched.cvc && checkoutErrors.cvc)}
-                            className={cn(checkoutTouched.cvc && checkoutErrors.cvc && "reelroom-checkout-input-error")}
+                            aria-invalid={Boolean(
+                              checkoutTouched.cvc && checkoutErrors.cvc,
+                            )}
+                            className={cn(
+                              checkoutTouched.cvc &&
+                                checkoutErrors.cvc &&
+                                "reelroom-checkout-input-error",
+                            )}
                           />
-                          {checkoutTouched.cvc && checkoutErrors.cvc ? <span className="reelroom-checkout-error" role="alert">{checkoutErrors.cvc}</span> : null}
+                          {checkoutTouched.cvc && checkoutErrors.cvc ? (
+                            <span
+                              className="reelroom-checkout-error"
+                              role="alert"
+                            >
+                              {checkoutErrors.cvc}
+                            </span>
+                          ) : null}
                         </label>
                       </div>
                     </div>
                   ) : (
                     <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber/25 bg-amber/[.07] p-4 text-xs leading-5 text-ink-2">
                       <Sparkles className="mt-0.5 size-4 shrink-0 text-amber" />
-                      <span><strong className="text-ink">{checkoutMethod === "apple" ? "Apple Pay" : "Google Pay"} is ready for integration.</strong> The express gateway API will be connected in the next handoff. Switch to Card to complete this demo checkout.</span>
+                      <span>
+                        <strong className="text-ink">
+                          {checkoutMethod === "apple"
+                            ? "Apple Pay"
+                            : "Google Pay"}{" "}
+                          is ready for integration.
+                        </strong>{" "}
+                        The express gateway API will be connected in the next
+                        handoff. Switch to Card to complete this demo checkout.
+                      </span>
                     </div>
                   )}
                 </section>
 
-                <div className="grid gap-2 sm:grid-cols-3" aria-label="Security and trust signals">
-                  <div className="reelroom-trust-signal"><ShieldCheck className="size-4 text-mint" /><span>PCI-ready</span></div>
-                  <div className="reelroom-trust-signal"><Wifi className="size-4 text-mint" /><span>SSL secured</span></div>
-                  <div className="reelroom-trust-signal"><Check className="size-4 text-mint" /><span>Instant ticket</span></div>
+                <div
+                  className="grid gap-2 sm:grid-cols-3"
+                  aria-label="Security and trust signals"
+                >
+                  <div className="reelroom-trust-signal">
+                    <ShieldCheck className="size-4 text-mint" />
+                    <span>PCI-ready</span>
+                  </div>
+                  <div className="reelroom-trust-signal">
+                    <Wifi className="size-4 text-mint" />
+                    <span>SSL secured</span>
+                  </div>
+                  <div className="reelroom-trust-signal">
+                    <Check className="size-4 text-mint" />
+                    <span>Instant ticket</span>
+                  </div>
                 </div>
 
                 <div>
@@ -3566,40 +4722,103 @@ export function ReelroomApp({
                     disabled={checkoutStatus === "loading"}
                     className="reelroom-checkout-confirm inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#f4f0ff] px-5 text-sm font-bold text-[#151421] shadow-[0_14px_38px_rgba(244,240,255,.18)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_18px_48px_rgba(244,240,255,.28)] active:translate-y-0 disabled:cursor-wait disabled:opacity-70"
                   >
-                    {checkoutStatus === "loading" ? <><span className="reelroom-checkout-spinner" /> Verifying securely...</> : <><Check className="size-4" /> Confirm purchase <ArrowRight className="size-4" /></>}
+                    {checkoutStatus === "loading" ? (
+                      <>
+                        <span className="reelroom-checkout-spinner" /> Verifying
+                        securely...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="size-4" /> Confirm purchase{" "}
+                        <ArrowRight className="size-4" />
+                      </>
+                    )}
                   </button>
-                  <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[.1em] text-muted">Demo mode · no payment is processed</p>
+                  <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                    Demo mode · no payment is processed
+                  </p>
                 </div>
               </div>
 
               <aside className="reelroom-checkout-summary order-first border-b border-white/[.1] bg-black/20 p-5 sm:p-8 lg:order-2 lg:border-b-0 lg:border-l lg:border-white/[.1]">
                 <div className="lg:sticky lg:top-2">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">Your order</div>
-                    <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[.1em] text-mint"><Wifi className="size-3" /> live</span>
+                    <div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
+                      Your order
+                    </div>
+                    <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[.1em] text-mint">
+                      <Wifi className="size-3" /> live
+                    </span>
                   </div>
                   <div className="mt-5 flex gap-3 border-b border-white/[.1] pb-5">
-                    <img src={ticketMovie.poster} alt="" className="size-16 rounded-2xl object-cover" />
+                    <Image
+                      width={64}
+                      height={64}
+                      src={ticketMovie.poster}
+                      alt=""
+                      className="size-16 rounded-2xl object-cover"
+                    />
                     <div className="min-w-0">
-                      <h3 className="truncate font-display text-xl font-semibold tracking-[-.06em] text-ink">{ticketMovie.title}</h3>
-                      <p className="mt-1 font-mono text-[10px] text-amber">{selectedDayOption.date} · {activeShowtime}</p>
-                      <p className="mt-1 text-[10px] text-muted">The Orpheum · Dolby Cinema</p>
+                      <h3 className="truncate font-display text-xl font-semibold tracking-[-.06em] text-ink">
+                        {ticketMovie.title}
+                      </h3>
+                      <p className="mt-1 font-mono text-[10px] text-amber">
+                        {selectedDayOption.date} · {activeShowtime}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted">
+                        The Orpheum · Dolby Cinema
+                      </p>
                     </div>
                   </div>
                   <div className="mt-5 space-y-3 text-xs text-ink-2">
-                    <div className="flex justify-between gap-3"><span>Tickets · {selectedSeats.join(", ")}</span><strong className="text-ink">₹{ticketSubtotal.toFixed(2)}</strong></div>
-                    <div className="flex justify-between gap-3"><span>Tax</span><strong className="text-ink">₹{checkoutTax.toFixed(2)}</strong></div>
-                    <div className="flex justify-between gap-3"><span>Shipping</span><strong className="text-mint">Digital · ₹{checkoutShipping.toFixed(2)}</strong></div>
-                    <div className="flex justify-between gap-3"><span>Booking fee</span><strong className="text-ink">₹{bookingFee.toFixed(2)}</strong></div>
-                    {groupDiscount ? <div className="flex justify-between gap-3 text-mint"><span>Group saving</span><strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong></div> : null}
+                    <div className="flex justify-between gap-3">
+                      <span>Tickets · {selectedSeats.join(", ")}</span>
+                      <strong className="text-ink">
+                        ₹{ticketSubtotal.toFixed(2)}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Tax</span>
+                      <strong className="text-ink">
+                        ₹{checkoutTax.toFixed(2)}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Shipping</span>
+                      <strong className="text-mint">
+                        Digital · ₹{checkoutShipping.toFixed(2)}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Booking fee</span>
+                      <strong className="text-ink">
+                        ₹{bookingFee.toFixed(2)}
+                      </strong>
+                    </div>
+                    {groupDiscount ? (
+                      <div className="flex justify-between gap-3 text-mint">
+                        <span>Group saving</span>
+                        <strong>−₹{Math.abs(groupDiscount).toFixed(2)}</strong>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="mt-6 flex items-end justify-between gap-3 border-t border-white/[.1] pt-5">
-                    <span className="font-display text-lg font-semibold tracking-[-.04em] text-ink">Total</span>
-                    <strong className="font-display text-3xl tracking-[-.07em] text-amber">₹{checkoutTotal.toFixed(2)}</strong>
+                    <span className="font-display text-lg font-semibold tracking-[-.04em] text-ink">
+                      Total
+                    </span>
+                    <strong className="font-display text-3xl tracking-[-.07em] text-amber">
+                      ₹{checkoutTotal.toFixed(2)}
+                    </strong>
                   </div>
                   <div className="mt-6 rounded-2xl border border-white/10 bg-white/[.045] p-4 text-[11px] leading-5 text-ink-2">
-                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.12em] text-mint"><ShieldCheck className="size-3.5" /> Your details stay private</div>
-                    <p className="mt-2">Only a signed confirmation is shared with the payment provider. Card details never touch Reelscape.</p>
+                    <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.12em] text-mint">
+                      <ShieldCheck className="size-3.5" /> Your details stay
+                      private
+                    </div>
+                    <p className="mt-2">
+                      Only a signed confirmation is shared with the payment
+                      provider. Card details never touch Reelscape.
+                    </p>
                   </div>
                 </div>
               </aside>
@@ -3611,31 +4830,51 @@ export function ReelroomApp({
   ) : null;
 
   if (!routeReady) {
-    return <div className="min-h-screen bg-[#08070d]" aria-label="Loading Reelscape" />;
+    return (
+      <div
+        className="min-h-screen bg-[#08070d]"
+        aria-label="Loading Reelscape"
+      />
+    );
   }
 
   return (
     <div
-      className={cn("reelroom-app min-h-screen bg-canvas text-ink", page === "home" && "home-page")}
-      data-background={page === "home" ? "black-hole" : page === "login" ? "astronaut" : "plain"}
+      className={cn(
+        "reelroom-app min-h-screen bg-canvas text-ink",
+        page === "home" && "home-page",
+      )}
+      data-background={
+        page === "home"
+          ? "black-hole"
+          : page === "login"
+            ? "astronaut"
+            : "plain"
+      }
       data-page={page}
     >
       <a className="reelroom-skip-link" href="#main">
         Skip to content
       </a>
       <div className="min-h-screen">
-          <main
-            id="main"
+        <main
+          id="main"
+          className={cn(
+            "w-full max-w-full min-w-0 pb-24 lg:pb-14",
+            page === "updates"
+              ? "reelroom-updates-main"
+              : page === "songs"
+                ? "px-2 sm:px-3 lg:px-4"
+                : "px-4 sm:px-6 lg:px-10",
+          )}
+        >
+          <header
             className={cn(
-              "w-full max-w-full min-w-0 pb-24 lg:pb-14",
-              page === "updates"
-                ? "reelroom-updates-main"
-                : page === "songs"
-                  ? "px-2 sm:px-3 lg:px-4"
-                  : "px-4 sm:px-6 lg:px-10",
+              "relative flex h-20 items-center justify-between gap-4",
+              page === "movies" && "z-40",
+              page === "updates" && "reelroom-updates-header",
             )}
           >
-          <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "reelroom-updates-header")}>
             <ReelscapeLogo interactive={page !== "home"} />
             <div className="ml-auto flex items-center gap-2">
               {page === "home" ? (
@@ -3698,7 +4937,14 @@ export function ReelroomApp({
               </div>
             </div>
           </header>
-          <div className={cn("animate-[page-in_.35s_ease_both]", page === "updates" && "reelroom-updates-content")}>{pageContent}</div>
+          <div
+            className={cn(
+              "animate-[page-in_.35s_ease_both]",
+              page === "updates" && "reelroom-updates-content",
+            )}
+          >
+            {pageContent}
+          </div>
         </main>
       </div>
       {page !== "updates" ? (

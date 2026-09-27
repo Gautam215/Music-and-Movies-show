@@ -25,10 +25,19 @@ export type NotificationGroupData = {
   items: NotificationItemData[];
 };
 
-function movieNotification(movie: Movie, id: string, detail: string): NotificationItemData {
+function movieNotification(
+  movie: Movie,
+  id: string,
+  detail: string,
+): NotificationItemData {
   return {
     id,
-    eyebrow: movie.mediaType === "tv" ? "TV signal" : movie.mediaType === "anime" ? "Anime signal" : "Movie signal",
+    eyebrow:
+      movie.mediaType === "tv"
+        ? "TV signal"
+        : movie.mediaType === "anime"
+          ? "Anime signal"
+          : "Movie signal",
     title: movie.title,
     detail,
     age: "Today",
@@ -40,7 +49,10 @@ function movieNotification(movie: Movie, id: string, detail: string): Notificati
 }
 
 function signalAge(signal: UserSignal) {
-  const minutes = Math.max(1, Math.round((Date.now() - signal.createdAt.getTime()) / 60_000));
+  const minutes = Math.max(
+    1,
+    Math.round((Date.now() - signal.createdAt.getTime()) / 60_000),
+  );
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
   return hours < 24 ? `${hours} hr ago` : "Recently";
@@ -73,8 +85,16 @@ export async function getNotificationGroups({
         icon: "flame",
         items: lead
           ? [
-              movieNotification(lead, `guest-trend-${lead.id}`, `${lead.title} is leading the current regional reel.`),
-              movieNotification(second, `guest-trend-${second.id}`, `${second.title} is gaining attention across the market.`),
+              movieNotification(
+                lead,
+                `guest-trend-${lead.id}`,
+                `${lead.title} is leading the current regional reel.`,
+              ),
+              movieNotification(
+                second,
+                `guest-trend-${second.id}`,
+                `${second.title} is gaining attention across the market.`,
+              ),
             ]
           : [],
       },
@@ -85,7 +105,19 @@ export async function getNotificationGroups({
         accent: "#bf9aff",
         icon: "music",
         items: third
-          ? [{ ...movieNotification(third, `guest-soundtrack-${third.id}`, `Explore the soundtrack and mood around ${third.title}.`), eyebrow: "Soundtrack preview", actionLabel: "Open songs", actionHref: "#songs", priority: "low" }]
+          ? [
+              {
+                ...movieNotification(
+                  third,
+                  `guest-soundtrack-${third.id}`,
+                  `Explore the soundtrack and mood around ${third.title}.`,
+                ),
+                eyebrow: "Soundtrack preview",
+                actionLabel: "Open songs",
+                actionHref: "#songs",
+                priority: "low",
+              },
+            ]
           : [],
       },
       {
@@ -95,7 +127,19 @@ export async function getNotificationGroups({
         accent: "#64d2ff",
         icon: "ticket",
         items: lead
-          ? [{ ...movieNotification(lead, `guest-ticket-${lead.id}`, `${lead.title} is on the current reel. Browse available showtimes.`), eyebrow: "Now playing", actionLabel: "See showtimes", actionHref: "#tickets", priority: "high" }]
+          ? [
+              {
+                ...movieNotification(
+                  lead,
+                  `guest-ticket-${lead.id}`,
+                  `${lead.title} is on the current reel. Browse available showtimes.`,
+                ),
+                eyebrow: "Now playing",
+                actionLabel: "See showtimes",
+                actionHref: "#tickets",
+                priority: "high",
+              },
+            ]
           : [],
       },
     ];
@@ -119,12 +163,20 @@ export async function getNotificationGroups({
       meta: `Daily signal · matched to ${preferredGenre}`,
       accent: "#ff9f0a",
       icon: "film",
-      items: [movieNotification(personalizedMovie, `personal-reel-${personalizedMovie.id}`, `Picked from today’s market signal using your viewing history and preferred genres.`)],
+      items: [
+        movieNotification(
+          personalizedMovie,
+          `personal-reel-${personalizedMovie.id}`,
+          `Picked from today’s market signal using your viewing history and preferred genres.`,
+        ),
+      ],
     });
   }
 
   if (latestFavorite) {
-    const related = catalog.find((movie) => movie.id !== `tmdb-${latestFavorite.tmdbId}`) ?? personalizedMovie;
+    const related =
+      catalog.find((movie) => movie.id !== `tmdb-${latestFavorite.tmdbId}`) ??
+      personalizedMovie;
     if (related) {
       groups.push({
         id: "member-saved",
@@ -132,7 +184,17 @@ export async function getNotificationGroups({
         meta: "A follow-up to something you kept close",
         accent: "#64d2ff",
         icon: "flame",
-        items: [{ ...movieNotification(related, `favorite-followup-${latestFavorite._id}`, `Because you saved ${latestFavorite.title}, this ${related.genres[0] ?? "new"} pick is waiting in your reel.`), age: signalAge(latestFavorite), priority: "high" }],
+        items: [
+          {
+            ...movieNotification(
+              related,
+              `favorite-followup-${latestFavorite._id}`,
+              `Because you saved ${latestFavorite.title}, this ${related.genres[0] ?? "new"} pick is waiting in your reel.`,
+            ),
+            age: signalAge(latestFavorite),
+            priority: "high",
+          },
+        ],
       });
     }
   }
@@ -144,17 +206,22 @@ export async function getNotificationGroups({
       meta: "Your Reelscape demo booking activity",
       accent: "#64d2ff",
       icon: "ticket",
-      items: [{
-        id: `booking-${latestBooking._id}`,
-        eyebrow: "Demo booking saved",
-        title: `${latestBooking.title} is in your screening history`,
-        detail: "This is an in-app booking signal only. No payment or external ticket provider was contacted.",
-        age: signalAge(latestBooking),
-        artwork: personalizedMovie?.poster ?? "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=160&q=82",
-        actionLabel: "Open tickets",
-        actionHref: "#tickets",
-        priority: "medium",
-      }],
+      items: [
+        {
+          id: `booking-${latestBooking._id}`,
+          eyebrow: "Demo booking saved",
+          title: `${latestBooking.title} is in your screening history`,
+          detail:
+            "This is an in-app booking signal only. No payment or external ticket provider was contacted.",
+          age: signalAge(latestBooking),
+          artwork:
+            personalizedMovie?.poster ??
+            "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=160&q=82",
+          actionLabel: "Open tickets",
+          actionHref: "#tickets",
+          priority: "medium",
+        },
+      ],
     });
   }
 
@@ -165,28 +232,42 @@ export async function getNotificationGroups({
       meta: "A signal from what you played",
       accent: "#bf9aff",
       icon: "music",
-      items: [{
-        id: `listen-${latestListen._id}`,
-        eyebrow: "Spotify activity",
-        title: `A new scene starts with ${latestListen.title}`,
-        detail: `${latestListen.metadata?.artist ?? "Your recent artist"} · ${latestListen.metadata?.movie ?? "Your recent soundtrack"}. Keep the mood moving through the next reel.`,
-        age: signalAge(latestListen),
-        artwork: personalizedMovie?.poster ?? "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=160&q=82",
-        actionLabel: "Open songs",
-        actionHref: "#songs",
-        priority: "low",
-      }],
+      items: [
+        {
+          id: `listen-${latestListen._id}`,
+          eyebrow: "Spotify activity",
+          title: `A new scene starts with ${latestListen.title}`,
+          detail: `${latestListen.metadata?.artist ?? "Your recent artist"} · ${latestListen.metadata?.movie ?? "Your recent soundtrack"}. Keep the mood moving through the next reel.`,
+          age: signalAge(latestListen),
+          artwork:
+            personalizedMovie?.poster ??
+            "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=160&q=82",
+          actionLabel: "Open songs",
+          actionHref: "#songs",
+          priority: "low",
+        },
+      ],
     });
   }
 
   return groups.length
     ? groups
-    : [{
-        id: "member-empty",
-        label: `Good morning, ${firstName(name ?? "there")}`,
-        meta: "Your daily signal",
-        accent: "#ff9f0a",
-        icon: "film",
-        items: personalizedMovie ? [movieNotification(personalizedMovie, `member-first-${personalizedMovie.id}`, "Open a title to start building your personalized signal.")] : [],
-      }];
+    : [
+        {
+          id: "member-empty",
+          label: `Good morning, ${firstName(name ?? "there")}`,
+          meta: "Your daily signal",
+          accent: "#ff9f0a",
+          icon: "film",
+          items: personalizedMovie
+            ? [
+                movieNotification(
+                  personalizedMovie,
+                  `member-first-${personalizedMovie.id}`,
+                  "Open a title to start building your personalized signal.",
+                ),
+              ]
+            : [],
+        },
+      ];
 }

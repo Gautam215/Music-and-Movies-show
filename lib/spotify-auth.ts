@@ -21,7 +21,8 @@ export function getSpotifyRedirectUri(request: Request) {
   const configuredUri = process.env.SPOTIFY_REDIRECT_URI?.trim();
   if (configuredUri) return configuredUri;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
   return new URL("/api/spotify/callback", appUrl).toString();
 }
 
@@ -30,7 +31,11 @@ export function createSpotifyState() {
 }
 
 function base64Url(buffer: Buffer) {
-  return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return buffer
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export function createSpotifyCodeVerifier() {
@@ -50,20 +55,24 @@ export async function exchangeSpotifyCode(
   if (!clientId) return null;
 
   try {
-    const response = await fetchWithServerBackoff("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+    const response = await fetchWithServerBackoff(
+      "https://accounts.spotify.com/api/token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier,
+        }),
+        cache: "no-store",
       },
-      body: new URLSearchParams({
-        client_id: clientId,
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        code_verifier: codeVerifier,
-      }),
-      cache: "no-store",
-    }, { retryUnsafeMethods: true });
+      { retryUnsafeMethods: true },
+    );
 
     if (!response.ok) return null;
     return (await response.json()) as {
@@ -81,18 +90,22 @@ export async function refreshSpotifyToken(refreshToken: string) {
   if (!clientId) return null;
 
   try {
-    const response = await fetchWithServerBackoff("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+    const response = await fetchWithServerBackoff(
+      "https://accounts.spotify.com/api/token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+        cache: "no-store",
       },
-      body: new URLSearchParams({
-        client_id: clientId,
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-      }),
-      cache: "no-store",
-    }, { retryUnsafeMethods: true });
+      { retryUnsafeMethods: true },
+    );
 
     if (!response.ok) return null;
     return (await response.json()) as {

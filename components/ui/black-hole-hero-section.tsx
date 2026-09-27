@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export interface BlackHoleHeroSectionProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -60,15 +61,23 @@ export function BlackHoleHeroSection({
   return (
     <div
       aria-label="Black hole artwork"
-      className={cn("relative isolate min-h-[24rem] overflow-hidden bg-black", className)}
+      className={cn(
+        "relative isolate min-h-[24rem] overflow-hidden bg-black",
+        className,
+      )}
       {...props}
     >
-      <img
+      <Image
+        fill
         src={imageSrc}
         alt=""
+        sizes="100vw"
         draggable={false}
-        className="absolute inset-0 size-full max-w-none object-cover"
-        style={{ objectPosition: imagePosition, transform: `scale(${imageScale})` }}
+        className="reelroom-black-hole-art absolute inset-0 size-full max-w-none object-cover"
+        style={{
+          objectPosition: imagePosition,
+          transform: `scale(${imageScale})`,
+        }}
       />
       {scrim !== "none" && (
         <div
