@@ -1051,6 +1051,37 @@ export function ReelroomApp({
   }, []);
 
   useEffect(() => {
+    const status = new URL(window.location.href).searchParams.get("spotify");
+    if (!status) return;
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("spotify");
+    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+    setSpotifyConnecting(false);
+
+    if (status !== "connected") {
+      setSpotifyStatus("Connect Spotify");
+      setSpotifyError("Spotify connection was not completed.");
+      return;
+    }
+
+    setSpotifyStatus("Checking Spotify session");
+    void requestSpotifySession(spotifySessionRequestRef, spotifySessionNextAllowedAtRef, true).then((session) => {
+      if (session?.connected) {
+        setSpotifyConnected(true);
+        setSpotifyStatus("Preparing player");
+        setSpotifyError(null);
+      } else {
+        setSpotifyStatus("Connect Spotify");
+        setSpotifyError("Spotify did not return a usable playback session.");
+      }
+    }).catch(() => {
+      setSpotifyStatus("Connect Spotify");
+      setSpotifyError("Spotify session verification failed.");
+    });
+  }, []);
+
+  useEffect(() => {
     if (!spotifyConnected) return;
     let cancelled = false;
     const cleanupPlayer = () => {
@@ -1535,13 +1566,25 @@ export function ReelroomApp({
   };
   const connectSpotify = () => {
     if (spotifyConnecting) return;
+    const useSameTab = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    if (useSameTab) {
+      setSpotifyConnecting(true);
+      setSpotifyError(null);
+      setSpotifyStatus("Waiting for Spotify");
+      window.location.assign("/api/spotify/login");
+      return;
+    }
+
     const authWindow = window.open(
       "/api/spotify/login?mode=popup",
       "reelroom-spotify-auth",
       "popup=yes,width=520,height=720,resizable=yes,scrollbars=yes",
     );
     if (!authWindow) {
-      setSpotifyError("Allow pop-ups to connect Spotify without leaving Reelscape.");
+      setSpotifyConnecting(true);
+      setSpotifyError(null);
+      setSpotifyStatus("Waiting for Spotify");
+      window.location.assign("/api/spotify/login");
       return;
     }
     spotifyAuthWindowRef.current = authWindow;
