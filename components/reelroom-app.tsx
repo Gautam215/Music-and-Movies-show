@@ -683,8 +683,8 @@ function CurrentReelSection({
       className="reelroom-home-panel relative space-y-7"
       aria-live="polite"
     >
-        <div className="flex items-end justify-between gap-4">
-          <div className="min-w-0">
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
           <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
             Current reel / {city}
           </span>
@@ -764,7 +764,7 @@ function CurrentReelSection({
             <span className="text-muted">
               {activeMovie.rating === "—" ? "NR" : `★ ${activeMovie.rating}`}
             </span>
-             <span className="text-muted">₹{activeMovie.price}</span>
+            <span className="text-muted">₹{activeMovie.price}</span>
           </div>
           <h3 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
             {activeMovie.title}
@@ -2193,7 +2193,7 @@ export function ReelroomApp({
       document
         .getElementById("spotify-search-panel")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
+    });
   };
 
   const activeReelMovie =
@@ -2284,7 +2284,9 @@ export function ReelroomApp({
             label="Films '26"
             action="Open"
             onSelect={(item) => {
-              const movie = catalog.find((candidate) => candidate.title === item.title);
+              const movie = catalog.find(
+                (candidate) => candidate.title === item.title,
+              );
               if (movie) openMovie(movie);
             }}
           />
@@ -2496,7 +2498,7 @@ export function ReelroomApp({
               onChange={(event) => setAuthEmail(event.target.value)}
               placeholder="you@example.com"
               autoComplete="email"
-               className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+              className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
           <label className="block">
@@ -2510,7 +2512,7 @@ export function ReelroomApp({
               onChange={(event) => setAuthPassword(event.target.value)}
               placeholder="Enter your password"
               autoComplete="current-password"
-               className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+              className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
           {authError ? (
@@ -2525,7 +2527,7 @@ export function ReelroomApp({
             type="submit"
             disabled={authSubmitting}
             variant="primary"
-             className="min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogIn className="size-4" />
             {authSubmitting ? "Checking..." : "Log in"}
@@ -2959,7 +2961,7 @@ export function ReelroomApp({
                         type="button"
                         onClick={() => void toggleSpotifySong(song)}
                         aria-label={`${songPlaying ? "Pause" : "Play"} ${song.title}`}
-                       className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
+                        className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
                       >
                         {songPlaying ? (
                           <Pause className="size-3.5 fill-current" />
@@ -3007,7 +3009,7 @@ export function ReelroomApp({
             }
             aria-expanded={spotifyTrackListOpen}
             onClick={() => setSpotifyTrackListOpen((open) => !open)}
-             className="grid size-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
+            className="grid size-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
           >
             <EllipsisVertical className="size-4" />
           </button>
@@ -3155,7 +3157,7 @@ export function ReelroomApp({
                       type="button"
                       onClick={() => void toggleSpotifySong(song)}
                       aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
-                     className="reelroom-track-play grid size-11 shrink-0 place-items-center rounded-full"
+                      className="reelroom-track-play grid size-11 shrink-0 place-items-center rounded-full"
                     >
                       {isSongPlaying(song) ? (
                         <Pause className="size-3 fill-current" />
@@ -3427,137 +3429,137 @@ export function ReelroomApp({
               aria-labelledby={`showtime-tab-${showtimeView}`}
               tabIndex={0}
             >
-            {showtimeView === "cards" ? (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                {ticketMovie.showtimes.map((time, index) => (
-                  <button
-                    key={time}
-                    type="button"
-                    aria-pressed={activeShowtime === time}
-                    onClick={() => setShowtime(time)}
-                    className={cn(
-                      "reelroom-showtime-card group rounded-2xl border p-4 text-left",
-                      activeShowtime === time
-                        ? "reelroom-showtime-card-active"
-                        : "border-border bg-surface-2/55 hover:border-white/30",
-                    )}
-                  >
-                    <span className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-muted">
-                      <span>
-                        {index === 0
-                          ? "Good morning"
-                          : index === ticketMovie.showtimes.length - 1
-                            ? "Last light"
-                            : "Open room"}
-                      </span>
-                      <span
-                        className={
-                          activeShowtime === time ? "text-mint" : "text-amber"
-                        }
-                      >
-                        ●
-                      </span>
-                    </span>
-                    <strong className="mt-4 block font-display text-xl tracking-[-.05em] text-ink">
-                      {time}
-                    </strong>
-                    <span className="mt-1 block text-[10px] text-ink-2">
-                      Dolby Atmos · {Math.max(3, 18 - index * 3)} seats left
-                    </span>
-                    <span className="mt-4 block font-mono text-[10px] text-amber">
-                      from ₹{ticketMovie.price + (index ? 0 : 2)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : showtimeView === "timeline" ? (
-              <div className="reelroom-showtime-timeline mt-5 overflow-x-auto rounded-2xl border border-border bg-surface-2/40 p-5">
-                <div className="relative flex min-w-[34rem] items-start justify-between gap-3 pt-2">
-                  <div className="absolute left-3 right-3 top-[1.05rem] h-px bg-border" />
+              {showtimeView === "cards" ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                   {ticketMovie.showtimes.map((time, index) => (
                     <button
                       key={time}
                       type="button"
                       aria-pressed={activeShowtime === time}
                       onClick={() => setShowtime(time)}
-                      className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center"
+                      className={cn(
+                        "reelroom-showtime-card group rounded-2xl border p-4 text-left",
+                        activeShowtime === time
+                          ? "reelroom-showtime-card-active"
+                          : "border-border bg-surface-2/55 hover:border-white/30",
+                      )}
                     >
-                      <span
+                      <span className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[.12em] text-muted">
+                        <span>
+                          {index === 0
+                            ? "Good morning"
+                            : index === ticketMovie.showtimes.length - 1
+                              ? "Last light"
+                              : "Open room"}
+                        </span>
+                        <span
+                          className={
+                            activeShowtime === time ? "text-mint" : "text-amber"
+                          }
+                        >
+                          ●
+                        </span>
+                      </span>
+                      <strong className="mt-4 block font-display text-xl tracking-[-.05em] text-ink">
+                        {time}
+                      </strong>
+                      <span className="mt-1 block text-[10px] text-ink-2">
+                        Dolby Atmos · {Math.max(3, 18 - index * 3)} seats left
+                      </span>
+                      <span className="mt-4 block font-mono text-[10px] text-amber">
+                        from ₹{ticketMovie.price + (index ? 0 : 2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : showtimeView === "timeline" ? (
+                <div className="reelroom-showtime-timeline mt-5 overflow-x-auto rounded-2xl border border-border bg-surface-2/40 p-5">
+                  <div className="relative flex min-w-[34rem] items-start justify-between gap-3 pt-2">
+                    <div className="absolute left-3 right-3 top-[1.05rem] h-px bg-border" />
+                    {ticketMovie.showtimes.map((time, index) => (
+                      <button
+                        key={time}
+                        type="button"
+                        aria-pressed={activeShowtime === time}
+                        onClick={() => setShowtime(time)}
+                        className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center"
+                      >
+                        <span
+                          className={cn(
+                            "size-3 rounded-full border-2 border-surface-2 transition duration-300 group-hover:scale-125",
+                            activeShowtime === time
+                              ? "bg-amber shadow-[0_0_0_5px_rgba(217,200,255,.12),0_0_22px_rgba(217,200,255,.62)]"
+                              : "bg-surface-3",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "font-display text-base tracking-[-.03em]",
+                            activeShowtime === time ? "text-ink" : "text-ink-2",
+                          )}
+                        >
+                          {time}
+                        </span>
+                        <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                          {index % 2 ? "Open room" : "Low light"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(11rem,.7fr)_minmax(0,1.3fr)]">
+                  <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:content-start">
+                    {showtimeDays.map((day) => (
+                      <button
+                        key={day.id}
+                        type="button"
+                        aria-pressed={selectedDay === day.id}
+                        onClick={() => {
+                          setSelectedDay(day.id);
+                          setShowtime(day.times[0] ?? activeShowtime);
+                        }}
                         className={cn(
-                          "size-3 rounded-full border-2 border-surface-2 transition duration-300 group-hover:scale-125",
-                          activeShowtime === time
-                            ? "bg-amber shadow-[0_0_0_5px_rgba(217,200,255,.12),0_0_22px_rgba(217,200,255,.62)]"
-                            : "bg-surface-3",
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          "font-display text-base tracking-[-.03em]",
-                          activeShowtime === time ? "text-ink" : "text-ink-2",
+                          "min-w-[7.2rem] rounded-2xl border p-3 text-left transition sm:min-w-0",
+                          selectedDay === day.id
+                            ? "border-amber/60 bg-amber/10"
+                            : "border-border bg-surface-2/50 hover:border-white/25",
                         )}
                       >
-                        {time}
-                      </span>
-                      <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted">
-                        {index % 2 ? "Open room" : "Low light"}
-                      </span>
-                    </button>
-                  ))}
+                        <span className="block font-mono text-[9px] uppercase tracking-[.1em] text-muted">
+                          {day.label}
+                        </span>
+                        <strong className="mt-2 block font-display text-sm text-ink">
+                          {day.date}
+                        </strong>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {selectedDayOption.times.map((time) => (
+                      <button
+                        key={`${selectedDay}-${time}`}
+                        type="button"
+                        aria-pressed={activeShowtime === time}
+                        onClick={() => setShowtime(time)}
+                        className={cn(
+                          "rounded-2xl border px-3 py-3 text-left",
+                          activeShowtime === time
+                            ? "border-cobalt bg-cobalt/15"
+                            : "border-border bg-surface-2/50 hover:border-white/25",
+                        )}
+                      >
+                        <strong className="block font-display text-sm text-ink">
+                          {time}
+                        </strong>
+                        <span className="mt-1 block text-[10px] text-muted">
+                          Dolby · ₹{ticketMovie.price}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(11rem,.7fr)_minmax(0,1.3fr)]">
-                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:content-start">
-                  {showtimeDays.map((day) => (
-                    <button
-                      key={day.id}
-                      type="button"
-                      aria-pressed={selectedDay === day.id}
-                      onClick={() => {
-                        setSelectedDay(day.id);
-                        setShowtime(day.times[0] ?? activeShowtime);
-                      }}
-                      className={cn(
-                        "min-w-[7.2rem] rounded-2xl border p-3 text-left transition sm:min-w-0",
-                        selectedDay === day.id
-                          ? "border-amber/60 bg-amber/10"
-                          : "border-border bg-surface-2/50 hover:border-white/25",
-                      )}
-                    >
-                      <span className="block font-mono text-[9px] uppercase tracking-[.1em] text-muted">
-                        {day.label}
-                      </span>
-                      <strong className="mt-2 block font-display text-sm text-ink">
-                        {day.date}
-                      </strong>
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {selectedDayOption.times.map((time) => (
-                    <button
-                      key={`${selectedDay}-${time}`}
-                      type="button"
-                      aria-pressed={activeShowtime === time}
-                      onClick={() => setShowtime(time)}
-                      className={cn(
-                        "rounded-2xl border px-3 py-3 text-left",
-                        activeShowtime === time
-                          ? "border-cobalt bg-cobalt/15"
-                          : "border-border bg-surface-2/50 hover:border-white/25",
-                      )}
-                    >
-                      <strong className="block font-display text-sm text-ink">
-                        {time}
-                      </strong>
-                      <span className="mt-1 block text-[10px] text-muted">
-                        Dolby · ₹{ticketMovie.price}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
             </div>
           </section>
 
@@ -3696,7 +3698,7 @@ export function ReelroomApp({
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">
-                     <button
+                    <button
                       type="button"
                       onClick={() => panSeatMap(-1)}
                       className="grid size-11 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
@@ -3759,7 +3761,7 @@ export function ReelroomApp({
                       </div>
                     ) : null}
                     <div
-                       className="reelroom-seat-map relative z-10 mx-auto grid min-w-[27rem] gap-2.5"
+                      className="reelroom-seat-map relative z-10 mx-auto grid min-w-[27rem] gap-2.5"
                       style={{ width: `${seatZoom * 100}%` }}
                     >
                       {["A", "B", "C", "D", "E"].map((row) => (
@@ -4113,19 +4115,20 @@ export function ReelroomApp({
               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
                 {!profileSessionReady
                   ? "Checking your session"
-                  : profileUser?.name ?? "Sign in to load your profile"}
+                  : (profileUser?.name ?? "Sign in to load your profile")}
               </h2>
               <p className="mt-1 text-xs text-ink-2">
                 {!profileSessionReady
                   ? "Loading your saved films and preferences..."
-                  : profileUser?.location ?? "Location will appear after sign in"}
+                  : (profileUser?.location ??
+                    "Location will appear after sign in")}
                 {profileUser?.email ? ` · ${profileUser.email}` : ""}
               </p>
             </div>
           </div>
           <Button
             variant="ghost"
-             className="min-h-11 shrink-0 px-3 py-1 text-[10px]"
+            className="min-h-11 shrink-0 px-3 py-1 text-[10px]"
             onClick={focusPreferences}
             disabled={!profileSessionReady}
           >
@@ -4179,7 +4182,10 @@ export function ReelroomApp({
                 ))
             ) : (
               <div className="rounded-xl border border-dashed border-border bg-surface-2/40 p-4 text-center">
-                <Heart className="mx-auto size-5 text-amber" aria-hidden="true" />
+                <Heart
+                  className="mx-auto size-5 text-amber"
+                  aria-hidden="true"
+                />
                 <p className="mt-2 font-display text-sm font-semibold text-ink">
                   Your shelf is waiting.
                 </p>
@@ -5122,7 +5128,7 @@ export function ReelroomApp({
                   aria-expanded={moreOpen}
                   aria-controls="reelroom-desktop-overflow-menu"
                   aria-label="Open navigation menu"
-                   className="reelroom-desktop-nav-button grid size-11 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
+                  className="reelroom-desktop-nav-button grid size-11 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
                 >
                   <EllipsisVertical className="size-4" />
                 </button>
@@ -5145,7 +5151,7 @@ export function ReelroomApp({
                   aria-expanded={moreOpen}
                   aria-controls="reelroom-header-overflow-menu"
                   aria-label="Open navigation menu"
-                   className="grid size-11 place-items-center rounded-full border border-border text-ink-2 transition hover:border-amber hover:text-amber"
+                  className="grid size-11 place-items-center rounded-full border border-border text-ink-2 transition hover:border-amber hover:text-amber"
                 >
                   <EllipsisVertical className="size-4" />
                 </button>

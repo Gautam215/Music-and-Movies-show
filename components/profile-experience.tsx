@@ -831,7 +831,9 @@ export function ProfileExperience() {
       className="profile-experience"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={session ? "profile-experience-title" : "profile-login-title"}
+      aria-labelledby={
+        session ? "profile-experience-title" : "profile-login-title"
+      }
       tabIndex={-1}
     >
       <LiquidWaveCanvas />

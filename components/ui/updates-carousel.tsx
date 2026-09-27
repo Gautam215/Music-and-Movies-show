@@ -228,7 +228,8 @@ export function UpdatesCarousel({
               aria-live="polite"
             >
               <div className="updates-carousel-panel-kicker">
-                Selected screening / 0{visibleMovies.indexOf(selectedMovie!) + 1}
+                Selected screening / 0
+                {visibleMovies.indexOf(selectedMovie!) + 1}
               </div>
               <div className="updates-carousel-panel-poster">
                 <Image

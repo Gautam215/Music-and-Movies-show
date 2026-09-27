@@ -255,8 +255,7 @@ export function WorksWheel({
             event.preventDefault();
             selectItem(active);
             return;
-          }
-          else return;
+          } else return;
           event.preventDefault();
         }}
       >

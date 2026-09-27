@@ -2,7 +2,12 @@
 
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
-export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function Error({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <main className="grid min-h-screen place-items-center bg-canvas px-6 text-ink">
       <section
@@ -19,8 +24,8 @@ export default function Error({ reset }: { error: Error & { digest?: string }; r
           We lost the reel.
         </h1>
         <p className="mt-3 text-sm leading-6 text-ink-2">
-          The catalog could not load right now. Try again and we&apos;ll bring the
-          latest screenings back.
+          The catalog could not load right now. Try again and we&apos;ll bring
+          the latest screenings back.
         </p>
         <button
           type="button"
