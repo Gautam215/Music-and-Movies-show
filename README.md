@@ -2,6 +2,46 @@
 
 This is the full-stack-ready Next.js source tree for the Movie & Entertainment Platform PRD.
 
+[![CI](https://github.com/Gautam215/Music-and-Movies-show/actions/workflows/ci.yml/badge.svg)](https://github.com/Gautam215/Music-and-Movies-show/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-music--and--movies--show.vercel.app-111827?style=for-the-badge&logo=vercel&logoColor=white)](https://music-and-movies-show.vercel.app/)
+
+## Showcase
+
+The live UI is available at [music-and-movies-show.vercel.app](https://music-and-movies-show.vercel.app/).
+Run `npm run screenshots` against a production server on `localhost:3000` to refresh the desktop and mobile captures below.
+
+### Home
+
+![Black Hole hero on Home](screenshots/home-desktop.png)
+Black Hole hero and featured screening on Home (desktop).
+
+![Black Hole hero on Home on mobile](screenshots/home-mobile.png)
+Black Hole hero and featured screening on Home (mobile).
+
+### Songs
+
+![Soundtrack player on Songs](screenshots/songs-desktop.png)
+Spotify soundtrack player and recommendations on Songs (desktop).
+
+![Soundtrack player on Songs on mobile](screenshots/songs-mobile.png)
+Spotify soundtrack player and recommendations on Songs (mobile).
+
+### Tickets
+
+![Seat selection on Tickets](screenshots/tickets-desktop.png)
+Showtime selection and interactive seat map on Tickets (desktop).
+
+![Seat selection on Tickets on mobile](screenshots/tickets-mobile.png)
+Showtime selection and interactive seat map on Tickets (mobile).
+
+### Profile
+
+![Profile experience on Profile](screenshots/profile-desktop.png)
+Personal signal and saved content on Profile (desktop).
+
+![Profile experience on Profile on mobile](screenshots/profile-mobile.png)
+Personal signal and saved content on Profile (mobile).
+
 ## Stack
 
 - Next.js App Router with TypeScript strict mode.
@@ -21,6 +61,20 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+## Screenshots
+
+The screenshot script covers Home, Songs, Tickets, and Profile at 1440px desktop and 375px mobile widths.
+Install Chromium once before running it locally:
+
+```bash
+npx playwright install chromium
+npm run build
+npm run start
+npm run screenshots
+```
+
+Set `BASE_URL` to capture another running deployment, for example `BASE_URL=https://music-and-movies-show.vercel.app npm run screenshots`.
 
 ## Why `components/ui`
 
@@ -51,9 +105,15 @@ The unit tests use Node's built-in test runner and cover same-origin validation,
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs the same format, type-check, lint, dependency audit, unit-test, production-build, and API-regression steps for pushes to `main` and pull requests. `.github/dependabot.yml` checks npm packages and GitHub Actions weekly.
+`.github/workflows/ci.yml` runs formatting, type-checking, lint, dependency audit, unit tests, the production build, API regression checks, and UI screenshot capture for pushes to `main` and pull requests. The Vercel preview job runs after those checks for same-repository pull requests. The production job runs only after every check is green on a push to `main` and uses the Vercel CLI explicitly, so deployment failures fail the workflow.
 
-This repository contains continuous integration only. It does not contain an automatic deployment workflow because the deployment target and its production secrets are not defined in the repository. Configure deployment in the chosen host after CI is green; never commit `.env` files or provider credentials.
+The deployment jobs require these GitHub Actions secrets under **Settings → Secrets and variables → Actions**:
+
+- `VERCEL_TOKEN`: a Vercel access token with deployment permission.
+- `VERCEL_ORG_ID`: the Vercel team or account ID that owns the project.
+- `VERCEL_PROJECT_ID`: the Vercel project ID for `music-and-movies-show.vercel.app`.
+
+Never commit these values or put them in `.env` files. Pull requests from forks intentionally skip the preview deployment because GitHub does not expose repository secrets to untrusted fork workflows.
 
 ## Stack Inventory
 
