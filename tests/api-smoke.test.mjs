@@ -90,6 +90,18 @@ test("public pages and API boundaries communicate reliably", async () => {
     });
     assert.equal(anonymousSignal.response.status, 401);
 
+    const anonymousSignalList = await request(
+      "/api/user-signals?type=favorite",
+    );
+    assert.equal(anonymousSignalList.response.status, 401);
+
+    const anonymousSignalDelete = await request("/api/user-signals", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "favorite", key: "movie:m1" }),
+    });
+    assert.equal(anonymousSignalDelete.response.status, 401);
+
     const invalidPlayer = await request("/api/spotify/player", {
       method: "POST",
       headers: { "content-type": "application/json" },
