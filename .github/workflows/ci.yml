@@ -140,13 +140,11 @@ jobs:
 
       - name: Deploy Vercel preview
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
           vercel deploy \
             --token="$VERCEL_TOKEN" \
-            --scope="$VERCEL_ORG_ID" \
             --yes 2>&1 | tee vercel-preview.log
           preview_url="$(grep -Eo 'https://[^[:space:]]+\.vercel\.app' vercel-preview.log | tail -n 1)"
           if [ -z "$preview_url" ]; then
@@ -192,12 +190,10 @@ jobs:
 
       - name: Deploy Vercel production
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
           vercel deploy \
             --prod \
             --token="$VERCEL_TOKEN" \
-            --scope="$VERCEL_ORG_ID" \
             --yes
