@@ -631,8 +631,8 @@ function LoggedInProfile({
     <section className="profile-signed-in" aria-labelledby="profile-title">
       <div className="profile-identity">
         <div className="profile-avatar">{initials(session.name)}</div>
-        <div>
-          <div className="profile-kicker">Profile / active session</div>
+        <div className="profile-identity-details">
+          <div className="profile-kicker">PROFILE / ACTIVE SESSION</div>
           <h2 id="profile-title">{session.name}</h2>
           <p>
             <Mail className="size-3.5" /> {session.email} <span>·</span>{" "}
@@ -853,7 +853,6 @@ export function ProfileExperience() {
                 <ArrowLeft className="size-3.5" aria-hidden="true" />
                 Back to home
               </button>
-              <span>LIQUID FIELD / 01</span>
             </div>
             <div className="profile-experience-heading">
               <div className="profile-kicker">A quieter corner of the reel</div>
