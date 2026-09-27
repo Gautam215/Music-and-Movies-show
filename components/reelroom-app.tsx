@@ -181,7 +181,8 @@ function recordUserSignal(signal: {
   mediaType?: Movie["mediaType"];
   genres?: string[];
   metadata?: Record<string, string>;
-}) {
+}, enabled = true) {
+  if (!enabled) return Promise.resolve(null);
   return fetchWithBackoff("/api/user-signals", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1424,7 +1425,7 @@ export function ReelroomApp({
         tmdbId: movie.tmdbId,
         mediaType: movie.mediaType,
         genres: movie.genres,
-      });
+      }, Boolean(profileUser));
     }
     setFavorites((current) => {
       return alreadySaved ? current.filter((item) => item !== id) : [...current, id];
@@ -1520,7 +1521,7 @@ export function ReelroomApp({
         mediaType: ticketMovie.mediaType,
         genres: ticketMovie.genres,
         metadata: { date: selectedDayOption.date, showtime: activeShowtime },
-      });
+      }, Boolean(profileUser));
       window.setTimeout(() => {
         setBooking(false);
         setCheckoutStatus("idle");
@@ -1677,7 +1678,7 @@ export function ReelroomApp({
         type: "listen",
         title: song.title,
         metadata: { artist: song.artist, movie: song.movie },
-      });
+      }, Boolean(profileUser));
     } catch (error) {
       setSpotifyError(error instanceof Error ? error.message : "Spotify could not start this track.");
     }
