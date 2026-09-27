@@ -2074,35 +2074,6 @@ body:has(.profile-experience) {
   justify-content: space-between;
   gap: 1rem;
 }
-.profile-experience-back {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  margin-inline: auto;
-  border: 1px solid rgba(226, 232, 255, 0.2);
-  border-radius: 999px;
-  background: rgba(8, 12, 28, 0.46);
-  padding: 0.5rem 0.8rem;
-  color: rgba(226, 232, 255, 0.78);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.57rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
-}
-.profile-experience-back:hover,
-.profile-experience-back:focus-visible {
-  border-color: rgba(180, 196, 255, 0.68);
-  background: rgba(115, 139, 255, 0.16);
-  color: #f5f7ff;
-  transform: translateY(-1px);
-}
 .profile-experience-heading {
   max-width: 42rem;
   margin: 3.25rem auto 0;
@@ -2674,11 +2645,6 @@ body:has(.profile-experience) {
   .profile-login-topline {
     align-items: flex-start;
     flex-wrap: wrap;
-  }
-  .profile-login-topline .profile-experience-back {
-    order: 3;
-    width: 100%;
-    margin-inline: 0;
   }
   .profile-experience-heading {
     margin-top: 2.5rem;

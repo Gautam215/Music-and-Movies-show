@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Image from "next/image";
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   Eye,
@@ -918,17 +917,6 @@ export function ProfileExperience() {
           <>
             <div className="profile-experience-topline">
               <span>REELSCAPE / YOUR SIGNAL</span>
-              <button
-                type="button"
-                className="profile-experience-back"
-                onClick={() => {
-                  window.location.hash = "";
-                  haptic();
-                }}
-              >
-                <ArrowLeft className="size-3.5" aria-hidden="true" />
-                Back to home
-              </button>
             </div>
             <div className="profile-experience-heading">
               <div className="profile-kicker">A quieter corner of the reel</div>
@@ -946,17 +934,6 @@ export function ProfileExperience() {
           <div className="profile-login-stage">
             <div className="profile-experience-topline profile-login-topline">
               <span>REELSCAPE / PROFILE</span>
-              <button
-                type="button"
-                className="profile-experience-back"
-                onClick={() => {
-                  window.location.hash = "";
-                  haptic();
-                }}
-              >
-                <ArrowLeft className="size-3.5" aria-hidden="true" />
-                Back to home
-              </button>
             </div>
             <ReelscapeLogo className="profile-login-brand" />
             <ProfileLogin onLogin={setSession} />
