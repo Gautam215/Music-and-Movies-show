@@ -2,25 +2,48 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bell, House, Music2, Sparkles, Ticket, UserRound } from "lucide-react";
+import {
+  Bell,
+  Film,
+  House,
+  Music2,
+  Sparkles,
+  Ticket,
+  UserRound,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NotificationCenter } from "@/components/notification-center";
 
 const items = [
   { id: "home", label: "Home", href: "/", icon: House },
+  {
+    id: "movies",
+    label: "Movies",
+    href: "/#movies",
+    icon: Film,
+    compactHidden: true,
+  },
   { id: "songs", label: "Songs", href: "/#songs", icon: Music2 },
   { id: "tickets", label: "Tickets", href: "/#tickets", icon: Ticket },
-  { id: "updates", label: "Update", href: "/#updates", icon: Sparkles },
-  { id: "notifications", label: "Notification", href: null, icon: Bell },
+  {
+    id: "updates",
+    label: "Updates",
+    href: "/#updates",
+    icon: Sparkles,
+    compactHidden: true,
+  },
+  { id: "notifications", label: "Notifications", href: null, icon: Bell },
   { id: "profile", label: "Profile", href: "/#profile", icon: UserRound },
 ] satisfies {
   id: string;
   label: string;
   href: string | null;
   icon: LucideIcon;
+  compactHidden?: boolean;
 }[];
 
 const dismissTransientsEvent = "reelroom-dismiss-transients";
+const routeChangeEvent = "reelroom-route-change";
 
 type ContrastMode = "light" | "dark";
 
@@ -61,9 +84,11 @@ export function FloatingNavigation() {
     syncPage();
     window.addEventListener("hashchange", syncPage);
     window.addEventListener("popstate", syncPage);
+    window.addEventListener(routeChangeEvent, syncPage);
     return () => {
       window.removeEventListener("hashchange", syncPage);
       window.removeEventListener("popstate", syncPage);
+      window.removeEventListener(routeChangeEvent, syncPage);
     };
   }, []);
 
@@ -127,7 +152,7 @@ export function FloatingNavigation() {
         aria-hidden="true"
         style={{ left: activePill.left, width: activePill.width }}
       />
-      {items.map(({ id, label, href, icon: Icon }) => {
+      {items.map(({ id, label, href, icon: Icon, compactHidden }) => {
         if (!href) {
           return <NotificationCenter key={id} />;
         }
@@ -142,6 +167,7 @@ export function FloatingNavigation() {
               window.dispatchEvent(new Event(dismissTransientsEvent))
             }
             data-active={id === activePage}
+            data-compact-hidden={compactHidden || undefined}
             aria-current={id === activePage ? "page" : undefined}
           >
             <Icon className="reelroom-floating-nav-icon" aria-hidden="true" />

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Image from "next/image";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   Eye,
@@ -23,6 +24,9 @@ type ProfileSession = {
 };
 
 const sessionKey = "reelroom.profile.session";
+const routeChangeEvent = "reelroom-route-change";
+const profileFocusableSelector =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type AuthMode = "signin" | "signup";
 type FieldName = "name" | "email" | "password";
@@ -735,23 +739,73 @@ export function ProfileExperience() {
     sync();
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
+    window.addEventListener(routeChangeEvent, sync);
     window.addEventListener("reelroom-profile-session", sync);
     return () => {
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
+      window.removeEventListener(routeChangeEvent, sync);
       window.removeEventListener("reelroom-profile-session", sync);
     };
   }, []);
 
   useEffect(() => {
     if (!visible) return;
+    const experience = document.querySelector<HTMLElement>(
+      ".profile-experience",
+    );
+    const app = document.querySelector<HTMLElement>(".reelroom-app");
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const hadAppInert = app?.hasAttribute("inert") ?? false;
+    const previousAriaHidden = app?.getAttribute("aria-hidden") ?? null;
+
+    app?.setAttribute("inert", "");
+    app?.setAttribute("aria-hidden", "true");
+    const focusFrame = window.requestAnimationFrame(() => {
+      const firstFocusable = experience?.querySelector<HTMLElement>(
+        profileFocusableSelector,
+      );
+      firstFocusable?.focus();
+    });
+
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !experience) return;
+      const focusable = Array.from(
+        experience.querySelectorAll<HTMLElement>(profileFocusableSelector),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", trapFocus);
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       window.location.hash = "";
       haptic();
     };
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", trapFocus);
+      document.removeEventListener("keydown", closeOnEscape);
+      if (app) {
+        if (!hadAppInert) app.removeAttribute("inert");
+        if (previousAriaHidden === null) app.removeAttribute("aria-hidden");
+        else app.setAttribute("aria-hidden", previousAriaHidden);
+      }
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
   }, [visible]);
 
   if (!visible) return null;
@@ -773,24 +827,55 @@ export function ProfileExperience() {
   };
 
   return (
-    <section className="profile-experience" aria-label="Profile">
+    <section
+      className="profile-experience"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={session ? "profile-experience-title" : "profile-login-title"}
+      tabIndex={-1}
+    >
       <LiquidWaveCanvas />
       <div className="profile-experience-content">
         {session ? (
           <>
             <div className="profile-experience-topline">
               <span>REELSCAPE / YOUR SIGNAL</span>
+              <button
+                type="button"
+                className="profile-experience-back"
+                onClick={() => {
+                  window.location.hash = "";
+                  haptic();
+                }}
+              >
+                <ArrowLeft className="size-3.5" aria-hidden="true" />
+                Back to home
+              </button>
               <span>LIQUID FIELD / 01</span>
             </div>
             <div className="profile-experience-heading">
               <div className="profile-kicker">A quieter corner of the reel</div>
-              <h1>Your signal.</h1>
+              <h1 id="profile-experience-title">Your signal.</h1>
               <p>Saved scenes, songs, and the next place to land.</p>
             </div>
             <LoggedInProfile session={session} onLogout={logout} />
           </>
         ) : (
           <div className="profile-login-stage">
+            <div className="profile-experience-topline profile-login-topline">
+              <span>REELSCAPE / PROFILE</span>
+              <button
+                type="button"
+                className="profile-experience-back"
+                onClick={() => {
+                  window.location.hash = "";
+                  haptic();
+                }}
+              >
+                <ArrowLeft className="size-3.5" aria-hidden="true" />
+                Back to home
+              </button>
+            </div>
             <ReelscapeLogo className="profile-login-brand" />
             <ProfileLogin onLogin={setSession} />
             <div className="profile-login-footer">

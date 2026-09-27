@@ -119,8 +119,6 @@ export function UpdatesCarousel({
     event.currentTarget.style.setProperty("--updates-pointer-y", "0");
   };
 
-  if (!selectedMovie) return null;
-
   return (
     <section
       className="updates-carousel"
@@ -142,7 +140,9 @@ export function UpdatesCarousel({
             <button
               type="button"
               role="tab"
+              id="updates-tab-trending"
               aria-selected={category === "trending"}
+              aria-controls="updates-panel"
               className={cn(
                 category === "trending" && "updates-carousel-category-active",
               )}
@@ -153,7 +153,9 @@ export function UpdatesCarousel({
             <button
               type="button"
               role="tab"
+              id="updates-tab-coming-soon"
               aria-selected={category === "comingSoon"}
+              aria-controls="updates-panel"
               className={cn(
                 category === "comingSoon" && "updates-carousel-category-active",
               )}
@@ -168,126 +170,148 @@ export function UpdatesCarousel({
         </span>
       </div>
       <div className="updates-carousel-layout">
-        <div
-          ref={stageRef}
-          className="updates-carousel-stage"
-          onPointerMove={handlePointerMove}
-          onPointerLeave={resetPointer}
-        >
-          {visibleMovies.map((movie, index) => (
-            <button
-              key={movie.id}
-              ref={(node) => {
-                cardRefs.current[index] = node;
-              }}
-              type="button"
-              aria-label={`Select ${movie.title}`}
-              aria-pressed={movie.id === activeSelectedId}
-              onClick={() => setSelectedId(movie.id)}
-              className={cn(
-                "updates-carousel-card",
-                movie.id === activeSelectedId &&
-                  "updates-carousel-card-selected",
-              )}
+        {visibleMovies.length ? (
+          <>
+            <div
+              ref={stageRef}
+              className="updates-carousel-stage"
+              onPointerMove={handlePointerMove}
+              onPointerLeave={resetPointer}
             >
-              <Image
-                fill
-                src={movie.poster}
-                alt={`${movie.title} poster`}
-                sizes="(max-width: 768px) 40vw, 20vw"
-                draggable={false}
-              />
-              <span className="updates-carousel-card-shade" />
-              <span className="updates-carousel-card-label">
-                <strong>{movie.title}</strong>
-                <small>
-                  {movie.rating === "—" ? "NR" : `★ ${movie.rating}`} /{" "}
-                  {movie.release}
-                </small>
-              </span>
-            </button>
-          ))}
-          <div className="updates-carousel-center" aria-hidden="true">
-            <span>Trending</span>
-            <strong>&apos;26</strong>
-            <small>Tap a title to expand</small>
-          </div>
-          <div className="updates-carousel-orbit" aria-hidden="true" />
-        </div>
-        <aside
-          className="updates-carousel-panel"
-          key={selectedMovie.id}
-          aria-live="polite"
-        >
-          <div className="updates-carousel-panel-kicker">
-            Selected screening / 0{visibleMovies.indexOf(selectedMovie) + 1}
-          </div>
-          <div className="updates-carousel-panel-poster">
-            <Image
-              fill
-              src={selectedMovie.backdrop}
-              alt=""
-              aria-hidden="true"
-              sizes="(max-width: 768px) 100vw, 30vw"
-            />
-            <div />
-            <span>
-              {selectedMovie.status === "UPCOMING"
-                ? "Upcoming release"
-                : "Now playing"}
-            </span>
-          </div>
-          <h2>{selectedMovie.title}</h2>
-          <p className="updates-carousel-panel-copy">
-            {selectedMovie.synopsis}
-          </p>
-          <div className="updates-carousel-facts">
-            <div>
-              <span>Production</span>
-              <strong>{selectedMovie.production ?? selectedMovie.meta}</strong>
+              {visibleMovies.map((movie, index) => (
+                <button
+                  key={movie.id}
+                  ref={(node) => {
+                    cardRefs.current[index] = node;
+                  }}
+                  type="button"
+                  aria-label={`Select ${movie.title}`}
+                  aria-pressed={movie.id === activeSelectedId}
+                  onClick={() => setSelectedId(movie.id)}
+                  className={cn(
+                    "updates-carousel-card",
+                    movie.id === activeSelectedId &&
+                      "updates-carousel-card-selected",
+                  )}
+                >
+                  <Image
+                    fill
+                    src={movie.poster}
+                    alt={`${movie.title} poster`}
+                    sizes="(max-width: 768px) 40vw, 20vw"
+                    draggable={false}
+                  />
+                  <span className="updates-carousel-card-shade" />
+                  <span className="updates-carousel-card-label">
+                    <strong>{movie.title}</strong>
+                    <small>
+                      {movie.rating === "—" ? "NR" : `★ ${movie.rating}`} /{" "}
+                      {movie.release}
+                    </small>
+                  </span>
+                </button>
+              ))}
+              <div className="updates-carousel-center" aria-hidden="true">
+                <span>Trending</span>
+                <strong>&apos;26</strong>
+                <small>Tap a title to expand</small>
+              </div>
+              <div className="updates-carousel-orbit" aria-hidden="true" />
             </div>
-            <div>
-              <span>Release / rating</span>
-              <strong>
-                {selectedMovie.release} ·{" "}
-                {selectedMovie.rating === "—"
-                  ? "NR"
-                  : `★ ${selectedMovie.rating}`}
-              </strong>
-            </div>
-            <div>
-              <span>
-                <Clock3 /> Runtime
-              </span>
-              <strong>
-                {selectedMovie.runtime
-                  ? `${selectedMovie.runtime} min`
-                  : selectedMovie.meta}
-              </strong>
-            </div>
-          </div>
-          <div className="updates-carousel-actors">
-            <span>
-              <Users /> Top actors
-            </span>
-            <div>
-              {selectedMovie.actors?.length ? (
-                selectedMovie.actors.map((actor) => (
-                  <strong key={actor}>{actor}</strong>
-                ))
-              ) : (
-                <strong>Cast details unavailable</strong>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => onOpen(selectedMovie)}
-            className="updates-carousel-open"
+            <aside
+              id="updates-panel"
+              className="updates-carousel-panel"
+              key={selectedMovie?.id}
+              role="tabpanel"
+              tabIndex={0}
+              aria-labelledby={`updates-tab-${category === "trending" ? "trending" : "coming-soon"}`}
+              aria-live="polite"
+            >
+              <div className="updates-carousel-panel-kicker">
+                Selected screening / 0{visibleMovies.indexOf(selectedMovie!) + 1}
+              </div>
+              <div className="updates-carousel-panel-poster">
+                <Image
+                  fill
+                  src={selectedMovie!.backdrop}
+                  alt=""
+                  aria-hidden="true"
+                  sizes="(max-width: 768px) 100vw, 30vw"
+                />
+                <div />
+                <span>
+                  {selectedMovie!.status === "UPCOMING"
+                    ? "Upcoming release"
+                    : "Now playing"}
+                </span>
+              </div>
+              <h2>{selectedMovie!.title}</h2>
+              <p className="updates-carousel-panel-copy">
+                {selectedMovie!.synopsis}
+              </p>
+              <div className="updates-carousel-facts">
+                <div>
+                  <span>Production</span>
+                  <strong>
+                    {selectedMovie!.production ?? selectedMovie!.meta}
+                  </strong>
+                </div>
+                <div>
+                  <span>Release / rating</span>
+                  <strong>
+                    {selectedMovie!.release} ·{" "}
+                    {selectedMovie!.rating === "—"
+                      ? "NR"
+                      : `★ ${selectedMovie!.rating}`}
+                  </strong>
+                </div>
+                <div>
+                  <span>
+                    <Clock3 /> Runtime
+                  </span>
+                  <strong>
+                    {selectedMovie!.runtime
+                      ? `${selectedMovie!.runtime} min`
+                      : selectedMovie!.meta}
+                  </strong>
+                </div>
+              </div>
+              <div className="updates-carousel-actors">
+                <span>
+                  <Users /> Top actors
+                </span>
+                <div>
+                  {selectedMovie!.actors?.length ? (
+                    selectedMovie!.actors.map((actor) => (
+                      <strong key={actor}>{actor}</strong>
+                    ))
+                  ) : (
+                    <strong>Cast details unavailable</strong>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpen(selectedMovie!)}
+                className="updates-carousel-open"
+              >
+                Open film details <ArrowUpRight />
+              </button>
+            </aside>
+          </>
+        ) : (
+          <div
+            id="updates-panel"
+            className="updates-carousel-empty"
+            role="tabpanel"
+            tabIndex={0}
+            aria-labelledby={`updates-tab-${category === "trending" ? "trending" : "coming-soon"}`}
+            aria-live="polite"
           >
-            Open film details <ArrowUpRight />
-          </button>
-        </aside>
+            <strong role="status">No updates in this signal yet.</strong>
+            <span>Check back after the next daily film refresh.</span>
+          </div>
+        )}
       </div>
     </section>
   );

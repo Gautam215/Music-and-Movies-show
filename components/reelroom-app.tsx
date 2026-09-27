@@ -7,12 +7,12 @@ import type {
   ButtonHTMLAttributes,
   CSSProperties,
   FormEvent,
+  Ref,
   ReactNode,
 } from "react";
 import {
   ArrowRight,
   Armchair,
-  Bell,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -124,6 +124,7 @@ const checkoutFields: CheckoutField[] = [
   "cvc",
 ];
 const dismissTransientsEvent = "reelroom-dismiss-transients";
+const routeChangeEvent = "reelroom-route-change";
 
 function validateCheckoutField(field: CheckoutField, value: string) {
   const trimmed = value.trim();
@@ -223,6 +224,70 @@ function recordUserSignal(
 function formatPlaybackTime(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+const dialogFocusableSelector =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function useDialogFocus(open: boolean, onClose: () => void) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const dialog = dialogRef.current;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const focusFrame = window.requestAnimationFrame(() => {
+      const firstFocusable = dialog?.querySelector<HTMLElement>(
+        dialogFocusableSelector,
+      );
+      (firstFocusable ?? dialog)?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(dialogFocusableSelector),
+      );
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [open]);
+
+  return dialogRef;
 }
 
 declare global {
@@ -417,15 +482,18 @@ type EyeLevel = "front" | "middle" | "rear";
 function Button({
   children,
   className,
+  ref,
   variant = "surface",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "surface" | "ghost";
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       className={cn(
-        "reelroom-action-button inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition duration-500 ease-out hover:-translate-y-px focus-visible:outline-none",
+        "reelroom-action-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-xs font-bold transition duration-500 ease-out hover:-translate-y-px focus-visible:outline-none",
         variant === "primary" && "border-amber bg-amber text-canvas",
         variant === "surface" && "border-border bg-surface-2 text-ink",
         variant === "ghost" && "border-border bg-transparent text-ink-2",
@@ -532,9 +600,9 @@ function FeaturedScreening({
   onBook: () => void;
 }) {
   return (
-    <article className="group reelroom-featured-screening grid w-full items-center gap-6 md:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] md:gap-10">
+    <article className="group reelroom-featured-screening grid w-full items-center gap-6 lg:grid-cols-[minmax(12rem,.72fr)_minmax(0,1.28fr)] lg:gap-10">
       <div>
-        <div className="relative min-h-[22rem] overflow-hidden rounded-2xl md:min-h-[31rem]">
+        <div className="relative min-h-[20rem] overflow-hidden rounded-2xl sm:min-h-[24rem] lg:min-h-[31rem]">
           <Image
             fill
             priority
@@ -615,8 +683,8 @@ function CurrentReelSection({
       className="reelroom-home-panel relative space-y-7"
       aria-live="polite"
     >
-      <div className="flex items-end justify-between gap-4">
-        <div className="min-w-0">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
           <span className="font-mono text-[10px] uppercase tracking-[.18em] text-amber">
             Current reel / {city}
           </span>
@@ -624,13 +692,18 @@ function CurrentReelSection({
             The current reel
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="shrink-0 font-mono text-[10px] text-amber"
-        >
-          View all films ↗
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="min-h-11 px-2 font-mono text-[10px] text-amber"
+          >
+            View all films ↗
+          </button>
+          <span className="font-mono text-[9px] uppercase tracking-[.1em] text-muted sm:hidden">
+            Swipe to browse
+          </span>
+        </div>
       </div>
       <div ref={gridRef} className="reelroom-movie-grid-shell">
         <div className="reelroom-movie-grid" aria-label="Current films">
@@ -691,7 +764,7 @@ function CurrentReelSection({
             <span className="text-muted">
               {activeMovie.rating === "—" ? "NR" : `★ ${activeMovie.rating}`}
             </span>
-            <span className="text-muted">${activeMovie.price}</span>
+             <span className="text-muted">₹{activeMovie.price}</span>
           </div>
           <h3 className="mt-3 font-display text-2xl font-semibold leading-none tracking-[-.06em] text-ink sm:text-3xl">
             {activeMovie.title}
@@ -805,7 +878,7 @@ export function ReelroomApp({
   );
   const [profileSessionReady, setProfileSessionReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(
     null,
   );
@@ -854,6 +927,7 @@ export function ReelroomApp({
     string | null
   >(null);
   const [soundtrackLoading, setSoundtrackLoading] = useState(false);
+  const [soundtrackError, setSoundtrackError] = useState<string | null>(null);
   const [spotifyPlaylistName, setSpotifyPlaylistName] = useState("Hehe");
   const [spotifyPlaylistLoading, setSpotifyPlaylistLoading] = useState(false);
   const [spotifyPlaylistError, setSpotifyPlaylistError] = useState<
@@ -876,6 +950,7 @@ export function ReelroomApp({
   const [spotifySearchError, setSpotifySearchError] = useState<string | null>(
     null,
   );
+  const spotifySearchTriggerRef = useRef<HTMLButtonElement>(null);
   const [releaseAlerts, setReleaseAlerts] = useState(true);
   const [bookingUpdates, setBookingUpdates] = useState(true);
   const [preferredCity, setPreferredCity] = useState("Greater Noida");
@@ -1042,6 +1117,7 @@ export function ReelroomApp({
 
     const loadSoundtrack = async () => {
       setSelectedSoundtrackMovieId(null);
+      setSoundtrackError(null);
       setSoundtrackLoading(true);
       try {
         const response = await fetchWithBackoff(
@@ -1054,7 +1130,7 @@ export function ReelroomApp({
         const payload = (await response.json().catch(() => null)) as {
           songs?: Song[];
         } | null;
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Soundtrack picks are unavailable.");
         const seen = new Set<string>();
         const songs = (payload?.songs ?? [])
           .filter((song) => {
@@ -1069,24 +1145,22 @@ export function ReelroomApp({
           setSelectedSoundtrackMovieId(selected.id);
         }
       } catch {
-        // The details view remains useful when Spotify is unavailable.
+        if (!controller.signal.aborted) {
+          setSelectedSoundtrack([]);
+          setSelectedSoundtrackMovieId(selected.id);
+          setSoundtrackError("Soundtrack picks are unavailable right now.");
+        }
       } finally {
-        if (!controller.signal.aborted) setSoundtrackLoading(false);
+        if (!controller.signal.aborted) {
+          setSelectedSoundtrackMovieId(selected.id);
+          setSoundtrackLoading(false);
+        }
       }
     };
 
     void loadSoundtrack();
 
     return () => controller.abort();
-  }, [selected]);
-
-  useEffect(() => {
-    if (!selected) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelected(null);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
   }, [selected]);
 
   useEffect(() => {
@@ -1407,7 +1481,11 @@ export function ReelroomApp({
       spotifySearchInputRef.current?.focus(),
     );
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSpotifySearchOpen(false);
+      if (event.key !== "Escape") return;
+      setSpotifySearchOpen(false);
+      window.requestAnimationFrame(() =>
+        spotifySearchTriggerRef.current?.focus(),
+      );
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => {
@@ -1430,6 +1508,7 @@ export function ReelroomApp({
       "",
       `${window.location.pathname}${window.location.search}${nextHash}`,
     );
+    window.dispatchEvent(new Event(routeChangeEvent));
   };
 
   useEffect(() => {
@@ -1731,6 +1810,10 @@ export function ReelroomApp({
       setBooking(false);
     }, 240);
   };
+  const movieDialogRef = useDialogFocus(Boolean(selected), () =>
+    setSelected(null),
+  );
+  const checkoutDialogRef = useDialogFocus(booking, closeCheckout);
   const updateCheckoutField = (field: CheckoutField, rawValue: string) => {
     const value =
       field === "cardNumber"
@@ -2104,6 +2187,14 @@ export function ReelroomApp({
     }
     connectSpotify();
   };
+  const openSpotifySearch = () => {
+    setSpotifySearchOpen(true);
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("spotify-search-panel")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  };
 
   const activeReelMovie =
     catalog.find((item) => item.id === activeReelMovieId) ?? heroMovie;
@@ -2188,7 +2279,15 @@ export function ReelroomApp({
           </span>
         </div>
         <div className="h-auto min-h-[42rem] lg:h-[36rem]">
-          <WorksWheel items={wheelItems} label="Films '26" action="Open" />
+          <WorksWheel
+            items={wheelItems}
+            label="Films '26"
+            action="Open"
+            onSelect={(item) => {
+              const movie = catalog.find((candidate) => candidate.title === item.title);
+              if (movie) openMovie(movie);
+            }}
+          />
         </div>
       </section>
     </div>
@@ -2397,7 +2496,7 @@ export function ReelroomApp({
               onChange={(event) => setAuthEmail(event.target.value)}
               placeholder="you@example.com"
               autoComplete="email"
-              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+               className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
           <label className="block">
@@ -2411,7 +2510,7 @@ export function ReelroomApp({
               onChange={(event) => setAuthPassword(event.target.value)}
               placeholder="Enter your password"
               autoComplete="current-password"
-              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
+               className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-ink placeholder:text-muted focus-visible:outline-none"
             />
           </label>
           {authError ? (
@@ -2426,7 +2525,7 @@ export function ReelroomApp({
             type="submit"
             disabled={authSubmitting}
             variant="primary"
-            className="h-10 w-full min-h-0 disabled:cursor-not-allowed disabled:opacity-60"
+             className="min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogIn className="size-4" />
             {authSubmitting ? "Checking..." : "Log in"}
@@ -2510,6 +2609,18 @@ export function ReelroomApp({
                   className="reelroom-playlist-button h-11 rounded-full px-5 text-xs"
                 >
                   View playlist
+                </Button>
+                <Button
+                  ref={spotifySearchTriggerRef}
+                  type="button"
+                  variant="ghost"
+                  onClick={openSpotifySearch}
+                  aria-controls="spotify-search-panel"
+                  aria-expanded={spotifySearchOpen}
+                  className="reelroom-search-tracks-button h-11 rounded-full px-5 text-xs"
+                >
+                  <Search className="size-3.5" aria-hidden="true" />
+                  Search tracks
                 </Button>
               </div>
 
@@ -2743,6 +2854,7 @@ export function ReelroomApp({
         id="spotify-search-panel"
         aria-label="Search Spotify"
         aria-hidden={!spotifySearchOpen}
+        inert={!spotifySearchOpen}
         className={cn(
           "overflow-hidden rounded-[2rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl transition-[max-height,opacity,transform,margin] duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
           spotifySearchOpen
@@ -2760,9 +2872,24 @@ export function ReelroomApp({
                 Find a song for the scene.
               </h2>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-              Press escape to close
-            </span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
+                Press escape to close
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSpotifySearchOpen(false);
+                  window.requestAnimationFrame(() =>
+                    spotifySearchTriggerRef.current?.focus(),
+                  );
+                }}
+                aria-label="Close track search"
+                className="grid size-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <form
             onSubmit={searchSpotify}
@@ -2832,7 +2959,7 @@ export function ReelroomApp({
                         type="button"
                         onClick={() => void toggleSpotifySong(song)}
                         aria-label={`${songPlaying ? "Pause" : "Play"} ${song.title}`}
-                        className="grid size-9 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
+                       className="grid size-11 shrink-0 place-items-center rounded-full border border-amber/60 bg-amber text-canvas transition hover:-translate-y-0.5 hover:bg-ink hover:text-ink"
                       >
                         {songPlaying ? (
                           <Pause className="size-3.5 fill-current" />
@@ -2880,7 +3007,7 @@ export function ReelroomApp({
             }
             aria-expanded={spotifyTrackListOpen}
             onClick={() => setSpotifyTrackListOpen((open) => !open)}
-            className="grid size-9 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
+             className="grid size-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.05] text-ink-2 transition hover:border-white/35 hover:bg-white/[.1] hover:text-ink"
           >
             <EllipsisVertical className="size-4" />
           </button>
@@ -2980,6 +3107,23 @@ export function ReelroomApp({
                 Syncing {spotifyPlaylistName} recommendations...
               </p>
             </section>
+          ) : visiblePlaylistError ? (
+            <section
+              className="rounded-[1.5rem] border border-amber/30 bg-amber/[.08] p-5 text-center shadow-cinematic backdrop-blur-xl"
+              role="alert"
+            >
+              <p className="font-display text-lg font-semibold tracking-[-.05em] text-ink">
+                We couldn&apos;t load the playlist.
+              </p>
+              <p className="mt-2 text-sm text-ink-2">{visiblePlaylistError}</p>
+              <button
+                type="button"
+                onClick={connectSpotify}
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-amber/60 bg-amber px-4 font-mono text-[10px] uppercase tracking-[.12em] text-canvas transition hover:bg-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+              >
+                Reconnect Spotify
+              </button>
+            </section>
           ) : filteredSongs.length ? (
             <section className="reelroom-track-list max-h-[31rem] overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/[.1] bg-surface/55 shadow-cinematic backdrop-blur-xl">
               <div className="px-2 sm:px-3">
@@ -3011,7 +3155,7 @@ export function ReelroomApp({
                       type="button"
                       onClick={() => void toggleSpotifySong(song)}
                       aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
-                      className="reelroom-track-play grid size-8 shrink-0 place-items-center rounded-full"
+                     className="reelroom-track-play grid size-11 shrink-0 place-items-center rounded-full"
                     >
                       {isSongPlaying(song) ? (
                         <Pause className="size-3 fill-current" />
@@ -3255,10 +3399,12 @@ export function ReelroomApp({
                       key={view}
                       type="button"
                       role="tab"
+                      id={`showtime-tab-${view}`}
                       aria-selected={showtimeView === view}
+                      aria-controls="showtime-panel"
                       onClick={() => setShowtimeView(view)}
                       className={cn(
-                        "rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.1em] transition",
+                        "min-h-11 rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.1em] transition",
                         showtimeView === view
                           ? "bg-ink text-canvas"
                           : "text-muted hover:text-ink",
@@ -3275,12 +3421,19 @@ export function ReelroomApp({
               </div>
             </div>
 
+            <div
+              id="showtime-panel"
+              role="tabpanel"
+              aria-labelledby={`showtime-tab-${showtimeView}`}
+              tabIndex={0}
+            >
             {showtimeView === "cards" ? (
               <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {ticketMovie.showtimes.map((time, index) => (
                   <button
                     key={time}
                     type="button"
+                    aria-pressed={activeShowtime === time}
                     onClick={() => setShowtime(time)}
                     className={cn(
                       "reelroom-showtime-card group rounded-2xl border p-4 text-left",
@@ -3325,6 +3478,7 @@ export function ReelroomApp({
                     <button
                       key={time}
                       type="button"
+                      aria-pressed={activeShowtime === time}
                       onClick={() => setShowtime(time)}
                       className="group relative z-10 flex min-w-[6.6rem] flex-col items-center gap-3 text-center"
                     >
@@ -3358,6 +3512,7 @@ export function ReelroomApp({
                     <button
                       key={day.id}
                       type="button"
+                      aria-pressed={selectedDay === day.id}
                       onClick={() => {
                         setSelectedDay(day.id);
                         setShowtime(day.times[0] ?? activeShowtime);
@@ -3383,6 +3538,7 @@ export function ReelroomApp({
                     <button
                       key={`${selectedDay}-${time}`}
                       type="button"
+                      aria-pressed={activeShowtime === time}
                       onClick={() => setShowtime(time)}
                       className={cn(
                         "rounded-2xl border px-3 py-3 text-left",
@@ -3402,6 +3558,7 @@ export function ReelroomApp({
                 </div>
               </div>
             )}
+            </div>
           </section>
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[.1] bg-white/[.035] p-3">
@@ -3423,7 +3580,7 @@ export function ReelroomApp({
               <div className="flex items-center rounded-full border border-border bg-surface-2/70 p-1">
                 <button
                   type="button"
-                  className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
+                  className="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
                   onClick={() => setGroupSize((size) => Math.max(1, size - 1))}
                   aria-label="Decrease group size"
                 >
@@ -3434,7 +3591,7 @@ export function ReelroomApp({
                 </span>
                 <button
                   type="button"
-                  className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
+                  className="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-surface-3"
                   onClick={() => setGroupSize((size) => Math.min(6, size + 1))}
                   aria-label="Increase group size"
                 >
@@ -3444,14 +3601,14 @@ export function ReelroomApp({
               <button
                 type="button"
                 onClick={chooseSmartGroup}
-                className="inline-flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink hover:bg-cobalt/90"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-cobalt px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink hover:bg-cobalt/90"
               >
                 <Sparkles className="size-3" /> Smart group
               </button>
               <button
                 type="button"
                 onClick={() => void shareBookingSession()}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink-2 hover:border-ink-2 hover:text-ink"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-ink-2 hover:border-ink-2 hover:text-ink"
               >
                 <Share2 className="size-3" />{" "}
                 {sessionCopied ? "Copied" : "Share room"}
@@ -3512,10 +3669,12 @@ export function ReelroomApp({
                         key={lens}
                         type="button"
                         role="tab"
+                        id={`seat-lens-tab-${lens}`}
                         aria-selected={seatLens === lens}
+                        aria-controls="seat-lens-panel"
                         onClick={() => setSeatLens(lens)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
+                          "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
                           seatLens === lens
                             ? "bg-ink text-canvas"
                             : "text-muted hover:text-ink",
@@ -3532,15 +3691,15 @@ export function ReelroomApp({
                           ? "Radar"
                           : lens === "eye"
                             ? "Eye-level"
-                            : "Golden zon"}
+                            : "Golden zone"}
                       </button>
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button
+                     <button
                       type="button"
                       onClick={() => panSeatMap(-1)}
-                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
+                      className="grid size-11 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
                       aria-label="Pan seats left"
                     >
                       <ChevronLeft className="size-3.5" />
@@ -3551,7 +3710,7 @@ export function ReelroomApp({
                         setSeatZoom((current) => Math.max(0.85, current - 0.15))
                       }
                       disabled={seatZoom <= 0.85}
-                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
+                      className="grid size-11 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
                       aria-label="Zoom out seat map"
                     >
                       <Minus className="size-3.5" />
@@ -3565,7 +3724,7 @@ export function ReelroomApp({
                         setSeatZoom((current) => Math.min(1.6, current + 0.15))
                       }
                       disabled={seatZoom >= 1.6}
-                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
+                      className="grid size-11 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3 disabled:opacity-30"
                       aria-label="Zoom in seat map"
                     >
                       <Plus className="size-3.5" />
@@ -3573,7 +3732,7 @@ export function ReelroomApp({
                     <button
                       type="button"
                       onClick={() => panSeatMap(1)}
-                      className="grid size-7 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
+                      className="grid size-11 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface-3"
                       aria-label="Pan seats right"
                     >
                       <ChevronRight className="size-3.5" />
@@ -3600,7 +3759,7 @@ export function ReelroomApp({
                       </div>
                     ) : null}
                     <div
-                      className="reelroom-seat-map relative z-10 mx-auto grid min-w-[19rem] gap-2.5"
+                       className="reelroom-seat-map relative z-10 mx-auto grid min-w-[27rem] gap-2.5"
                       style={{ width: `${seatZoom * 100}%` }}
                     >
                       {["A", "B", "C", "D", "E"].map((row) => (
@@ -3622,6 +3781,7 @@ export function ReelroomApp({
                                 type="button"
                                 disabled={isOccupied}
                                 aria-label={`${seat} ${isOccupied ? "taken" : isSelected ? "selected" : "available"}`}
+                                aria-pressed={isSelected}
                                 onMouseEnter={() => setHoveredSeat(seat)}
                                 onFocus={() => setHoveredSeat(seat)}
                                 onMouseLeave={() => setHoveredSeat(null)}
@@ -3634,7 +3794,7 @@ export function ReelroomApp({
                                   )
                                 }
                                 className={cn(
-                                  "reelroom-seat group/seat relative aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
+                                  "reelroom-seat group/seat relative min-h-11 min-w-11 aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
                                   isOccupied &&
                                     "cursor-not-allowed border-white/10 bg-white/[.035] text-muted opacity-60",
                                   isSelected &&
@@ -3677,7 +3837,7 @@ export function ReelroomApp({
                       <div className="rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 font-mono text-[9px] text-amber">
                         {hoveredSeat} ·{" "}
                         {goldenSeats.has(hoveredSeat)
-                          ? "Golden zon"
+                          ? "Golden zone"
                           : hoveredSeat.startsWith("A")
                             ? "Closer view"
                             : "Balanced view"}
@@ -3687,7 +3847,13 @@ export function ReelroomApp({
                 </div>
               </div>
 
-              <aside className="reelroom-seat-inspector rounded-[1.25rem] border border-white/[.1] bg-white/[.035] p-4">
+              <aside
+                id="seat-lens-panel"
+                role="tabpanel"
+                aria-labelledby={`seat-lens-tab-${seatLens}`}
+                tabIndex={0}
+                className="reelroom-seat-inspector rounded-[1.25rem] border border-white/[.1] bg-white/[.035] p-4"
+              >
                 {seatLens === "radar" ? (
                   <>
                     <div className="flex items-center gap-2 text-cobalt">
@@ -3757,7 +3923,7 @@ export function ReelroomApp({
                             type="button"
                             onClick={() => setEyeLevel(level)}
                             className={cn(
-                              "rounded-lg border px-2 py-2 font-mono text-[9px] uppercase tracking-[.08em]",
+                              "min-h-11 rounded-lg border px-2 py-2 font-mono text-[9px] uppercase tracking-[.08em]",
                               eyeLevel === level
                                 ? "border-amber/60 bg-amber/10 text-amber"
                                 : "border-border text-muted hover:text-ink",
@@ -3774,7 +3940,7 @@ export function ReelroomApp({
                     <div className="flex items-center gap-2 text-amber">
                       <Sparkles className="size-4" />
                       <span className="font-mono text-[9px] uppercase tracking-[.14em]">
-                        Golden zon
+                        Golden zone
                       </span>
                     </div>
                     <h4 className="mt-3 font-display text-lg font-semibold tracking-[-.04em] text-ink">
@@ -3785,7 +3951,7 @@ export function ReelroomApp({
                       spot: centered sound, gentle distance, no neck strain.
                     </p>
                     <div className="mt-5 rounded-xl border border-cobalt/25 bg-cobalt/10 p-3 text-[10px] leading-5 text-cobalt">
-                      ✦ C3–C6 are the recommended Golden zon for this room.
+                      ✦ C3–C6 are the recommended Golden zone for this room.
                     </div>
                   </>
                 )}
@@ -3799,6 +3965,11 @@ export function ReelroomApp({
               <Clock3 className="size-3.5 text-amber" /> Seats are held for
               08:42 after selection.
             </div>
+            <p className="sr-only" aria-live="polite">
+              {selectedSeats.length
+                ? `${selectedSeats.length} seat${selectedSeats.length === 1 ? "" : "s"} selected: ${selectedSeats.join(", ")}.`
+                : "No seats selected."}
+            </p>
           </section>
         </div>
 
@@ -3940,18 +4111,23 @@ export function ReelroomApp({
             </div>
             <div className="min-w-0">
               <h2 className="font-display text-xl font-semibold tracking-[-.05em] text-ink">
-                {profileUser?.name ?? "Sign in to load your profile"}
+                {!profileSessionReady
+                  ? "Checking your session"
+                  : profileUser?.name ?? "Sign in to load your profile"}
               </h2>
               <p className="mt-1 text-xs text-ink-2">
-                {profileUser?.location ?? "Location will appear after sign in"}
+                {!profileSessionReady
+                  ? "Loading your saved films and preferences..."
+                  : profileUser?.location ?? "Location will appear after sign in"}
                 {profileUser?.email ? ` · ${profileUser.email}` : ""}
               </p>
             </div>
           </div>
           <Button
             variant="ghost"
-            className="min-h-8 shrink-0 px-3 py-1 text-[10px]"
+             className="min-h-11 shrink-0 px-3 py-1 text-[10px]"
             onClick={focusPreferences}
+            disabled={!profileSessionReady}
           >
             Manage preferences
           </Button>
@@ -3968,38 +4144,57 @@ export function ReelroomApp({
                 </span>
               }
             />
-            {catalog
-              .filter((item) => favorites.includes(item.id))
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 border-b border-border py-1.5 last:border-0"
-                >
-                  <Image
-                    width={40}
-                    height={40}
-                    src={item.poster}
-                    alt={`${item.title} movie poster`}
-                    className="size-10 rounded-md object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <strong className="block truncate font-display text-xs text-ink">
-                      {item.title}
-                    </strong>
-                    <span className="mt-1 block truncate text-[10px] text-muted">
-                      {item.meta}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(item)}
-                    aria-label={`Open ${item.title} movie details`}
-                    className="font-mono text-[10px] text-amber"
+            {catalog.filter((item) => favorites.includes(item.id)).length ? (
+              catalog
+                .filter((item) => favorites.includes(item.id))
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 border-b border-border py-1.5 last:border-0"
                   >
-                    Open
-                  </button>
-                </div>
-              ))}
+                    <Image
+                      width={40}
+                      height={40}
+                      src={item.poster}
+                      alt={`${item.title} movie poster`}
+                      className="size-10 rounded-md object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <strong className="block truncate font-display text-xs text-ink">
+                        {item.title}
+                      </strong>
+                      <span className="mt-1 block truncate text-[10px] text-muted">
+                        {item.meta}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(item)}
+                      aria-label={`Open ${item.title} movie details`}
+                      className="min-h-11 px-2 font-mono text-[10px] text-amber"
+                    >
+                      Open
+                    </button>
+                  </div>
+                ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-surface-2/40 p-4 text-center">
+                <Heart className="mx-auto size-5 text-amber" aria-hidden="true" />
+                <p className="mt-2 font-display text-sm font-semibold text-ink">
+                  Your shelf is waiting.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-ink-2">
+                  Save a film from Home or Movies to see it here.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPage("movies")}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-amber/60 px-4 font-mono text-[10px] uppercase tracking-[.1em] text-amber transition hover:bg-amber hover:text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+                >
+                  Browse films
+                </button>
+              </div>
+            )}
           </section>
           <section
             ref={preferencesRef}
@@ -4180,9 +4375,11 @@ export function ReelroomApp({
     >
       <div
         className="reelroom-detail-panel group relative max-h-[94vh] w-full max-w-5xl overflow-y-auto overscroll-contain rounded-none border border-border bg-surface shadow-cinematic sm:rounded-[1.75rem]"
+        ref={movieDialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`${selected.title} details`}
+        aria-labelledby="movie-details-title"
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative isolate min-h-[35rem] overflow-hidden sm:min-h-[32rem]">
@@ -4233,7 +4430,10 @@ export function ReelroomApp({
                   <span className="text-amber">•</span>
                   <span>{selected.meta}</span>
                 </div>
-                <h2 className="mt-3 font-display text-4xl font-semibold leading-[.92] tracking-[-.08em] text-white sm:text-5xl md:text-6xl">
+                <h2
+                  id="movie-details-title"
+                  className="mt-3 font-display text-4xl font-semibold leading-[.92] tracking-[-.08em] text-white sm:text-5xl md:text-6xl"
+                >
                   {selected.title}
                 </h2>
                 <p className="mt-5 max-w-xl text-sm leading-6 text-white/75">
@@ -4275,11 +4475,9 @@ export function ReelroomApp({
             </div>
           </div>
         </div>
-        {selectedSoundtrackMovieId === selected.id &&
-        !soundtrackLoading &&
-        selectedSoundtrack.length ? (
+        {selectedSoundtrackMovieId === selected.id || soundtrackLoading ? (
           <section className="border-t border-border bg-surface p-5 sm:p-8">
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
                   Soundtrack
@@ -4292,42 +4490,68 @@ export function ReelroomApp({
                 Spotify picks
               </span>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {selectedSoundtrack.map((song) => (
-                <div
-                  key={song.id ?? `${song.title}-${song.artist}`}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
-                >
-                  <Image
-                    width={48}
-                    height={48}
-                    src={song.art || selected.poster}
-                    alt={`${song.title} artwork`}
-                    className="size-12 rounded-lg object-cover"
+            {soundtrackLoading ? (
+              <div
+                className="mt-5 grid gap-3 sm:grid-cols-2"
+                aria-busy="true"
+                aria-label="Loading soundtrack picks"
+              >
+                {["one", "two"].map((key) => (
+                  <div
+                    key={key}
+                    className="h-[4.75rem] animate-pulse rounded-xl border border-border bg-surface-2"
                   />
-                  <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-xs text-ink">
-                      {song.title}
-                    </strong>
-                    <span className="mt-1 block truncate text-[10px] text-muted">
-                      {song.artist} · {song.duration}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void toggleSpotifySong(song)}
-                    className="grid size-8 shrink-0 place-items-center rounded-full bg-amber text-canvas transition hover:scale-105"
-                    aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
+                ))}
+              </div>
+            ) : soundtrackError ? (
+              <p
+                className="mt-5 rounded-xl border border-amber/30 bg-amber/10 p-4 text-sm text-amber"
+                role="alert"
+              >
+                {soundtrackError}
+              </p>
+            ) : selectedSoundtrack.length ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {selectedSoundtrack.map((song) => (
+                  <div
+                    key={song.id ?? `${song.title}-${song.artist}`}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
                   >
-                    {isSongPlaying(song) ? (
-                      "Ⅱ"
-                    ) : (
-                      <Play className="size-3 fill-current" />
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <Image
+                      width={48}
+                      height={48}
+                      src={song.art || selected.poster}
+                      alt={`${song.title} artwork`}
+                      className="size-12 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <strong className="block truncate text-xs text-ink">
+                        {song.title}
+                      </strong>
+                      <span className="mt-1 block truncate text-[10px] text-muted">
+                        {song.artist} · {song.duration}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void toggleSpotifySong(song)}
+                      className="grid size-11 shrink-0 place-items-center rounded-full bg-amber text-canvas transition hover:scale-105"
+                      aria-label={`${isSongPlaying(song) ? "Pause" : "Play"} ${song.title}`}
+                    >
+                      {isSongPlaying(song) ? (
+                        "Ⅱ"
+                      ) : (
+                        <Play className="size-3 fill-current" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-5 rounded-xl border border-dashed border-border bg-surface-2/50 p-4 text-sm text-ink-2">
+                No soundtrack picks were found for this film yet.
+              </p>
+            )}
           </section>
         ) : null}
       </div>
@@ -4344,10 +4568,12 @@ export function ReelroomApp({
       }}
     >
       <div
+        ref={checkoutDialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-title"
         aria-describedby="checkout-description"
+        tabIndex={-1}
         className={cn(
           "reelroom-checkout-panel mx-auto my-2 w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/[.16] bg-[#10131d]/90 shadow-[0_32px_120px_rgba(0,0,0,.58)] backdrop-blur-2xl sm:my-6",
           checkoutClosing && "reelroom-checkout-panel-closing",
@@ -4832,9 +5058,21 @@ export function ReelroomApp({
   if (!routeReady) {
     return (
       <div
-        className="min-h-screen bg-[#08070d]"
+        className="grid min-h-screen place-items-center bg-canvas px-6 text-ink"
+        role="status"
+        aria-busy="true"
         aria-label="Loading Reelscape"
-      />
+      >
+        <div className="w-full max-w-md space-y-4 text-center">
+          <div className="mx-auto h-2 w-16 animate-pulse rounded-full bg-amber/70" />
+          <p className="font-mono text-[10px] uppercase tracking-[.2em] text-ink-2">
+            Opening your reel
+          </p>
+          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-cobalt" />
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -4877,17 +5115,6 @@ export function ReelroomApp({
           >
             <ReelscapeLogo interactive={page !== "home"} />
             <div className="ml-auto flex items-center gap-2">
-              {page === "home" ? (
-                <button
-                  onClick={() =>
-                    announce("You have 2 release notes and 1 ticket reminder.")
-                  }
-                  className="grid size-9 place-items-center rounded-full border border-border text-ink-2 hover:bg-surface"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-4" />
-                </button>
-              ) : null}
               <div className="reelroom-desktop-overflow relative hidden lg:block">
                 <button
                   type="button"
@@ -4895,7 +5122,7 @@ export function ReelroomApp({
                   aria-expanded={moreOpen}
                   aria-controls="reelroom-desktop-overflow-menu"
                   aria-label="Open navigation menu"
-                  className="reelroom-desktop-nav-button grid size-9 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
+                   className="reelroom-desktop-nav-button grid size-11 place-items-center rounded-lg border border-border bg-transparent text-ink-2 transition hover:text-ink"
                 >
                   <EllipsisVertical className="size-4" />
                 </button>
@@ -4918,7 +5145,7 @@ export function ReelroomApp({
                   aria-expanded={moreOpen}
                   aria-controls="reelroom-header-overflow-menu"
                   aria-label="Open navigation menu"
-                  className="grid size-9 place-items-center rounded-full border border-border text-ink-2 transition hover:border-amber hover:text-amber"
+                   className="grid size-11 place-items-center rounded-full border border-border text-ink-2 transition hover:border-amber hover:text-amber"
                 >
                   <EllipsisVertical className="size-4" />
                 </button>
@@ -4955,7 +5182,12 @@ export function ReelroomApp({
       {detailModal}
       {checkoutModal}
       {notice ? (
-        <div className="fixed bottom-20 right-5 z-50 rounded-lg border border-border-strong bg-surface-3 px-4 py-3 text-xs text-ink shadow-cinematic lg:bottom-5">
+        <div
+          className="fixed bottom-20 right-5 z-50 rounded-lg border border-border-strong bg-surface-3 px-4 py-3 text-xs text-ink shadow-cinematic lg:bottom-5"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {notice}
         </div>
       ) : null}

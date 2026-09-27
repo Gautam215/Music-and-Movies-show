@@ -14,11 +14,12 @@ export interface WorksWheelItem {
 
 export interface WorksWheelProps extends Omit<
   React.ComponentPropsWithoutRef<"section">,
-  "children"
+  "children" | "onSelect"
 > {
   items: WorksWheelItem[];
   label?: string;
   action?: string;
+  onSelect?: (item: WorksWheelItem) => void;
 }
 
 const MAX_ITEMS = 9;
@@ -43,6 +44,7 @@ export function WorksWheel({
   label = "Works '26",
   action = "View",
   className,
+  onSelect,
   ...props
 }: WorksWheelProps) {
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -61,6 +63,30 @@ export function WorksWheel({
   const [stage, setStage] = React.useState<Stage>({ w: 0, h: 0 });
   const [reduced, setReduced] = React.useState(false);
   const activeItem = visibleItems[active] ?? visibleItems[0];
+
+  const selectItem = (index: number) => {
+    const item = visibleItems[index];
+    if (!item) return;
+    if (zoomed === null) restoreTurn.current = target.current;
+    const centered =
+      -index + Math.round((target.current + index) / count) * count;
+    target.current = centered;
+    window.clearTimeout(centerTimer.current);
+    const element = cardRefs.current[index];
+    if (element) {
+      element.style.transition =
+        "transform 520ms cubic-bezier(.22,.8,.32,1), opacity 240ms ease";
+      window.setTimeout(() => {
+        element.style.transition = "";
+      }, 560);
+    }
+    setZoomed(index);
+    onSelect?.(item);
+    centerTimer.current = window.setTimeout(() => {
+      setZoomed(null);
+      target.current = restoreTurn.current;
+    }, CENTER_HOLD);
+  };
 
   React.useEffect(
     () => () => {
@@ -104,10 +130,11 @@ export function WorksWheel({
   React.useEffect(() => {
     if (!stage.w || !stage.h || !count) return;
     let frame = 0;
-    let previousTime = performance.now();
+    let previousTime = 0;
     const draw = () => {
       frame = requestAnimationFrame(draw);
       const now = performance.now();
+      if (!previousTime) previousTime = now;
       const elapsed = Math.min(now - previousTime, 80);
       previousTime = now;
       if (zoomed === null && drag.current === null && !reduced) {
@@ -185,10 +212,12 @@ export function WorksWheel({
         role="listbox"
         aria-label={`${label}, ${count} movie visuals`}
         aria-activedescendant={`works-wheel-${active}`}
-        className="relative min-h-[24rem] cursor-grab touch-none select-none outline-none focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
+        aria-orientation="horizontal"
+        aria-describedby="works-wheel-instructions"
+        className="relative min-h-[24rem] cursor-grab touch-pan-y select-none outline-none focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
         style={{ perspective: `${metrics.depth}px` }}
         onPointerDown={(event) => {
-          drag.current = event.clientY;
+          drag.current = event.clientX;
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
@@ -199,8 +228,8 @@ export function WorksWheel({
             1,
           );
           if (drag.current === null) return;
-          to(target.current + (drag.current - event.clientY) / DRAG_UNITS);
-          drag.current = event.clientY;
+          to(target.current + (drag.current - event.clientX) / DRAG_UNITS);
+          drag.current = event.clientX;
         }}
         onPointerLeave={() => {
           cursorPosition.current = 0;
@@ -222,6 +251,11 @@ export function WorksWheel({
             to(Math.round(target.current) + 1);
           else if (event.key === "ArrowUp" || event.key === "ArrowLeft")
             to(Math.round(target.current) - 1);
+          else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectItem(active);
+            return;
+          }
           else return;
           event.preventDefault();
         }}
@@ -239,24 +273,10 @@ export function WorksWheel({
                 cardRefs.current[index] = node;
               }}
               onClick={(event) => {
+                if (!onSelect && item.href) return;
                 event.preventDefault();
                 event.stopPropagation();
-                if (zoomed === null) restoreTurn.current = target.current;
-                const centered =
-                  -index + Math.round((target.current + index) / count) * count;
-                target.current = centered;
-                window.clearTimeout(centerTimer.current);
-                const element = event.currentTarget as HTMLElement;
-                element.style.transition =
-                  "transform 520ms cubic-bezier(.22,.8,.32,1), opacity 240ms ease";
-                window.setTimeout(() => {
-                  element.style.transition = "";
-                }, 560);
-                setZoomed(index);
-                centerTimer.current = window.setTimeout(() => {
-                  setZoomed(null);
-                  target.current = restoreTurn.current;
-                }, CENTER_HOLD);
+                selectItem(index);
               }}
               className="group absolute left-1/2 top-1/2 block overflow-hidden rounded-xl border border-white/10 bg-[#111] shadow-[0_24px_60px_rgba(0,0,0,.55)] [backface-visibility:hidden]"
               style={{
@@ -298,8 +318,11 @@ export function WorksWheel({
             </Tag>
           );
         })}
-        <div className="pointer-events-none absolute left-4 top-4 z-20 font-mono text-[9px] uppercase tracking-[.14em] text-white/55">
-          Move cursor left / right to rotate · click to center for 10s
+        <div
+          id="works-wheel-instructions"
+          className="pointer-events-none absolute left-4 top-4 z-20 max-w-[18rem] font-mono text-[9px] uppercase tracking-[.14em] text-white/55"
+        >
+          Move left / right or drag horizontally · press Enter to open
         </div>
         <div
           className={cn(

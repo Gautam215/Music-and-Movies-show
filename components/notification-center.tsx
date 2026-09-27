@@ -827,6 +827,7 @@ export function NotificationCenter() {
                                   <div
                                     className={`notification-center-item-reveal ${isExpanded ? "notification-center-item-reveal-open" : ""}`}
                                     aria-hidden={!isExpanded}
+                                    inert={!isExpanded}
                                   >
                                     <div className="notification-center-item-reveal-inner">
                                       <p>{item.detail}</p>
@@ -904,6 +905,7 @@ export function NotificationCenter() {
                   <div
                     className={`notification-center-preferences-panel ${preferencesOpen ? "notification-center-preferences-panel-open" : ""}`}
                     aria-hidden={!preferencesOpen}
+                    inert={!preferencesOpen}
                   >
                     <p>Choose the signals you want to keep close.</p>
                     <div>

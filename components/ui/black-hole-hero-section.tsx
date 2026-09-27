@@ -55,17 +55,46 @@ export function BlackHoleHeroSection({
   scrim = "left",
   scrimStrength = 1,
   className,
+  style,
   children,
   ...props
 }: BlackHoleHeroSectionProps) {
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+    event.currentTarget.style.setProperty(
+      "--black-hole-pointer-x",
+      String(Math.max(-1, Math.min(1, x))),
+    );
+    event.currentTarget.style.setProperty(
+      "--black-hole-pointer-y",
+      String(Math.max(-1, Math.min(1, y))),
+    );
+  };
+
+  const resetPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.style.setProperty("--black-hole-pointer-x", "0");
+    event.currentTarget.style.setProperty("--black-hole-pointer-y", "0");
+  };
+
   return (
     <div
+      {...props}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={resetPointer}
       aria-label="Black hole artwork"
       className={cn(
-        "relative isolate min-h-[24rem] overflow-hidden bg-black",
+        "reelroom-black-hole-stage relative isolate min-h-[24rem] overflow-hidden bg-black",
         className,
       )}
-      {...props}
+      style={
+        {
+          ...style,
+          "--black-hole-pointer-x": "0",
+          "--black-hole-pointer-y": "0",
+        } as React.CSSProperties
+      }
     >
       <Image
         fill

@@ -144,6 +144,9 @@ export function ImageStreamHero({
                   aria-grabbed={draggingSrc === img?.src ? true : undefined}
                   role={selectable ? "button" : undefined}
                   tabIndex={selectable ? 0 : undefined}
+                  aria-pressed={
+                    selectable ? img?.src === selectedSrc : undefined
+                  }
                   aria-label={
                     img?.label
                       ? selectable
