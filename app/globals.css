@@ -28,6 +28,36 @@ html {
   scroll-behavior: smooth;
   overflow-x: clip;
 }
+html:not(:has(.profile-experience)),
+html:not(:has(.profile-experience)) * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+html:not(:has(.profile-experience)):hover,
+html:not(:has(.profile-experience)) *:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.34) transparent;
+}
+html:not(:has(.profile-experience))::-webkit-scrollbar,
+html:not(:has(.profile-experience)) *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html:not(:has(.profile-experience))::-webkit-scrollbar-track,
+html:not(:has(.profile-experience)) *::-webkit-scrollbar-track {
+  background: transparent;
+}
+html:not(:has(.profile-experience))::-webkit-scrollbar-thumb,
+html:not(:has(.profile-experience)) *::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  background-clip: padding-box;
+}
+html:not(:has(.profile-experience)):hover::-webkit-scrollbar-thumb,
+html:not(:has(.profile-experience)) *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.34);
+  background-clip: padding-box;
+}
 body {
   margin: 0;
   background: hsl(var(--canvas));
@@ -1973,10 +2003,11 @@ body:has(.profile-experience) {
   background: #050711;
 }
 .profile-experience {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   z-index: 55;
-  overflow-y: auto;
   background: #050711;
   color: #f5f7ff;
   isolation: isolate;
@@ -2022,7 +2053,6 @@ body:has(.profile-experience) {
   z-index: 1;
   display: grid;
   width: min(100% - 2rem, 76rem);
-  min-height: 100%;
   margin: 0 auto;
   padding: clamp(1rem, 3vw, 2.5rem) 0 clamp(2rem, 6vw, 5rem);
   justify-items: center;
@@ -2095,7 +2125,6 @@ body:has(.profile-experience) {
 }
 .profile-login-stage {
   display: grid;
-  min-height: calc(100vh - 2 * clamp(1rem, 3vw, 2.5rem));
   grid-template-rows: auto 1fr auto;
   align-items: center;
   gap: 1.5rem;
@@ -2472,6 +2501,10 @@ body:has(.profile-experience) {
   gap: 1rem;
   text-align: center;
 }
+.profile-identity-details {
+  min-width: 0;
+  text-align: left;
+}
 .profile-avatar {
   display: grid;
   flex: 0 0 auto;
@@ -2490,7 +2523,7 @@ body:has(.profile-experience) {
 .profile-identity p {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 0.35rem;
   margin: 0.55rem 0 0;
@@ -2629,9 +2662,6 @@ body:has(.profile-experience) {
     width: min(100% - 1.25rem, 76rem);
     padding-top: 1rem;
   }
-  .profile-login-stage {
-    min-height: calc(100vh - 2rem);
-  }
   .profile-experience-topline {
     font-size: 0.5rem;
   }
@@ -2759,10 +2789,6 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   backdrop-filter: blur(22px) saturate(1.25);
 }
 .reelroom-profile-page {
-  height: auto;
-  min-height: 100vh;
-  overflow: visible;
-  overflow-x: clip;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
