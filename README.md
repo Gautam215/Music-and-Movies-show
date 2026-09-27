@@ -111,9 +111,8 @@ The deployment jobs require these GitHub Actions secrets under **Settings → Se
 
 - `VERCEL_TOKEN`: a Vercel access token with deployment permission.
 - `VERCEL_ORG_ID`: the Vercel team or account ID that owns the project.
-- `VERCEL_PROJECT_ID`: the Vercel project ID for `music-and-movies-show.vercel.app`.
 
-Never commit these values or put them in `.env` files. Pull requests from forks intentionally skip the preview deployment because GitHub does not expose repository secrets to untrusted fork workflows.
+The workflow links the `music-and-movies-show` Vercel project by name, so a project ID secret is not required. Never commit these values or put them in `.env` files. Pull requests from forks intentionally skip the preview deployment because GitHub does not expose repository secrets to untrusted fork workflows.
 
 ## Stack Inventory
 

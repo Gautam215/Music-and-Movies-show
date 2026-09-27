@@ -129,12 +129,14 @@ jobs:
       - name: Link Vercel project
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}\n' \
-            "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          vercel link \
+            --project=music-and-movies-show \
+            --scope="$VERCEL_ORG_ID" \
+            --token="$VERCEL_TOKEN" \
+            --yes
 
       - name: Deploy Vercel preview
         env:
@@ -179,12 +181,14 @@ jobs:
       - name: Link Vercel project
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}\n' \
-            "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          vercel link \
+            --project=music-and-movies-show \
+            --scope="$VERCEL_ORG_ID" \
+            --token="$VERCEL_TOKEN" \
+            --yes
 
       - name: Deploy Vercel production
         env:
