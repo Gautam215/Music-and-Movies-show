@@ -395,6 +395,9 @@ export function ProfileExperience() {
           if (result?.user) {
             window.sessionStorage.setItem(sessionKey, JSON.stringify(result.user));
             setSession(result.user);
+          } else if (result) {
+            window.sessionStorage.removeItem(sessionKey);
+            setSession(null);
           }
         })
         .catch(() => undefined);
@@ -423,12 +426,17 @@ export function ProfileExperience() {
 
   if (!visible) return null;
 
-  const logout = () => {
+  const logout = async () => {
     haptic();
-    void fetch("/api/auth/signout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
-    window.sessionStorage.removeItem(sessionKey);
-    window.dispatchEvent(new Event("reelroom-profile-session"));
-    setSession(null);
+    try {
+      await fetch("/api/auth/signout", { method: "POST", credentials: "same-origin" });
+    } catch {
+      // Clear the local view even when the sign-out request cannot reach the server.
+    } finally {
+      window.sessionStorage.removeItem(sessionKey);
+      window.dispatchEvent(new Event("reelroom-profile-session"));
+      setSession(null);
+    }
   };
 
   return (
@@ -443,7 +451,7 @@ export function ProfileExperience() {
           </>
         ) : (
           <div className="profile-login-stage">
-            <ReelscapeLogo className="profile-login-brand" subtitle="private cinema / profile" />
+            <ReelscapeLogo className="profile-login-brand" />
             <ProfileLogin onLogin={setSession} />
             <div className="profile-login-footer"><span>NO TRACKING BY DEFAULT</span><span>ESC TO RETURN</span></div>
           </div>

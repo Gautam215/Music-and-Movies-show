@@ -18,9 +18,10 @@ export function MinimalCursor() {
     let currentX = targetX;
     let currentY = targetY;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const followStrength = Number.parseFloat(getComputedStyle(cursor).getPropertyValue("--reelroom-cursor-follow")) || 0.42;
 
     const animate = () => {
-      const blend = reducedMotion ? 1 : 0.42;
+      const blend = reducedMotion ? 1 : followStrength;
       currentX += (targetX - currentX) * blend;
       currentY += (targetY - currentY) * blend;
       cursor.style.setProperty("--cursor-x", `${currentX}px`);

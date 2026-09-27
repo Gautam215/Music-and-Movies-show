@@ -87,7 +87,7 @@ export function AuthRegistration() {
       <div className="grid min-h-screen md:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
         <section className="flex min-h-screen items-center justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-24">
           <div className="w-full max-w-[430px]">
-            <ReelscapeLogo className="mb-12" subtitle="movies & music" />
+            <ReelscapeLogo className="mb-12" />
 
             <div className="mb-8">
               <p className="font-mono text-[10px] uppercase tracking-[.2em] text-[#b99cff]">New orbit</p>

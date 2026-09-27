@@ -86,6 +86,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (hover: hover) and (pointer: fine) {
   html, body, body * { cursor: none !important; }
   .reelroom-cursor {
+    --reelroom-cursor-follow: .42;
     position: fixed;
     top: 0;
     left: 0;
@@ -95,7 +96,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     pointer-events: none;
     opacity: 0;
     transform: translate3d(var(--cursor-x, -100px), var(--cursor-y, -100px), 0) translate(-50%, -50%);
-    transition: opacity 180ms ease;
+    transition: opacity 100ms ease;
     will-change: transform;
   }
   .reelroom-cursor[data-visible="true"] { opacity: 1; }
@@ -116,14 +117,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   }
 }
 
-.reelroom-logo { display: inline-flex; min-width: 0; align-items: center; gap: .72rem; color: hsl(var(--ink)); text-decoration: none; }
-.reelroom-logo-mark { display: grid; width: 1.75rem; height: 1.75rem; flex: 0 0 auto; place-items: center; transform: rotate(45deg); border: 1px solid hsl(var(--border-strong)); color: hsl(var(--amber)); transition: border-color 220ms ease, background-color 220ms ease, color 220ms ease, transform 220ms ease; }
-.reelroom-logo-copy { display: grid; min-width: 0; gap: .14rem; }
-.reelroom-logo-copy strong { font-family: "SF Pro Display", Inter, sans-serif; font-size: 1.05rem; font-weight: 600; letter-spacing: -.05em; line-height: 1; }
-.reelroom-logo-copy strong span { color: hsl(var(--amber)); }
-.reelroom-logo-copy small { color: hsl(var(--ink-2)); font-family: "IBM Plex Mono", monospace; font-size: .48rem; letter-spacing: .14em; line-height: 1; text-transform: uppercase; }
-.reelroom-logo:hover .reelroom-logo-mark,
-.reelroom-logo:focus-visible .reelroom-logo-mark { border-color: hsl(var(--amber) / .72); background: hsl(var(--amber) / .08); color: hsl(var(--ink)); transform: rotate(45deg) scale(1.05); }
+.reelroom-logo { display: inline-flex; min-width: 0; align-items: center; color: hsl(var(--ink)); text-decoration: none; }
+.reelroom-logo-art { display: block; width: 9.1rem; height: 4.8rem; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 0 8px rgba(191, 222, 216, .12)); transition: filter 220ms ease, transform 220ms ease; }
+.reelroom-logo:hover .reelroom-logo-art,
+.reelroom-logo:focus-visible .reelroom-logo-art { filter: drop-shadow(0 0 10px rgba(191, 222, 216, .28)); transform: scale(1.02); }
+
+@media (max-width: 640px) {
+  .reelroom-logo-art { width: 7.8rem; height: 4.25rem; }
+}
 
 .grain::after {
   content: "";
@@ -1072,6 +1073,8 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   font-weight: 500;
   letter-spacing: -.01em;
 }
+
+.reelroom-player-context { min-width: 0; max-width: 100%; overflow-wrap: anywhere; white-space: normal; }
 
 .reelroom-player-icon,
 .reelroom-player-menu,

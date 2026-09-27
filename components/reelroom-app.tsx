@@ -751,6 +751,7 @@ export function ReelroomApp({
   const [page, setPageState] = useState<NavId>("home");
   const [routeReady, setRouteReady] = useState(false);
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(initialProfile ?? null);
+  const [profileSessionReady, setProfileSessionReady] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([heroMovie.id]);
   const [activeReelMovieId, setActiveReelMovieId] = useState<string | null>(null);
@@ -817,6 +818,11 @@ export function ReelroomApp({
   const preferencesRef = useRef<HTMLElement>(null);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceIdRef = useRef<string | null>(null);
+  const spotifyEndTimerRef = useRef<number | null>(null);
+  const spotifyTrackUriRef = useRef<string | null>(null);
+  const spotifyManualPauseRef = useRef(false);
+  const spotifyAutoAdvanceRef = useRef<string | null>(null);
+  const playAdjacentTrackRef = useRef<((direction: -1 | 1, automatic?: boolean) => Promise<void>) | null>(null);
   const spotifySearchInputRef = useRef<HTMLInputElement>(null);
   const spotifySearchAbortRef = useRef<AbortController | null>(null);
   const soundtrackAbortRef = useRef<AbortController | null>(null);
@@ -828,15 +834,28 @@ export function ReelroomApp({
   const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
 
+  const clearSpotifyEndTimer = () => {
+    if (spotifyEndTimerRef.current === null) return;
+    window.clearTimeout(spotifyEndTimerRef.current);
+    spotifyEndTimerRef.current = null;
+  };
+
   useEffect(() => {
     let cancelled = false;
     const syncProfile = async () => {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+        if (!response.ok) throw new Error("Session lookup failed");
         const result = (await response.json()) as { user?: ProfileUser | null };
-        if (!cancelled) setProfileUser(result.user ?? null);
+        if (!cancelled) {
+          setProfileUser(result.user ?? null);
+          setProfileSessionReady(true);
+        }
       } catch {
-        if (!cancelled) setProfileUser(null);
+        if (!cancelled) {
+          setProfileUser(null);
+          setProfileSessionReady(true);
+        }
       }
     };
     void syncProfile();
@@ -1086,6 +1105,10 @@ export function ReelroomApp({
     if (!spotifyConnected) return;
     let cancelled = false;
     const cleanupPlayer = () => {
+      clearSpotifyEndTimer();
+      spotifyTrackUriRef.current = null;
+      spotifyManualPauseRef.current = false;
+      spotifyAutoAdvanceRef.current = null;
       spotifyPlayerRef.current?.disconnect();
       spotifyPlayerRef.current = null;
       spotifyDeviceIdRef.current = null;
@@ -1121,11 +1144,41 @@ export function ReelroomApp({
       });
       player.addListener("player_state_changed", (state: SpotifyPlayerState | null) => {
         const track = state?.track_window.current_track;
+        const trackUri = track?.uri ?? null;
+        const position = state?.position ?? 0;
+        const duration = state?.duration ?? track?.duration_ms ?? 0;
+        spotifyTrackUriRef.current = trackUri;
         setSpotifyTrackUri(track?.uri ?? null);
         setSpotifyPaused(state?.paused ?? true);
-        setSpotifyPositionMs(state?.position ?? 0);
-        setSpotifyDurationMs(state?.duration ?? track?.duration_ms ?? 0);
+        setSpotifyPositionMs(position);
+        setSpotifyDurationMs(duration);
         setPlaying(state?.paused ? null : track?.name ?? null);
+
+        const requestNextTrack = () => {
+          if (!trackUri || spotifyAutoAdvanceRef.current === trackUri) return;
+          clearSpotifyEndTimer();
+          spotifyAutoAdvanceRef.current = trackUri;
+          void playAdjacentTrackRef.current?.(1, true);
+        };
+
+        if (state?.paused) {
+          // A user pause clears the end timer, while an SDK end event is
+          // allowed to finish the timer or advance immediately near the end.
+          if (spotifyManualPauseRef.current) clearSpotifyEndTimer();
+          if (!spotifyManualPauseRef.current && duration > 0 && position >= duration - 750) {
+            requestNextTrack();
+          }
+          return;
+        }
+
+        spotifyManualPauseRef.current = false;
+        clearSpotifyEndTimer();
+        if (trackUri && duration > 0) {
+          spotifyEndTimerRef.current = window.setTimeout(() => {
+            if (spotifyManualPauseRef.current || spotifyTrackUriRef.current !== trackUri) return;
+            requestNextTrack();
+          }, Math.max(duration - position, 0) + 450);
+        }
       });
       player.addListener("initialization_error", ({ message }: { message: string }) => {
         setSpotifyError(message);
@@ -1415,6 +1468,7 @@ export function ReelroomApp({
 
   const filteredSongs = spotifyConnected ? spotifyCatalog : [];
   const visiblePlaylistError = spotifyConnected ? spotifyPlaylistError : null;
+  const canRecordUserActivity = profileSessionReady && Boolean(profileUser);
   const toggleFavorite = (id: string) => {
     const movie = [...catalog, ...movies].find((item) => item.id === id);
     const alreadySaved = favorites.includes(id);
@@ -1425,7 +1479,7 @@ export function ReelroomApp({
         tmdbId: movie.tmdbId,
         mediaType: movie.mediaType,
         genres: movie.genres,
-      }, Boolean(profileUser));
+      }, canRecordUserActivity);
     }
     setFavorites((current) => {
       return alreadySaved ? current.filter((item) => item !== id) : [...current, id];
@@ -1437,7 +1491,7 @@ export function ReelroomApp({
   };
   const openMovie = (movie: Movie) => {
     setSelected(movie);
-    if (!movie.tmdbId || !movie.mediaType) return;
+    if (!movie.tmdbId || !movie.mediaType || !canRecordUserActivity) return;
     void fetch("/api/viewing-history", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1521,7 +1575,7 @@ export function ReelroomApp({
         mediaType: ticketMovie.mediaType,
         genres: ticketMovie.genres,
         metadata: { date: selectedDayOption.date, showtime: activeShowtime },
-      }, Boolean(profileUser));
+      }, canRecordUserActivity);
       window.setTimeout(() => {
         setBooking(false);
         setCheckoutStatus("idle");
@@ -1639,7 +1693,7 @@ export function ReelroomApp({
       }
     }
   };
-  const toggleSpotifySong = async (song: Song) => {
+  const toggleSpotifySong = async (song: Song, automatic = false) => {
     if (!spotifyConnected) {
       setSpotifyError("Connect Spotify above to enable in-app playback.");
       return;
@@ -1652,11 +1706,20 @@ export function ReelroomApp({
     }
     try {
       await player.activateElement();
+      if (!automatic) spotifyAutoAdvanceRef.current = null;
       if (spotifyTrackUri === song.spotifyUri) {
-        if (spotifyPaused) await player.resume();
-        else await player.pause();
+        if (automatic || spotifyPaused) {
+          spotifyManualPauseRef.current = false;
+          await player.resume();
+        } else {
+          spotifyManualPauseRef.current = true;
+          clearSpotifyEndTimer();
+          await player.pause();
+        }
         return;
       }
+      clearSpotifyEndTimer();
+      spotifyManualPauseRef.current = false;
       if (!song.spotifyUri) {
         setSpotifyError("This track is not available in the Spotify catalog yet.");
         return;
@@ -1678,8 +1741,9 @@ export function ReelroomApp({
         type: "listen",
         title: song.title,
         metadata: { artist: song.artist, movie: song.movie },
-      }, Boolean(profileUser));
+      }, canRecordUserActivity);
     } catch (error) {
+      if (automatic) spotifyAutoAdvanceRef.current = null;
       setSpotifyError(error instanceof Error ? error.message : "Spotify could not start this track.");
     }
   };
@@ -1691,8 +1755,14 @@ export function ReelroomApp({
     }
     try {
       await player.activateElement();
-      if (spotifyPaused) await player.resume();
-      else await player.pause();
+      if (spotifyPaused) {
+        spotifyManualPauseRef.current = false;
+        await player.resume();
+      } else {
+        spotifyManualPauseRef.current = true;
+        clearSpotifyEndTimer();
+        await player.pause();
+      }
     } catch {
       setSpotifyError("Spotify could not update playback right now.");
     }
@@ -1731,7 +1801,7 @@ export function ReelroomApp({
       setSpotifyError("Spotify could not seek this track right now.");
     }
   };
-  const playAdjacentTrack = async (direction: -1 | 1) => {
+  const playAdjacentTrack = async (direction: -1 | 1, automatic = false) => {
     const playableSongs = filteredSongs.filter((song) => song.spotifyUri);
     if (!playableSongs.length) {
       announce("Connect Spotify to browse the recommended tracks.");
@@ -1743,11 +1813,14 @@ export function ReelroomApp({
       : (currentIndex + direction + playableSongs.length) % playableSongs.length;
     const targetSong = playableSongs[targetIndex];
     if (targetSong.spotifyUri === spotifyTrackUri) {
-      if (spotifyPaused) await toggleSpotifySong(targetSong);
+      if (automatic || spotifyPaused) await toggleSpotifySong(targetSong, automatic);
       return;
     }
-    await toggleSpotifySong(targetSong);
+    await toggleSpotifySong(targetSong, automatic);
   };
+  useEffect(() => {
+    playAdjacentTrackRef.current = playAdjacentTrack;
+  }, [playAdjacentTrack]);
   const isSongPlaying = (song: Song) =>
     song.spotifyUri ? spotifyTrackUri === song.spotifyUri && !spotifyPaused : playing === song.title;
   const focusPreferences = () => {
@@ -2183,7 +2256,7 @@ export function ReelroomApp({
                     <p className="reelroom-player-artist mt-1 truncate text-sm text-ink-2">
                       {activeSong?.artist ?? "Spotify"}
                     </p>
-                    <p className="mt-1 truncate text-xs text-ink-2/70">
+                    <p className="reelroom-player-context mt-1 text-xs leading-5 text-ink-2/70">
                       {activeSong?.movie ?? "Hehe / recommended"}
                     </p>
                     {activeSong?.spotifyUrl ? (
