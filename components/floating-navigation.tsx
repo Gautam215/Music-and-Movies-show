@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Bell,
   Film,
   House,
@@ -139,6 +140,7 @@ export function FloatingNavigation() {
   }, [activePage]);
 
   if (pathname !== "/") return null;
+  const isProfilePage = activePage === "profile";
 
   return (
     <nav
@@ -175,6 +177,27 @@ export function FloatingNavigation() {
           </a>
         );
       })}
+      {isProfilePage ? (
+        <button
+          type="button"
+          aria-label="Back to Home"
+          onClick={() => {
+            window.dispatchEvent(new Event(dismissTransientsEvent));
+            window.history.pushState(
+              { page: "home" },
+              "",
+              `${window.location.pathname}${window.location.search}`,
+            );
+            window.dispatchEvent(new Event(routeChangeEvent));
+          }}
+        >
+          <ArrowLeft
+            className="reelroom-floating-nav-icon"
+            aria-hidden="true"
+          />
+          <span>Home</span>
+        </button>
+      ) : null}
     </nav>
   );
 }
