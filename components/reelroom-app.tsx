@@ -3519,7 +3519,7 @@ export function ReelroomApp({
             )}
           >
           <header className={cn("relative flex h-20 items-center justify-between gap-4", page === "movies" && "z-40", page === "updates" && "reelroom-updates-header")}>
-            <ReelscapeLogo />
+            <ReelscapeLogo interactive={page !== "home"} />
             <div className="ml-auto flex items-center gap-2">
               {page === "home" ? (
                 <button
