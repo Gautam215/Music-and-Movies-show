@@ -36,7 +36,7 @@ export default async function Page() {
     omdbMovies,
     dailyUpdates,
   ] = await Promise.all([
-    getFeaturedScreening({ region }),
+    getFeaturedScreening({ userId: currentUser?.id, region }),
     getCurrentReel({ userId: currentUser?.id, region }),
     getTopReelMovies(),
     getCuratedMovies(),

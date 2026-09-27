@@ -2,9 +2,15 @@ import { unstable_cache } from "next/cache";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
 import { fetchWithServerBackoff } from "@/lib/server-retry";
 import { getViewingProfile, type ViewingProfile } from "@/lib/viewing-history";
+import { getRecentUserSignals } from "@/lib/user-signals";
+import {
+  getCurrentMonthDateWindow,
+  getFeaturedDateWindow,
+  getHypeScore,
+  type DiscoveryDateWindow,
+} from "@/lib/tmdb-selection";
 
 const TMDB_ENDPOINT = "https://api.themoviedb.org/3/trending/movie/week";
-const TMDB_TRENDING_ENDPOINT = "https://api.themoviedb.org/3/trending";
 const TMDB_UPCOMING_ENDPOINT = "https://api.themoviedb.org/3/discover/movie";
 const TMDB_TV_ENDPOINT = "https://api.themoviedb.org/3/discover/tv";
 const TMDB_MOVIE_ENDPOINT = "https://api.themoviedb.org/3/movie";
@@ -70,11 +76,70 @@ type CuratedFeed = {
   region: string;
 };
 
+type DiscoveryFeed = {
+  endpoint: "movie" | "tv";
+  label: string;
+  mediaType: Movie["mediaType"];
+  originCountry?: string;
+  originalLanguage?: string;
+  region?: string;
+  withGenres?: string;
+};
+
 const curatedFeeds: CuratedFeed[] = [
   { language: "en", label: "Hollywood", quota: 3, region: "US" },
   { language: "hi", label: "Bollywood", quota: 3, region: "IN" },
   { language: "te", label: "Tollywood", quota: 2, region: "IN" },
   { language: "ko", label: "K-drama", quota: 2, region: "KR" },
+];
+
+const discoveryFeeds: DiscoveryFeed[] = [
+  {
+    endpoint: "movie",
+    label: "Hollywood",
+    mediaType: "movie",
+    originCountry: "US",
+    originalLanguage: "en",
+    region: "US",
+  },
+  {
+    endpoint: "movie",
+    label: "Bollywood",
+    mediaType: "movie",
+    originCountry: "IN",
+    originalLanguage: "hi",
+    region: "IN",
+  },
+  {
+    endpoint: "movie",
+    label: "Tollywood",
+    mediaType: "movie",
+    originCountry: "IN",
+    originalLanguage: "te",
+    region: "IN",
+  },
+  {
+    endpoint: "tv",
+    label: "K-drama",
+    mediaType: "tv",
+    originCountry: "KR",
+    originalLanguage: "ko",
+    region: "KR",
+  },
+  {
+    endpoint: "movie",
+    label: "Anime",
+    mediaType: "anime",
+    originCountry: "JP",
+    originalLanguage: "ja",
+    region: "JP",
+    withGenres: "16",
+  },
+  {
+    endpoint: "movie",
+    label: "Global hype",
+    mediaType: "movie",
+  },
 ];
 
 function formatRelease(value?: string, fallback = "Trending this week") {
@@ -137,12 +202,11 @@ function mapMovie(
       releaseDate,
       upcoming ? "Upcoming release" : "Trending now",
     ),
+    releaseDateIso: releaseDate,
     price,
     trendScore: movie.popularity ?? movie.vote_average ?? 0,
   };
 }
-
-type TrendScope = { region?: string };
 
 async function fetchTrendEndpoint(
   path: string,
@@ -165,75 +229,98 @@ async function fetchTrendEndpoint(
   return data.results ?? [];
 }
 
-async function fetchTrendCatalog(token: string, scope: TrendScope) {
-  const region = scope.region?.toUpperCase();
-  const movieParams = region
-    ? new URLSearchParams({
-        region,
-        sort_by: "popularity.desc",
-        include_adult: "false",
-        include_video: "false",
-        page: "1",
-      })
-    : undefined;
-  const tvParams = region
-    ? new URLSearchParams({
-        watch_region: region,
-        sort_by: "popularity.desc",
-        include_adult: "false",
-        include_video: "false",
-        page: "1",
-      })
-    : undefined;
-  const animeParams = new URLSearchParams({
-    with_genres: "16",
-    with_origin_country: "JP",
+function releaseDate(movie: TmdbMovie) {
+  return movie.release_date || movie.first_air_date;
+}
+
+function isWithinWindow(movie: TmdbMovie, window: DiscoveryDateWindow) {
+  const value = releaseDate(movie);
+  return Boolean(value && value >= window.start && value <= window.end);
+}
+
+async function fetchDiscoveryFeed(
+  feed: DiscoveryFeed,
+  token: string,
+  window: DiscoveryDateWindow,
+) {
+  const datePrefix =
+    feed.endpoint === "tv" ? "first_air_date" : "primary_release_date";
+  const params = new URLSearchParams({
+    language: "en-US",
     sort_by: "popularity.desc",
     include_adult: "false",
     include_video: "false",
     page: "1",
-    ...(region ? { watch_region: region } : {}),
+    [`${datePrefix}.gte`]: window.start,
+    [`${datePrefix}.lte`]: window.end,
   });
-  const [moviesResult, tvResult, animeResult] = await Promise.all([
-    fetchTrendEndpoint(
-      region ? TMDB_UPCOMING_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/movie/week`,
-      token,
-      movieParams,
-    ),
-    fetchTrendEndpoint(
-      region ? TMDB_TV_ENDPOINT : `${TMDB_TRENDING_ENDPOINT}/tv/week`,
-      token,
-      tvParams,
-    ),
-    fetchTrendEndpoint(TMDB_TV_ENDPOINT, token, animeParams),
-  ]);
-  const seen = new Set<string>();
-  const results: Movie[] = [];
-  const add = (items: TmdbMovie[], mediaType: Movie["mediaType"]) => {
-    items.forEach((item, index) => {
-      const key = `${mediaType}:${item.id}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      const mapped = mapMovie(
-        item,
-        results.length + index,
-        "trending",
-        mediaType === "anime" ? "Anime" : undefined,
-        mediaType,
-      );
-      results.push({ ...mapped, trendRegion: region });
-    });
-  };
-  add(moviesResult, "movie");
-  add(tvResult, "tv");
-  add(animeResult, "anime");
-  return results
-    .sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0))
-    .slice(0, 30);
+  if (feed.originalLanguage)
+    params.set("with_original_language", feed.originalLanguage);
+  if (feed.originCountry) params.set("with_origin_country", feed.originCountry);
+  if (feed.region && feed.endpoint === "movie")
+    params.set("region", feed.region);
+  if (feed.withGenres) params.set("with_genres", feed.withGenres);
+
+  return fetchTrendEndpoint(
+    feed.endpoint === "tv" ? TMDB_TV_ENDPOINT : TMDB_UPCOMING_ENDPOINT,
+    token,
+    params,
+  );
 }
 
-const getCachedTrendCatalog = async (
+async function fetchDiscoveryCatalog(
+  token: string,
+  window: DiscoveryDateWindow,
+  collection: "featured" | "current",
+  requestedRegion?: string,
+) {
+  const feedResults = await Promise.all(
+    discoveryFeeds.map(async (feed) => ({
+      feed,
+      movies: (await fetchDiscoveryFeed(feed, token, window))
+        .filter((movie) => isWithinWindow(movie, window))
+        .sort((a, b) => getHypeScore(b) - getHypeScore(a)),
+    })),
+  );
+  const seen = new Set<string>();
+  const results: Movie[] = [];
+  const add = (item: TmdbMovie, feed: DiscoveryFeed) => {
+    const key = `${feed.mediaType}:${item.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const mapped = mapMovie(
+      item,
+      results.length,
+      collection === "featured" ? "upcoming" : "trending",
+      feed.label,
+      feed.mediaType,
+    );
+    results.push({
+      ...mapped,
+      trendRegion: requestedRegion?.toUpperCase() ?? feed.region,
+      trendScore: getHypeScore(item),
+    });
+  };
+
+  // Keep every market represented before filling with the strongest global hype.
+  for (const { feed, movies } of feedResults) {
+    const quota = feed.label === "Global hype" ? 3 : 2;
+    movies.slice(0, quota).forEach((movie) => add(movie, feed));
+  }
+  feedResults
+    .flatMap(({ feed, movies }) => movies.map((movie) => ({ feed, movie })))
+    .sort((a, b) => getHypeScore(b.movie) - getHypeScore(a.movie))
+    .forEach(({ feed, movie }) => {
+      if (results.length < 30) add(movie, feed);
+    });
+
+  return results;
+}
+
+const getCachedDiscoveryCatalog = async (
   region: string | undefined,
+  window: DiscoveryDateWindow,
+  collection: "featured" | "current",
   revalidate: number,
   cacheNamespace: string,
 ) => {
@@ -241,33 +328,89 @@ const getCachedTrendCatalog = async (
   if (!token) return null;
   const cacheKey = region?.toUpperCase() || "GLOBAL";
   const getCached = unstable_cache(
-    () => fetchTrendCatalog(token, { region }),
-    [cacheNamespace, cacheKey],
+    () => fetchDiscoveryCatalog(token, window, collection, region),
+    [
+      cacheNamespace,
+      cacheKey,
+      collection,
+      collection === "current" ? window.end : "biweekly",
+    ],
     { revalidate, tags: [cacheNamespace] },
   );
   try {
     const results = await getCached();
-    return results.length ? results : null;
+    const currentWindow =
+      collection === "featured"
+        ? getFeaturedDateWindow()
+        : getCurrentMonthDateWindow();
+    const validResults = results.filter((movie) =>
+      Boolean(
+        movie.releaseDateIso &&
+        movie.releaseDateIso >= currentWindow.start &&
+        movie.releaseDateIso <= currentWindow.end,
+      ),
+    );
+    return validResults.length ? validResults : null;
   } catch {
     return null;
   }
 };
 
-const getBiweeklyTrendCatalog = (region?: string) =>
-  getCachedTrendCatalog(
+const getBiweeklyDiscoveryCatalog = (region?: string) =>
+  getCachedDiscoveryCatalog(
     region,
+    getFeaturedDateWindow(),
+    "featured",
     BIWEEKLY_REVALIDATE_SECONDS,
-    "reelscape-biweekly-trending-v1",
+    "reelscape-biweekly-featured-v2",
   );
 
-const getDailyTrendCatalog = (region?: string) =>
-  getCachedTrendCatalog(
+const getDailyDiscoveryCatalog = (region?: string) =>
+  getCachedDiscoveryCatalog(
     region,
+    getCurrentMonthDateWindow(),
+    "current",
     DAILY_REVALIDATE_SECONDS,
-    "reelscape-daily-current-reel-v1",
+    "reelscape-daily-current-month-v2",
   );
 
-function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
+type UserTasteProfile = ViewingProfile & {
+  signalWeights: Map<string, number>;
+};
+
+async function getUserTasteProfile(userId: string): Promise<UserTasteProfile> {
+  const [viewingProfile, signals] = await Promise.all([
+    getViewingProfile(userId),
+    getRecentUserSignals(userId, 100),
+  ]);
+  const genreWeights = new Map(viewingProfile.genreWeights);
+  const mediaTypeWeights = new Map(viewingProfile.mediaTypeWeights);
+  const signalWeights = new Map<string, number>();
+
+  signals.forEach((signal, index) => {
+    const freshness = Math.max(1, signals.length - index);
+    const eventWeight =
+      signal.type === "booking" ? 8 : signal.type === "favorite" ? 6 : 1;
+    const weight = freshness * eventWeight;
+    signal.genres?.forEach((genre) =>
+      genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + weight),
+    );
+    if (signal.mediaType) {
+      mediaTypeWeights.set(
+        signal.mediaType,
+        (mediaTypeWeights.get(signal.mediaType) ?? 0) + weight,
+      );
+    }
+    if (signal.tmdbId && signal.mediaType) {
+      const key = `${signal.mediaType}:${signal.tmdbId}`;
+      signalWeights.set(key, (signalWeights.get(key) ?? 0) + weight);
+    }
+  });
+
+  return { ...viewingProfile, genreWeights, mediaTypeWeights, signalWeights };
+}
+
+function personalizeTrends(trends: Movie[], profile: UserTasteProfile) {
   return trends
     .map((movie, index) => {
       const genreScore = movie.genres.reduce(
@@ -279,13 +422,19 @@ function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
       ).length;
       const mediaScore =
         profile.mediaTypeWeights.get(movie.mediaType ?? "movie") ?? 0;
+      const signalScore =
+        movie.tmdbId && movie.mediaType
+          ? (profile.signalWeights.get(`${movie.mediaType}:${movie.tmdbId}`) ??
+            0)
+          : 0;
       return {
         movie,
         score:
           (movie.trendScore ?? 0) +
           genreScore * 0.35 +
           preferredGenreScore * 1.5 +
-          mediaScore * 0.2 -
+          mediaScore * 0.2 +
+          signalScore * 0.4 -
           index * 0.02,
       };
     })
@@ -293,9 +442,26 @@ function personalizeTrends(trends: Movie[], profile: ViewingProfile) {
     .map(({ movie }) => movie);
 }
 
-export async function getFeaturedScreening({ region }: { region?: string }) {
-  const trends = await getBiweeklyTrendCatalog(region);
-  return trends?.[0] ?? null;
+function sortByHype(movies: Movie[]) {
+  return [...movies].sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0));
+}
+
+export async function getFeaturedScreening({
+  userId,
+  region,
+}: {
+  userId?: string;
+  region?: string;
+}) {
+  const candidates = await getBiweeklyDiscoveryCatalog(region);
+  if (!candidates?.length) return null;
+  if (!userId) return sortByHype(candidates)[0];
+  try {
+    const profile = await getUserTasteProfile(userId);
+    return personalizeTrends(candidates, profile)[0] ?? candidates[0];
+  } catch {
+    return candidates[0];
+  }
 }
 
 export async function getCurrentReel({
@@ -305,14 +471,14 @@ export async function getCurrentReel({
   userId?: string;
   region?: string;
 }) {
-  const trends = await getDailyTrendCatalog(region);
-  if (!trends) return null;
-  if (!userId) return trends.slice(0, 12);
+  const candidates = await getDailyDiscoveryCatalog(region);
+  if (!candidates) return null;
+  if (!userId) return sortByHype(candidates).slice(0, 12);
   try {
-    const profile = await getViewingProfile(userId);
-    return personalizeTrends(trends, profile).slice(0, 12);
+    const profile = await getUserTasteProfile(userId);
+    return personalizeTrends(candidates, profile).slice(0, 12);
   } catch {
-    return trends.slice(0, 12);
+    return sortByHype(candidates).slice(0, 12);
   }
 }
 

@@ -10,6 +10,7 @@ export type Movie = {
   showtimes: string[];
   genres: string[];
   release: string;
+  releaseDateIso?: string;
   price: number;
   runtime?: number;
   production?: string;
