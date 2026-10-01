@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-session";
+import { getCurrentUser, isPremiumTestFixtureUser } from "@/lib/auth-session";
 import { recordViewing, type ViewingMediaType } from "@/lib/viewing-history";
 import { isSameOrigin, privateJsonHeaders } from "@/lib/request-security";
 
@@ -19,6 +19,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Authentication required." },
         { status: 401 },
+      );
+    if (isPremiumTestFixtureUser(user))
+      return NextResponse.json(
+        { error: "Viewing history is disabled for the test fixture." },
+        { status: 403, headers: privateJsonHeaders() },
       );
 
     const body = (await request.json().catch(() => null)) as {

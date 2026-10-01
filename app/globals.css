@@ -2778,6 +2778,75 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   );
 }
 
+.reelroom-3d-view {
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      hsl(var(--cobalt) / 0.16),
+      transparent 48%
+    ),
+    hsl(var(--canvas) / 0.72);
+  box-shadow:
+    0 24px 60px hsl(var(--canvas) / 0.28),
+    inset 0 1px hsl(var(--ink) / 0.08);
+}
+
+.reelroom-3d-canvas {
+  min-height: 22rem;
+  cursor: grab !important;
+}
+
+.reelroom-3d-canvas:focus-visible {
+  outline: 2px solid hsl(var(--amber));
+  outline-offset: -2px;
+}
+
+.reelroom-3d-canvas:active {
+  cursor: grabbing !important;
+}
+
+.reelroom-3d-loading {
+  background: linear-gradient(
+    145deg,
+    hsl(var(--canvas) / 0.7),
+    hsl(var(--surface) / 0.42)
+  );
+  backdrop-filter: blur(4px);
+}
+
+.reelroom-3d-skeleton {
+  background: linear-gradient(
+    110deg,
+    hsl(var(--surface-2) / 0.58) 8%,
+    hsl(var(--ink) / 0.12) 18%,
+    hsl(var(--surface-2) / 0.58) 33%
+  );
+  background-size: 200% 100%;
+  animation: reelroom-seat-skeleton 1.6s linear infinite;
+}
+
+@keyframes reelroom-seat-skeleton {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reelroom-3d-skeleton {
+    animation: none;
+  }
+  .reelroom-3d-loading .animate-spin {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .reelroom-3d-canvas {
+    min-height: 19rem;
+  }
+}
+
 .reelroom-booking-page {
   position: relative;
   isolation: isolate;
