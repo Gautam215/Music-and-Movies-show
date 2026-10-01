@@ -1,4 +1,4 @@
-import type { SeatRecord } from "@/lib/seat-map";
+import { SEATS_PER_ROW, type SeatRecord } from "../../../lib/seat-map.ts";
 
 export type TheaterZone = "premium" | "standard" | "economy" | "accessible";
 
@@ -31,6 +31,7 @@ export const THEATER_ROW_COUNT = ROWS.length;
 const ROW_RISE = 0.22;
 const ROW_SPACING = 1.06;
 const FRONT_ROW_Z = -2.25;
+const MAX_INWARD_YAW = 0.18;
 const PLATFORM_FRONT_Y = 0.2;
 const PLATFORM_THICKNESS = 0.18;
 export const THEATER_SEAT_EYE_HEIGHT = 1.18;
@@ -81,24 +82,20 @@ export function getTheaterRowPlatformPose(rowIndex: number) {
 export function getTheaterSeatPose(seat: SeatRecord): TheaterSeatPose {
   const index = rowIndex(seat.row);
   const zone = getSeatZone(seat);
-  const centerColumn = 4.5;
-  const zoneSpacing =
-    zone === "premium" ? 1.18 : zone === "standard" ? 1.04 : 0.9;
-  const economyCurve = zone === "economy" || zone === "accessible";
-  const angle = (seat.column - centerColumn) * (economyCurve ? 0.15 : 0.125);
-  const radius = zone === "premium" ? 5.3 : zone === "standard" ? 5.9 : 6.25;
+  const centerColumn = (SEATS_PER_ROW + 1) / 2;
+  const sideOffset = seat.column - centerColumn;
+  const maxSideOffset = (SEATS_PER_ROW - 1) / 2;
+  const seatSpacing =
+    zone === "premium" ? 0.85 : zone === "standard" ? 0.84 : 0.8;
   const rowPlatform = getTheaterRowPlatformPose(index);
   const aisleOffset =
-    seat.column < centerColumn
-      ? -(THEATER_CENTER_AISLE_WIDTH + 0.08) / 2
-      : seat.column > centerColumn
-        ? (THEATER_CENTER_AISLE_WIDTH + 0.08) / 2
+    sideOffset < 0
+      ? -THEATER_CENTER_AISLE_WIDTH / 2
+      : sideOffset > 0
+        ? THEATER_CENTER_AISLE_WIDTH / 2
         : 0;
-  const x =
-    Math.sin(angle) * radius +
-    (seat.column - centerColumn) * (zoneSpacing - 1) +
-    aisleOffset;
-  const z = rowPlatform.z + (1 - Math.cos(angle)) * 1.35;
+  const x = sideOffset * seatSpacing + aisleOffset;
+  const z = rowPlatform.z;
   const y = 0.3 + index * ROW_RISE;
 
   return {
@@ -110,7 +107,7 @@ export function getTheaterSeatPose(seat: SeatRecord): TheaterSeatPose {
     x,
     y,
     z,
-    rotationY: -angle,
+    rotationY: (sideOffset / maxSideOffset) * MAX_INWARD_YAW,
     scale: zone === "premium" ? 1.05 : zone === "economy" ? 0.9 : 1,
     distanceToScreen: Math.hypot(
       THEATER_SCREEN_CENTER.x - x,

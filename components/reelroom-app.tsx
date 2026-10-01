@@ -4132,7 +4132,7 @@ export function ReelroomApp({
               ) : (
                 <button
                   type="button"
-                  onClick={() => setPage(profileUser ? "profile" : "login")}
+                  onClick={() => setPage("profile")}
                   className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-amber/35 bg-amber/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-amber hover:border-amber/60"
                 >
                   <Sparkles className="size-3" /> Sign in for 3D

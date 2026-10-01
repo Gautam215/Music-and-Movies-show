@@ -2101,21 +2101,6 @@ export function TicketSeat3DView({
           </div>
         </div>
       </div>
-      <div className="reelroom-3d-legend pointer-events-none absolute bottom-20 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:bottom-4 sm:left-4">
-        {[
-          ["bg-cobalt", "Premium recliner"],
-          ["bg-mint", "Accessible"],
-          ["bg-ink-2", "Standard / mid"],
-          ["bg-slate-500", "Economy / side"],
-        ].map(([color, label]) => (
-          <span
-            key={label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-canvas/70 px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[.08em] text-muted backdrop-blur-md"
-          >
-            <span className={cn("size-1.5 rounded-full", color)} /> {label}
-          </span>
-        ))}
-      </div>
       <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center justify-end gap-2 sm:inset-x-4 sm:bottom-4">
         <div className="flex items-center gap-1 rounded-full border border-white/10 bg-canvas/70 p-1 backdrop-blur-md">
           <button
