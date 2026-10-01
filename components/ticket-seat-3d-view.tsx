@@ -33,21 +33,21 @@ import {
   getAdjacentTheaterSeat,
   getTheaterCameraTransitionPosition,
   getTheaterRowPlatformPose,
+  getTheaterSeatPoses,
   getTheaterScreenCurveOffset,
   getScreenCameraPose,
   getSeatCameraPose,
   getSeatZone,
-  getTheaterSeatPose,
   THEATER_SCREEN_CENTER,
   THEATER_SCREEN_HEIGHT,
   THEATER_SCREEN_WIDTH,
   THEATER_CENTER_AISLE_WIDTH,
+  THEATER_ROW_SPACING,
   THEATER_ROW_COUNT,
   type TheaterSeatDirection,
   type TheaterSeatPose,
   type TheaterZone,
 } from "@/modules/theater/frontend/seat-geometry";
-import { cn } from "@/lib/utils";
 
 type ThreeModule = typeof import("three");
 type ViewStatus = "loading" | "ready" | "unsupported" | "error" | "disabled";
@@ -728,11 +728,15 @@ export function TicketSeat3DView({
           roughness: 0.82,
           metalness: 0.08,
         });
+        const platformWidth = 4.05;
+        const sideAisleWidth = 0.58;
+        const sideAisleOffset =
+          THEATER_CENTER_AISLE_WIDTH / 2 + platformWidth + sideAisleWidth / 2;
         for (const [x, width] of [
           [0, THEATER_CENTER_AISLE_WIDTH],
-          [-3.85, 0.58],
-          [3.85, 0.58],
-        ]) {
+          [-sideAisleOffset, sideAisleWidth],
+          [sideAisleOffset, sideAisleWidth],
+        ] as const) {
           const aisle = new three.Mesh(
             new three.PlaneGeometry(width, 7.2),
             aisleMaterial,
@@ -777,9 +781,8 @@ export function TicketSeat3DView({
           emissiveIntensity: 0.42,
           roughness: 0.48,
         });
-        const platformWidth = 3.2;
         const rowPlatforms = new three.InstancedMesh(
-          new three.BoxGeometry(1, 0.18, 1.06),
+          new three.BoxGeometry(1, 0.18, THEATER_ROW_SPACING),
           new three.MeshStandardMaterial({
             color: "#1b202d",
             roughness: 0.9,
@@ -788,7 +791,7 @@ export function TicketSeat3DView({
           THEATER_ROW_COUNT * 2,
         );
         const aisleSteps = new three.InstancedMesh(
-          new three.BoxGeometry(1, 0.18, 0.96),
+          new three.BoxGeometry(1, 0.18, THEATER_ROW_SPACING - 0.1),
           stepMaterial,
           THEATER_ROW_COUNT * 3,
         );
@@ -798,8 +801,12 @@ export function TicketSeat3DView({
           THEATER_ROW_COUNT * 3,
         );
         const platformTransform = new three.Object3D();
-        const aisleXs = [-3.85, 0, 3.85];
-        const aisleWidths = [0.58, THEATER_CENTER_AISLE_WIDTH, 0.58];
+        const aisleXs = [-sideAisleOffset, 0, sideAisleOffset];
+        const aisleWidths = [
+          sideAisleWidth,
+          THEATER_CENTER_AISLE_WIDTH,
+          sideAisleWidth,
+        ];
         let platformIndex = 0;
         let stairIndex = 0;
         for (let row = 0; row < THEATER_ROW_COUNT; row += 1) {
@@ -824,7 +831,7 @@ export function TicketSeat3DView({
             platformTransform.position.set(
               x,
               placement.topY + 0.0125,
-              placement.z - 0.46,
+              placement.z - (THEATER_ROW_SPACING - 0.1) / 2 + 0.02,
             );
             platformTransform.scale.set(width - 0.08, 1, 1);
             platformTransform.updateMatrix();
@@ -962,10 +969,43 @@ export function TicketSeat3DView({
         rimLight.position.set(-4.5, 2.8, 1.2);
         scene.add(rimLight);
 
-        const poseList = seatsRef.current.map(getTheaterSeatPose);
+        const poseList = getTheaterSeatPoses(seatsRef.current);
         const poseByLabel = new Map(
           poseList.map((pose) => [pose.label, pose] as const),
         );
+        const seatViewBounds = poseList.reduce(
+          (bounds, pose) => {
+            bounds.minX = Math.min(bounds.minX, pose.x);
+            bounds.maxX = Math.max(bounds.maxX, pose.x);
+            bounds.minY = Math.min(bounds.minY, pose.y);
+            bounds.maxY = Math.max(bounds.maxY, pose.y);
+            bounds.minZ = Math.min(bounds.minZ, pose.z);
+            bounds.maxZ = Math.max(bounds.maxZ, pose.z);
+            return bounds;
+          },
+          {
+            minX: Infinity,
+            maxX: -Infinity,
+            minY: Infinity,
+            maxY: -Infinity,
+            minZ: Infinity,
+            maxZ: -Infinity,
+          },
+        );
+        const seatViewCenter = new three.Vector3(
+          Number.isFinite(seatViewBounds.minX)
+            ? (seatViewBounds.minX + seatViewBounds.maxX) / 2
+            : 0,
+          Number.isFinite(seatViewBounds.minY)
+            ? (seatViewBounds.minY + seatViewBounds.maxY) / 2
+            : 0,
+          Number.isFinite(seatViewBounds.minZ)
+            ? (seatViewBounds.minZ + seatViewBounds.maxZ) / 2
+            : 0,
+        );
+        const seatViewHalfWidth = Number.isFinite(seatViewBounds.minX)
+          ? (seatViewBounds.maxX - seatViewBounds.minX) / 2 + 0.45
+          : 0.45;
         const seatLabels = makeSeatLabelAtlas(three, poseList);
         if (seatLabels) {
           const labelMesh = new three.Mesh(
@@ -1101,7 +1141,7 @@ export function TicketSeat3DView({
         let currentPoses = poseList;
         let focusLabel: string | null = null;
         let cameraMode: CameraMode = "overview";
-        let orbit = { yaw: 0.18, pitch: 0.58, distance: 8.4 };
+        let orbit = { yaw: 0, pitch: 0.58, distance: 8.4 };
         let transition: {
           startedAt: number;
           duration: number;
@@ -1147,7 +1187,7 @@ export function TicketSeat3DView({
 
         const updateOrbit = (change: OrbitChange) => {
           orbit = clampSeatCamera(
-            change.reset ? 0.18 : orbit.yaw + (change.yawDelta ?? 0),
+            change.reset ? 0 : orbit.yaw + (change.yawDelta ?? 0),
             change.reset ? 0.58 : orbit.pitch,
             change.reset ? 8.4 : orbit.distance + (change.distanceDelta ?? 0),
           );
@@ -1157,12 +1197,25 @@ export function TicketSeat3DView({
 
         const overviewPose = () => {
           const horizontal = Math.cos(orbit.pitch) * orbit.distance;
+          const position = new three.Vector3(
+            Math.sin(orbit.yaw) * horizontal,
+            Math.sin(orbit.pitch) * orbit.distance + 0.25,
+            Math.cos(orbit.yaw) * horizontal + 2.2,
+          );
+          const forward = overviewTarget.clone().sub(position).normalize();
+          const seatDepth = seatViewCenter.clone().sub(position).dot(forward);
+          const horizontalHalfFov = Math.atan(
+            Math.tan(three.MathUtils.degToRad(38) / 2) *
+              Math.max(camera.aspect, 0.1),
+          );
+          const requiredSeatDepth =
+            (seatViewHalfWidth * 1.1) / Math.tan(horizontalHalfFov);
+          position.addScaledVector(
+            forward,
+            -Math.max(0, requiredSeatDepth - seatDepth),
+          );
           return {
-            position: new three.Vector3(
-              Math.sin(orbit.yaw) * horizontal,
-              Math.sin(orbit.pitch) * orbit.distance + 0.25,
-              Math.cos(orbit.yaw) * horizontal + 2.2,
-            ),
+            position,
             target: overviewTarget.clone(),
             fov: 38,
           };
@@ -1351,7 +1404,7 @@ export function TicketSeat3DView({
 
         const updateSeats = (nextSeats: SeatRecord[], selected: string[]) => {
           currentSeats = nextSeats;
-          currentPoses = nextSeats.map(getTheaterSeatPose);
+          currentPoses = getTheaterSeatPoses(nextSeats);
           poseByLabel.clear();
           currentPoses.forEach((pose) => poseByLabel.set(pose.label, pose));
           selectedRef.current = selected;
@@ -2100,21 +2153,6 @@ export function TicketSeat3DView({
               : "Offline / cached room"}
           </div>
         </div>
-      </div>
-      <div className="reelroom-3d-legend pointer-events-none absolute bottom-20 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:bottom-4 sm:left-4">
-        {[
-          ["bg-cobalt", "Premium recliner"],
-          ["bg-mint", "Accessible"],
-          ["bg-ink-2", "Standard / mid"],
-          ["bg-slate-500", "Economy / side"],
-        ].map(([color, label]) => (
-          <span
-            key={label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-canvas/70 px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[.08em] text-muted backdrop-blur-md"
-          >
-            <span className={cn("size-1.5 rounded-full", color)} /> {label}
-          </span>
-        ))}
       </div>
       <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center justify-end gap-2 sm:inset-x-4 sm:bottom-4">
         <div className="flex items-center gap-1 rounded-full border border-white/10 bg-canvas/70 p-1 backdrop-blur-md">

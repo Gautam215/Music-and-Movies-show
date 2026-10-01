@@ -29,10 +29,15 @@ export type TheaterSeatDirection = "left" | "right" | "up" | "down";
 const ROWS = ["A", "B", "C", "D", "E"] as const;
 export const THEATER_ROW_COUNT = ROWS.length;
 const ROW_RISE = 0.22;
-const ROW_SPACING = 1.06;
+export const THEATER_ROW_SPACING = 1.32;
+export const THEATER_SEAT_SPACING = 1.05;
 const FRONT_ROW_Z = -2.25;
 const PLATFORM_FRONT_Y = 0.2;
 const PLATFORM_THICKNESS = 0.18;
+const SEAT_HALF_WIDTH = 0.4;
+const SEAT_AISLE_CLEARANCE = 0.08;
+const ROW_ARC_SAG = 0.22;
+const MAX_INWARD_ROTATION = 0.12;
 export const THEATER_SEAT_EYE_HEIGHT = 1.18;
 export const THEATER_SEAT_CAMERA_REAR_OFFSET = 0.32;
 export const THEATER_SEAT_CAMERA_FOV = 48;
@@ -40,16 +45,11 @@ export const THEATER_SCREEN_WIDTH = 7.6;
 export const THEATER_SCREEN_HEIGHT = 3.18;
 export const THEATER_SCREEN_CURVE_SAG = 0.15;
 export const THEATER_SCREEN_CENTER = { x: 0, y: 3.55, z: -4.6 } as const;
-export const THEATER_CENTER_AISLE_WIDTH = 0.72;
+export const THEATER_CENTER_AISLE_WIDTH = 1.15;
 
 export function getTheaterScreenCurveOffset(x: number) {
   const normalizedX = Math.min(1, Math.abs(x) / (THEATER_SCREEN_WIDTH / 2));
   return normalizedX === 0 ? 0 : -THEATER_SCREEN_CURVE_SAG * normalizedX ** 2;
-}
-
-function rowIndex(row: string) {
-  const index = ROWS.indexOf(row as (typeof ROWS)[number]);
-  return index === -1 ? ROWS.length - 1 : index;
 }
 
 export function getSeatZone(seat: Pick<SeatRecord, "row" | "column" | "tier">) {
@@ -74,32 +74,36 @@ export function getTheaterRowPlatformPose(rowIndex: number) {
   return {
     centerY: topY - PLATFORM_THICKNESS / 2,
     topY,
-    z: FRONT_ROW_Z + index * ROW_SPACING,
+    z: FRONT_ROW_Z + index * THEATER_ROW_SPACING,
   };
 }
 
-export function getTheaterSeatPose(seat: SeatRecord): TheaterSeatPose {
-  const index = rowIndex(seat.row);
+function getTheaterSeatPose(
+  seat: SeatRecord,
+  index: number,
+  seatIndex: number,
+  seatsInRow: number,
+): TheaterSeatPose {
   const zone = getSeatZone(seat);
-  const centerColumn = 4.5;
-  const zoneSpacing =
-    zone === "premium" ? 1.18 : zone === "standard" ? 1.04 : 0.9;
-  const economyCurve = zone === "economy" || zone === "accessible";
-  const angle = (seat.column - centerColumn) * (economyCurve ? 0.15 : 0.125);
-  const radius = zone === "premium" ? 5.3 : zone === "standard" ? 5.9 : 6.25;
-  const rowPlatform = getTheaterRowPlatformPose(index);
-  const aisleOffset =
-    seat.column < centerColumn
-      ? -(THEATER_CENTER_AISLE_WIDTH + 0.08) / 2
-      : seat.column > centerColumn
-        ? (THEATER_CENTER_AISLE_WIDTH + 0.08) / 2
-        : 0;
+  const leftBlockSize = Math.floor(seatsInRow / 2);
+  const isLeft = seatIndex < leftBlockSize;
+  const side = isLeft ? -1 : 1;
+  const blockSeatCount = isLeft ? leftBlockSize : seatsInRow - leftBlockSize;
+  const seatIndexFromAisle = isLeft
+    ? leftBlockSize - seatIndex - 1
+    : seatIndex - leftBlockSize;
+  const largestBlockSize = Math.max(leftBlockSize, seatsInRow - leftBlockSize);
+  const innerSeatX =
+    THEATER_CENTER_AISLE_WIDTH / 2 + SEAT_HALF_WIDTH + SEAT_AISLE_CLEARANCE;
   const x =
-    Math.sin(angle) * radius +
-    (seat.column - centerColumn) * (zoneSpacing - 1) +
-    aisleOffset;
-  const z = rowPlatform.z + (1 - Math.cos(angle)) * 1.35;
-  const y = 0.3 + index * ROW_RISE;
+    side * (innerSeatX + seatIndexFromAisle * THEATER_SEAT_SPACING);
+  const outerSeatX =
+    innerSeatX + Math.max(0, largestBlockSize - 1) * THEATER_SEAT_SPACING;
+  const rowPlatform = getTheaterRowPlatformPose(index);
+  const z = rowPlatform.z + ROW_ARC_SAG * (Math.abs(x) / outerSeatX) ** 2;
+  const y = rowPlatform.topY + 0.1;
+  const rotationProgress =
+    blockSeatCount > 1 ? seatIndexFromAisle / (blockSeatCount - 1) : 0;
 
   return {
     label: seat.label,
@@ -110,14 +114,49 @@ export function getTheaterSeatPose(seat: SeatRecord): TheaterSeatPose {
     x,
     y,
     z,
-    rotationY: -angle,
-    scale: zone === "premium" ? 1.05 : zone === "economy" ? 0.9 : 1,
+    rotationY:
+      rotationProgress === 0
+        ? 0
+        : side * MAX_INWARD_ROTATION * rotationProgress,
+    scale: 1,
     distanceToScreen: Math.hypot(
       THEATER_SCREEN_CENTER.x - x,
       THEATER_SCREEN_CENTER.y - y,
       THEATER_SCREEN_CENTER.z - z,
     ),
   };
+}
+
+export function getTheaterSeatPoses(
+  seats: readonly SeatRecord[],
+): TheaterSeatPose[] {
+  const seatsByRow = new Map<string, SeatRecord[]>();
+  seats.forEach((seat) => {
+    const rowSeats = seatsByRow.get(seat.row) ?? [];
+    rowSeats.push(seat);
+    seatsByRow.set(seat.row, rowSeats);
+  });
+  seatsByRow.forEach((rowSeats) =>
+    rowSeats.sort(
+      (left, right) =>
+        left.column - right.column || left.label.localeCompare(right.label),
+    ),
+  );
+  const rowIndexes = new Map(
+    [...seatsByRow.keys()]
+      .sort(compareRows)
+      .map((row, index) => [row, index] as const),
+  );
+
+  return seats.map((seat) => {
+    const rowSeats = seatsByRow.get(seat.row) ?? [];
+    return getTheaterSeatPose(
+      seat,
+      rowIndexes.get(seat.row) ?? 0,
+      rowSeats.findIndex((rowSeat) => rowSeat.label === seat.label),
+      rowSeats.length,
+    );
+  });
 }
 
 export function getScreenCameraPose(): TheaterCameraPose {
@@ -164,9 +203,6 @@ export function getTheaterCameraTransitionPosition(
 }
 
 function compareRows(left: string, right: string) {
-  const leftIndex = ROWS.indexOf(left as (typeof ROWS)[number]);
-  const rightIndex = ROWS.indexOf(right as (typeof ROWS)[number]);
-  if (leftIndex !== -1 && rightIndex !== -1) return leftIndex - rightIndex;
   return left.localeCompare(right, undefined, { numeric: true });
 }
 
