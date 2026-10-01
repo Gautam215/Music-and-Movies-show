@@ -78,7 +78,7 @@ export type YouTubeFallbackCandidate = {
   regionRestricted?: boolean;
 };
 
-function normalizedTitleTokens(value: string) {
+function normalizedTitleTokens(value: string): string[] {
   return (
     value
       .normalize("NFKD")

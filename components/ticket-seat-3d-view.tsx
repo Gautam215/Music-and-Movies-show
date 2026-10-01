@@ -629,7 +629,7 @@ export function TicketSeat3DView({
     let frame = 0;
     let idleHandle: number | null = null;
     let cleanupInteractions = () => undefined;
-    let cleanupScreenOverlay = () => undefined;
+    let cleanupScreenOverlay: () => void = () => undefined;
 
     const idleWindow = window as Window & {
       requestIdleCallback?: (
