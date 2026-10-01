@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SeatRecord } from "../lib/seat-map.ts";
+import {
+  createSeatMap,
+  SEATS_PER_ROW,
+  type SeatRecord,
+} from "../lib/seat-map.ts";
 import {
   easeInOutCubic,
   getAdjacentTheaterSeat,
@@ -12,6 +16,7 @@ import {
   getSeatZone,
   getTheaterSeatPose,
   THEATER_CENTER_AISLE_WIDTH,
+  THEATER_ROW_COUNT,
   THEATER_SEAT_CAMERA_REAR_OFFSET,
   THEATER_SEAT_CAMERA_FOV,
   THEATER_SEAT_EYE_HEIGHT,
@@ -64,24 +69,59 @@ test("cinema screen keeps theatrical proportions with a subtle inward curve", ()
   );
 });
 
-test("seat poses form a curved, elevated theatre instead of a flat grid", () => {
+test("seat poses form straight, elevated rows with a subtle inward fan", () => {
   const left = getTheaterSeatPose(seat("B1", "B", 1));
   const center = getTheaterSeatPose(seat("B4", "B", 4));
   const back = getTheaterSeatPose(seat("E4", "E", 4));
 
   assert.ok(left.x < center.x);
-  assert.ok(left.z > center.z);
+  assert.equal(left.z, center.z);
   assert.ok(back.y > center.y);
-  assert.notEqual(left.rotationY, center.rotationY);
+  assert.ok(left.rotationY < center.rotationY);
+  assert.ok(Math.abs(center.rotationY) < 0.04);
+  assert.ok(left.rotationY < 0 && Math.abs(left.rotationY) < 0.2);
 });
 
-test("seat rows leave a centered aisle and mirror across it", () => {
-  const left = getTheaterSeatPose(seat("C4", "C", 4));
-  const right = getTheaterSeatPose(seat("C5", "C", 5));
+test("seat rows align and fan symmetrically around a clear center aisle", () => {
+  const rows = new Map<string, ReturnType<typeof getTheaterSeatPose>[]>();
+  createSeatMap("theater-layout").forEach((record) => {
+    const poses = rows.get(record.row) ?? [];
+    poses.push(getTheaterSeatPose(record));
+    rows.set(record.row, poses);
+  });
+  const centerLeftIndex = SEATS_PER_ROW / 2 - 1;
+  const centerRightIndex = SEATS_PER_ROW / 2;
+
+  assert.equal(rows.size, THEATER_ROW_COUNT);
+  for (const poses of rows.values()) {
+    assert.equal(poses.length, SEATS_PER_ROW);
+    assert.equal(new Set(poses.map((pose) => pose.z)).size, 1);
+    for (let index = 0; index < SEATS_PER_ROW / 2; index += 1) {
+      const left = poses[index];
+      const right = poses[SEATS_PER_ROW - index - 1];
+      assert.ok(left && right);
+      assert.ok(Math.abs(left.x + right.x) < 1e-9);
+      assert.ok(Math.abs(left.rotationY + right.rotationY) < 1e-9);
+      assert.ok(left.rotationY < 0);
+      assert.ok(right.rotationY > 0);
+    }
+  }
+
+  const premiumRow = [...rows.values()].find((poses) =>
+    poses.some((pose) => pose.zone === "premium"),
+  );
+  assert.ok(premiumRow);
+  const aisleLeft = premiumRow[centerLeftIndex];
+  const aisleRight = premiumRow[centerRightIndex];
+  const nextLeft = premiumRow[centerLeftIndex - 1];
+  assert.ok(aisleLeft && aisleRight && nextLeft);
 
   assert.equal(THEATER_CENTER_AISLE_WIDTH, 0.72);
-  assert.ok(right.x - left.x > 1.4);
-  assert.ok(Math.abs(left.x + right.x) < 1e-9);
+  assert.ok(aisleRight.x - aisleLeft.x > 1.4);
+  assert.ok(Math.abs(aisleLeft.x + aisleRight.x) < 1e-9);
+  assert.ok(aisleRight.x - aisleLeft.x > aisleLeft.x - nextLeft.x);
+  assert.ok(Math.abs(aisleLeft.rotationY) < 0.04);
+  assert.ok(Math.abs(aisleRight.rotationY) < 0.04);
 });
 
 test("row platforms rise with the seating tiers", () => {

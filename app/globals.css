@@ -1952,15 +1952,6 @@ body:has(.reelroom-app[data-page="updates"]) {
     display: none;
   }
 }
-@media (min-width: 768px) and (max-width: 1023px) {
-  .reelroom-floating-nav {
-    left: auto;
-    right: max(1rem, env(safe-area-inset-right));
-    transform: scale(0.92);
-    transform-origin: top right;
-    animation: none;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .reelroom-floating-nav {
     animation: none;
