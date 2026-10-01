@@ -117,9 +117,8 @@ test("seat poses form clean, symmetrical rows with a subtle fan", () => {
   for (const block of [row.slice(0, 4), row.slice(4)]) {
     for (let index = 1; index < block.length; index += 1) {
       assert.ok(
-        Math.abs(
-          block[index]!.x - block[index - 1]!.x - THEATER_SEAT_SPACING,
-        ) < 1e-9,
+        Math.abs(block[index]!.x - block[index - 1]!.x - THEATER_SEAT_SPACING) <
+          1e-9,
       );
     }
   }
@@ -139,7 +138,9 @@ test("layout uses the existing row seat count and labels", () => {
     new Set(poses.map((pose) => pose.label)),
     new Set(seats.map((record) => record.label)),
   );
-  poses.forEach((pose) => assert.deepEqual(pose, reversedPoses.get(pose.label)));
+  poses.forEach((pose) =>
+    assert.deepEqual(pose, reversedPoses.get(pose.label)),
+  );
   assert.ok(Math.abs(byLabel.get("C3")!.x + byLabel.get("C4")!.x) < 1e-9);
 });
 

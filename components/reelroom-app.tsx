@@ -1007,6 +1007,9 @@ export function ReelroomApp({
   const [seatMapLive, setSeatMapLive] = useState(false);
   const [seatMapLoading, setSeatMapLoading] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedTicketMovie, setSelectedTicketMovie] = useState<Movie | null>(
+    null,
+  );
   const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
   const [detailsShownAt, setDetailsShownAt] = useState<number | null>(null);
   const [seatZoom, setSeatZoom] = useState(1);
@@ -1102,7 +1105,7 @@ export function ReelroomApp({
   const spotifySessionNextAllowedAtRef = useRef(0);
   const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
-  const seatMovie = selected ?? heroMovie;
+  const seatMovie = selectedTicketMovie ?? heroMovie;
   const seatMapKey = `${seatMovie.id}:${selectedDay}:${showtime}`;
 
   useEffect(() => {
@@ -2168,6 +2171,10 @@ export function ReelroomApp({
       }),
     }).catch(() => undefined);
   };
+  const bookTicketsFor = (movie: Movie) => {
+    setSelectedTicketMovie(movie);
+    setPage("tickets");
+  };
   const openCheckout = () => {
     setCheckoutClosing(false);
     setCheckoutStatus("idle");
@@ -2660,7 +2667,7 @@ export function ReelroomApp({
           <Button variant="primary" onClick={() => setPage("movies")}>
             Explore the lineup <ArrowRight className="size-4" />
           </Button>
-          <Button variant="ghost" onClick={() => setPage("tickets")}>
+          <Button variant="ghost" onClick={() => bookTicketsFor(heroMovie)}>
             Book a ticket
           </Button>
         </div>
@@ -2722,7 +2729,7 @@ export function ReelroomApp({
         <FeaturedScreening
           item={heroMovie}
           onOpen={openMovie}
-          onBook={() => setPage("tickets")}
+          onBook={() => bookTicketsFor(heroMovie)}
         />
       </div>
     </BlackHoleHeroSection>
@@ -5059,8 +5066,8 @@ export function ReelroomApp({
                   <Button
                     variant="primary"
                     onClick={() => {
+                      bookTicketsFor(selected);
                       setSelected(null);
-                      setPage("tickets");
                     }}
                   >
                     Book tickets <ArrowRight className="size-4" />
