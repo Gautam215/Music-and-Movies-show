@@ -2827,6 +2827,47 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   cursor: grabbing !important;
 }
 
+.reelroom-3d-screen-layer {
+  z-index: 0;
+}
+
+.reelroom-3d-screen-renderer {
+  overflow: hidden;
+}
+
+.reelroom-3d-screen-surface {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #03040a;
+  pointer-events: none;
+}
+
+.reelroom-3d-screen-iframe {
+  display: block;
+  border: 0;
+  background: #03040a;
+}
+
+.reelroom-3d-screen-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: radial-gradient(circle at 50% 50%, #141728, #03040a 72%);
+  color: rgb(230 233 255 / 72%);
+  font:
+    500 34px/1.35 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .reelroom-3d-loading {
   background: linear-gradient(
     145deg,

@@ -44,17 +44,19 @@ Personal signal and saved content on Profile (mobile).
 
 ## 3D Theater
 
-The Three.js view turns the existing seat labels and states into a small cinema and is included for every signed-in account, regardless of paid Premium status. Anonymous visitors keep the 2D seat map and can sign in to unlock 3D. It keeps the same booking actions. If WebGL is unavailable, the existing 2D seat map remains available.
+The Three.js view maps the existing seat labels and states into a small cinema for signed-in users. Anonymous visitors keep the 2D seat map and can sign in to use 3D. Both views use the same booking actions, and the 2D map remains available if WebGL is unavailable.
+
+The ticket screen resolves a YouTube preview for the selected title from TMDB. If TMDB has no usable video, the optional YouTube Data API fallback runs only when `YOUTUBE_API_KEY` is configured and it finds one unambiguous, public, embeddable title/year match. Otherwise, the screen reports that no preview is available. The iframe is shown on the CSS3D screen in seat POV or Screen view when a seat is selected; playback starts only when the viewer presses YouTube's player controls. The renderer listens for playback state to dim the room lights.
 
 **3D runtime: NOT VERIFIED.** The opt-in development fixture and authenticated sample seat-map API were validated locally, but the cloud browser could not reach the local development server. The public site showed only its existing 2D ticket surface. The diagrams and implementation notes below describe the source; they are not claims of completed 3D browser testing.
 
-For local QA only, set `ENABLE_PREMIUM_TEST_FIXTURE=true` and run `npm run dev`. In that same browser, activate the fixture with `fetch('/api/dev/premium-fixture', { method: 'POST' })` and reload the page. The fixture models a signed-in account without paid Premium status, so it verifies that 3D access is tied to login instead of a membership flag. Sign out or send `DELETE` to the same endpoint to clear it. The route also requires `NODE_ENV=development`; it returns 404 otherwise. The fixture uses an in-memory, one-hour cookie, does not create a user/session/payment record, serves unclaimed sample seats, and cannot save favorites, viewing history, or bookings.
+For local QA only, set `ENABLE_PREMIUM_TEST_FIXTURE=true` and run `npm run dev`. In that same browser, activate the fixture with `fetch('/api/dev/premium-fixture', { method: 'POST' })` and reload the page. The fixture models an authenticated account with paid membership inactive, so it verifies that 3D access is tied to sign-in rather than membership. Sign out or send `DELETE` to the same endpoint to clear it. The route also requires `NODE_ENV=development`; it returns 404 otherwise. The fixture uses an in-memory, one-hour cookie, does not create a user/session/payment record, serves unclaimed sample seats, and cannot save favorites, viewing history, or bookings.
 
 ### 1. Full Flow
 
 ```mermaid
 flowchart LR
-    records["Existing seat records"] --> pose["getTheaterSeatPose()"]
+    records["Existing seat records"] --> pose["getTheaterSeatPoses()"]
     pose --> seats["Instanced 3D chairs"]
     pose --> camera["Seat camera POV"]
     seats --> hit["Pointer ray hit"]
@@ -86,15 +88,15 @@ The same row layout sets seat height, platforms, and stair steps. Stair edges us
 
 ```mermaid
 flowchart LR
-    labels["Seat label + tier"] --> zone["Premium / accessible / standard / economy"]
+    labels["Seat label + tier"] --> zone["Center / accessible / standard / economy"]
     zone --> geometry["Rounded cushion + back + armrests"]
-    zone --> footrest["Premium footrest"]
+    zone --> footrest["Center-zone footrest"]
     geometry --> instances["Shared geometry + material instances"]
     instances --> state["Available / selected / held / occupied colors"]
     labels --> atlas["One chair-label atlas"]
 ```
 
-Seats share geometry and materials instead of creating a separate mesh for every part. Premium seats include a footrest; the existing accessible tier gets a wider, mint-colored chair.
+Seats share geometry and materials instead of creating a separate mesh for every part. Center-zone seats include a footrest. Accessible seats are slightly wider; seat colors communicate availability and selection consistently across all zones.
 
 ### 4. Camera and Seat POV
 
@@ -148,7 +150,7 @@ flowchart LR
     spatial --> output["Browser audio output"]
 ```
 
-Audio is built with the browser's Web Audio API. It is optional and starts only after the user presses the ambience control.
+The ambience and seat-selection cues use the browser's Web Audio API. Ambience is optional and starts only after the user presses its control. Trailer video runs inside the YouTube iframe on the screen, so its audio stays under YouTube's control and is not routed through the Web Audio spatial panner. Only the local ambience and selection cues are spatialized. The iframe's playback-state messages drive the scene-light dimming; this behavior is implemented but not browser-verified yet.
 
 ### 7. Responsive Behavior
 
@@ -177,18 +179,18 @@ flowchart LR
     browser --> regression["Confirm non-3D flows untouched"]
 ```
 
-The geometry helpers are plain TypeScript, so seat positions, camera aim, row rise, and camera easing can be tested without loading WebGL. The scene keeps its geometry, lights, interaction, and audio in one lazy-loaded view.
+The geometry helpers are plain TypeScript, so seat positions, camera aim, row rise, seat colors, and camera easing can be tested without loading WebGL. Three.js, the CSS3D screen, player integration, lighting, and interactions live in the lazy-loaded view.
 
 ## Stack
 
 - Next.js App Router with TypeScript strict mode.
 - Tailwind CSS with shadcn-compatible `components/ui` primitives.
 - `lucide-react` for interface icons.
-- Three.js for the lazy-loaded premium 3D theater.
+- Three.js for the lazy-loaded 3D theater.
 - Convex schema and transactional seat-hold functions under `convex/`.
 - MongoDB-backed email/password authentication under `app/api/auth/`.
 - Two-week TMDB featured screening plus a separate daily Current Reel across movies, TV, and anime with regional guest fallback and logged-in viewing-history personalization.
-- Movie details load official YouTube trailers through TMDB when `TMDB_READ_ACCESS_TOKEN` is configured.
+- Ticket trailers use TMDB first; the optional YouTube Data API fallback requires `YOUTUBE_API_KEY` and a single confident title/year match.
 - Works Wheel from 21st.dev at `components/ui/works-wheel.tsx`.
 - Black Hole visual system at `components/ui/black-hole-hero-section.tsx`, used as the global hero language.
 

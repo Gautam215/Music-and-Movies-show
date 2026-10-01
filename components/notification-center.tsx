@@ -86,15 +86,14 @@ const guestGroups: NotificationGroup[] = [
     items: [
       {
         id: "guest-neon-aftercare",
-        eyebrow: "Trailer preview",
+        eyebrow: "Trending film",
         title: "Neon Aftercare is glowing tonight",
         detail:
-          "A tender sci-fi drama with a late-night pulse. Watch the two-minute trailer before it leaves the marquee.",
+          "A tender sci-fi drama with a late-night pulse. Explore what is playing near you.",
         age: "12 min ago",
         artwork: artwork.neon,
-        actionLabel: "Watch trailer",
-        actionHref:
-          "https://www.youtube.com/results?search_query=Neon+Aftercare+trailer",
+        actionLabel: "Explore movies",
+        actionHref: "#movies",
         priority: "high",
       },
       {
@@ -186,9 +185,8 @@ function memberGroups(name: string): NotificationGroup[] {
             "Because you saved The Last Light and kept the night open for something luminous.",
           age: "12 min ago",
           artwork: artwork.neon,
-          actionLabel: "Watch trailer",
-          actionHref:
-            "https://www.youtube.com/results?search_query=Neon+Aftercare+trailer",
+          actionLabel: "Browse movies",
+          actionHref: "#movies",
           priority: "medium",
         },
       ],
