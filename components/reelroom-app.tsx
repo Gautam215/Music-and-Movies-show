@@ -2898,9 +2898,7 @@ export function ReelroomApp({
               );
               if (result.user) {
                 setProfileUser(result.user);
-                setSeatView(
-                  result.user.canAccess3DTheater ? "3d" : "2d",
-                );
+                setSeatView(result.user.canAccess3DTheater ? "3d" : "2d");
                 setCheckoutForm((current) => ({
                   ...current,
                   name: result.user?.name ?? "",
@@ -4129,8 +4127,7 @@ export function ReelroomApp({
               </div>
               {profileUser?.canAccess3DTheater ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-mint/30 bg-mint/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-mint">
-                  <span className="size-1.5 rounded-full bg-mint" /> 3D
-                  included
+                  <span className="size-1.5 rounded-full bg-mint" /> 3D included
                 </span>
               ) : (
                 <button
