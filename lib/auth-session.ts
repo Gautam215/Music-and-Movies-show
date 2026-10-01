@@ -22,6 +22,7 @@ export type PublicUser = {
   name: string;
   email: string;
   isPremium: boolean;
+  canAccess3DTheater: boolean;
 };
 
 export type UserDocument = {
@@ -33,12 +34,24 @@ export type UserDocument = {
   isPremium?: boolean;
 };
 
-export const PREMIUM_TEST_FIXTURE_USER: PublicUser = {
-  id: "dev-premium-3d-fixture",
+export function toPublicUser(
+  user: Pick<UserDocument, "_id" | "name" | "email" | "isPremium">,
+): PublicUser {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    isPremium: user.isPremium === true,
+    canAccess3DTheater: true,
+  };
+}
+
+export const PREMIUM_TEST_FIXTURE_USER = toPublicUser({
+  _id: "dev-premium-3d-fixture",
   name: "Premium 3D QA Fixture",
   email: "premium-3d-qa@example.test",
-  isPremium: true,
-};
+  isPremium: false,
+});
 
 export function isPremiumTestFixtureEnabled() {
   return (
@@ -106,15 +119,6 @@ export async function verifyPassword(password: string, storedHash: string) {
 
 function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
-}
-
-export function toPublicUser(user: UserDocument): PublicUser {
-  return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    isPremium: user.isPremium === true,
-  };
 }
 
 export async function createSession(userId: string) {
