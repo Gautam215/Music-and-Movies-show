@@ -95,8 +95,7 @@ function getTheaterSeatPose(
   const largestBlockSize = Math.max(leftBlockSize, seatsInRow - leftBlockSize);
   const innerSeatX =
     THEATER_CENTER_AISLE_WIDTH / 2 + SEAT_HALF_WIDTH + SEAT_AISLE_CLEARANCE;
-  const x =
-    side * (innerSeatX + seatIndexFromAisle * THEATER_SEAT_SPACING);
+  const x = side * (innerSeatX + seatIndexFromAisle * THEATER_SEAT_SPACING);
   const outerSeatX =
     innerSeatX + Math.max(0, largestBlockSize - 1) * THEATER_SEAT_SPACING;
   const rowPlatform = getTheaterRowPlatformPose(index);
