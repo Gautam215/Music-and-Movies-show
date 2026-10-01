@@ -6,12 +6,14 @@ import {
   getAdjacentTheaterSeat,
   getTheaterCameraTransitionPosition,
   getTheaterRowPlatformPose,
+  getTheaterSeatPoses,
   getTheaterScreenCurveOffset,
   getSeatCameraPose,
   getScreenCameraPose,
   getSeatZone,
-  getTheaterSeatPose,
   THEATER_CENTER_AISLE_WIDTH,
+  THEATER_ROW_SPACING,
+  THEATER_SEAT_SPACING,
   THEATER_SEAT_CAMERA_REAR_OFFSET,
   THEATER_SEAT_CAMERA_FOV,
   THEATER_SEAT_EYE_HEIGHT,
@@ -40,6 +42,25 @@ function seat(
   };
 }
 
+function theaterSeats() {
+  return ["A", "B", "C", "D", "E"].flatMap((row) =>
+    Array.from({ length: 8 }, (_, index) => {
+      const column = index + 1;
+      const tier =
+        row === "E" && column === 1
+          ? "accessible"
+          : row === "C" && column >= 3 && column <= 6
+            ? "premium"
+            : "standard";
+      return seat(`${row}${column}`, row, column, tier);
+    }),
+  );
+}
+
+function poseMap(seats = theaterSeats()) {
+  return new Map(getTheaterSeatPoses(seats).map((pose) => [pose.label, pose]));
+}
+
 test("cinema zones keep premium center, standard middle, and economy edges/back", () => {
   assert.equal(getSeatZone(seat("C4", "C", 4, "premium")), "premium");
   assert.equal(getSeatZone(seat("B4", "B", 4)), "standard");
@@ -64,24 +85,73 @@ test("cinema screen keeps theatrical proportions with a subtle inward curve", ()
   );
 });
 
-test("seat poses form a curved, elevated theatre instead of a flat grid", () => {
-  const left = getTheaterSeatPose(seat("B1", "B", 1));
-  const center = getTheaterSeatPose(seat("B4", "B", 4));
-  const back = getTheaterSeatPose(seat("E4", "E", 4));
+test("seat poses form clean, symmetrical rows with a subtle fan", () => {
+  const poses = poseMap();
+  const left = poses.get("B1")!;
+  const centerLeft = poses.get("B4")!;
+  const centerRight = poses.get("B5")!;
+  const right = poses.get("B8")!;
+  const back = poses.get("E4")!;
 
-  assert.ok(left.x < center.x);
-  assert.ok(left.z > center.z);
-  assert.ok(back.y > center.y);
-  assert.notEqual(left.rotationY, center.rotationY);
+  assert.ok(left.x < centerLeft.x);
+  assert.ok(left.z > centerLeft.z);
+  assert.ok(left.z - centerLeft.z < 0.23);
+  assert.ok(back.y > centerLeft.y);
+  assert.equal(centerLeft.rotationY, 0);
+  assert.equal(centerRight.rotationY, 0);
+  assert.ok(left.rotationY < 0);
+  assert.ok(right.rotationY > 0);
+  assert.ok(Math.abs(left.rotationY) <= 0.12);
+  assert.ok(Math.abs(right.rotationY) <= 0.12);
+  assert.ok(-Math.sin(left.rotationY) > 0);
+  assert.ok(-Math.sin(right.rotationY) < 0);
+  assert.ok(Math.abs(left.x + right.x) < 1e-9);
+  assert.ok(Math.abs(left.z - right.z) < 1e-9);
+  assert.ok(Math.abs(left.rotationY + right.rotationY) < 1e-9);
+  assert.equal(left.scale, 1);
+  assert.equal(poses.get("C3")?.scale, 1);
+
+  const row = [...poses.values()]
+    .filter((pose) => pose.row === "B")
+    .sort((leftPose, rightPose) => leftPose.column - rightPose.column);
+  for (const block of [row.slice(0, 4), row.slice(4)]) {
+    for (let index = 1; index < block.length; index += 1) {
+      assert.ok(
+        Math.abs(
+          block[index]!.x - block[index - 1]!.x - THEATER_SEAT_SPACING,
+        ) < 1e-9,
+      );
+    }
+  }
+  assert.ok(centerRight.x - centerLeft.x > THEATER_SEAT_SPACING * 1.9);
+});
+
+test("layout uses the existing row seat count and labels", () => {
+  const seats = theaterSeats().filter(
+    (record) => !(record.row === "C" && record.column === 8),
+  );
+  const poses = getTheaterSeatPoses(seats);
+  const reversedPoses = poseMap([...seats].reverse());
+  const byLabel = new Map(poses.map((pose) => [pose.label, pose]));
+
+  assert.equal(poses.length, seats.length);
+  assert.deepEqual(
+    new Set(poses.map((pose) => pose.label)),
+    new Set(seats.map((record) => record.label)),
+  );
+  poses.forEach((pose) => assert.deepEqual(pose, reversedPoses.get(pose.label)));
+  assert.ok(Math.abs(byLabel.get("C3")!.x + byLabel.get("C4")!.x) < 1e-9);
 });
 
 test("seat rows leave a centered aisle and mirror across it", () => {
-  const left = getTheaterSeatPose(seat("C4", "C", 4));
-  const right = getTheaterSeatPose(seat("C5", "C", 5));
+  const poses = poseMap();
+  const left = poses.get("C4")!;
+  const right = poses.get("C5")!;
 
-  assert.equal(THEATER_CENTER_AISLE_WIDTH, 0.72);
-  assert.ok(right.x - left.x > 1.4);
+  assert.equal(THEATER_CENTER_AISLE_WIDTH, 1.15);
+  assert.ok(right.x - left.x > THEATER_CENTER_AISLE_WIDTH + 0.8);
   assert.ok(Math.abs(left.x + right.x) < 1e-9);
+  assert.ok(Math.abs(left.z - right.z) < 1e-9);
 });
 
 test("row platforms rise with the seating tiers", () => {
@@ -90,12 +160,13 @@ test("row platforms rise with the seating tiers", () => {
 
   assert.equal(front.topY, 0.2);
   assert.ok(Math.abs(rear.topY - front.topY - 0.88) < 1e-9);
-  assert.ok(rear.z > front.z);
+  assert.ok(Math.abs(rear.z - front.z - 4 * THEATER_ROW_SPACING) < 1e-9);
 });
 
 test("seat cameras keep a fixed lens and use bounded cinematic easing", () => {
-  const front = getSeatCameraPose(getTheaterSeatPose(seat("A4", "A", 4)));
-  const side = getSeatCameraPose(getTheaterSeatPose(seat("D1", "D", 1)));
+  const poses = poseMap();
+  const front = getSeatCameraPose(poses.get("A4")!);
+  const side = getSeatCameraPose(poses.get("D1")!);
 
   assert.notDeepEqual(front.position, side.position);
   assert.equal(front.fov, THEATER_SEAT_CAMERA_FOV);
@@ -108,7 +179,7 @@ test("seat cameras keep a fixed lens and use bounded cinematic easing", () => {
 
 test("seat POV follows the selected seat position and local orientation", () => {
   const pose = {
-    ...getTheaterSeatPose(seat("C4", "C", 4)),
+    ...poseMap().get("C4")!,
     x: 1.7,
     y: 0.63,
     z: 2.4,
@@ -153,20 +224,15 @@ test("screen camera is centered on the cinema screen", () => {
 });
 
 test("seat POVs aim at the cinema screen from front, middle, and rear rows", () => {
-  const samples = [
-    seat("A4", "A", 4, "premium"),
-    seat("C1", "C", 1),
-    seat("C4", "C", 4),
-    seat("C8", "C", 8),
-    seat("E4", "E", 4),
-    seat("E8", "E", 8),
-  ];
+  const seats = theaterSeats();
+  const poses = poseMap(seats);
+  const samples = ["A4", "C1", "C4", "C8", "E4", "E8"];
 
-  for (const record of samples) {
-    const seatPose = getTheaterSeatPose(record);
+  for (const label of samples) {
+    const seatPose = poses.get(label)!;
     const camera = getSeatCameraPose(seatPose);
-    assert.deepEqual(camera.target, THEATER_SCREEN_CENTER, record.label);
-    assert.equal(camera.position.y, seatPose.y + 1.18, record.label);
+    assert.deepEqual(camera.target, THEATER_SCREEN_CENTER, label);
+    assert.equal(camera.position.y, seatPose.y + 1.18, label);
   }
 });
 
