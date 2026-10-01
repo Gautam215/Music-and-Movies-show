@@ -5198,7 +5198,7 @@ export function ReelroomApp({
                 {selectedSoundtrack.map((song) => (
                   <div
                     key={song.id ?? `${song.title}-${song.artist}`}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
+                    className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition hover:border-border-strong"
                   >
                     <Image
                       width={48}
