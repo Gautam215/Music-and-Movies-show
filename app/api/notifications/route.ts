@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-session";
+import { getCurrentUser, isPremiumTestFixtureUser } from "@/lib/auth-session";
 import { getNotificationGroups } from "@/lib/notification-recommendations";
 import { headers } from "next/headers";
 import { privateJsonHeaders } from "@/lib/request-security";
@@ -17,13 +17,14 @@ export async function GET() {
         ? country.toUpperCase()
         : undefined;
     const user = await getCurrentUser();
+    const fixtureUser = isPremiumTestFixtureUser(user);
     const groups = await getNotificationGroups({
-      userId: user?.id,
-      name: user?.name,
+      userId: fixtureUser ? undefined : user?.id,
+      name: fixtureUser ? undefined : user?.name,
       region,
     });
     return NextResponse.json(
-      { personalized: Boolean(user), groups },
+      { personalized: Boolean(user) && !fixtureUser, groups },
       { headers: privateJsonHeaders() },
     );
   } catch (error) {

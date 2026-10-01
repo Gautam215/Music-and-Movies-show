@@ -2101,7 +2101,7 @@ export function TicketSeat3DView({
           </div>
         </div>
       </div>
-      <div className="pointer-events-none absolute bottom-20 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:bottom-4 sm:left-4">
+      <div className="reelroom-3d-legend pointer-events-none absolute bottom-20 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5 sm:bottom-4 sm:left-4">
         {[
           ["bg-cobalt", "Premium recliner"],
           ["bg-mint", "Accessible"],
