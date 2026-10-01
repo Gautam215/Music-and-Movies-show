@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-session";
+import { getCurrentUser, isPremiumTestFixtureUser } from "@/lib/auth-session";
 import {
   getUserSignals,
   recordUserSignal,
@@ -38,6 +38,11 @@ export async function GET(request: Request) {
         { error: "Invalid user signal type." },
         { status: 400, headers: privateJsonHeaders() },
       );
+    if (isPremiumTestFixtureUser(user))
+      return NextResponse.json(
+        { signals: [] },
+        { status: 200, headers: privateJsonHeaders() },
+      );
     const limitParam = new URL(request.url).searchParams.get("limit");
     const limitValue = limitParam === null ? 100 : Number(limitParam);
     const signals = await getUserSignals(
@@ -62,6 +67,11 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser(request);
     if (user instanceof NextResponse) return user;
+    if (isPremiumTestFixtureUser(user))
+      return NextResponse.json(
+        { error: "Saved activity is disabled for the test fixture." },
+        { status: 403, headers: privateJsonHeaders() },
+      );
 
     const body = (await request.json().catch(() => null)) as {
       type?: unknown;
@@ -158,6 +168,11 @@ export async function DELETE(request: Request) {
   try {
     const user = await requireUser(request);
     if (user instanceof NextResponse) return user;
+    if (isPremiumTestFixtureUser(user))
+      return NextResponse.json(
+        { error: "Saved activity is disabled for the test fixture." },
+        { status: 403, headers: privateJsonHeaders() },
+      );
     const body = (await request.json().catch(() => null)) as {
       type?: unknown;
       key?: unknown;
