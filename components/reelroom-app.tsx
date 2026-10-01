@@ -58,9 +58,11 @@ import { BlackHoleHeroSection } from "@/components/ui/black-hole-hero-section";
 import { ImageStreamHero } from "@/components/ui/image-stream-hero";
 import HolographicBeams from "@/components/ui/beams-background";
 import { ReelscapeLogo } from "@/components/reelscape-logo";
+import { TicketSeat3DView } from "@/components/ticket-seat-3d-view";
 import { cn } from "@/lib/utils";
 import { fetchWithBackoff } from "@/lib/client-fetch";
 import type { Movie, MovieUpdateFeeds } from "@/lib/movie-types";
+import { createSeatMap, SEAT_ROWS, type SeatRecord } from "@/lib/seat-map";
 
 type Song = {
   id?: string;
@@ -143,6 +145,7 @@ type CheckoutForm = Record<CheckoutField, string>;
 type ProfileUser = {
   name: string;
   email: string;
+  isPremium: boolean;
   location?: string | null;
 };
 
@@ -575,6 +578,7 @@ type NavId = (typeof nav)[number][0];
 type ShowtimeView = "cards" | "timeline" | "days";
 type SeatLens = "radar" | "eye" | "golden";
 type EyeLevel = "front" | "middle" | "rear";
+type SeatView = "2d" | "3d";
 
 function Button({
   children,
@@ -982,6 +986,16 @@ export function ReelroomApp({
   );
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [seatView, setSeatView] = useState<SeatView>(
+    initialProfile?.isPremium ? "3d" : "2d",
+  );
+  const [seatRecords, setSeatRecords] = useState<SeatRecord[]>(() =>
+    createSeatMap("reelroom-demo"),
+  );
+  const [seatMapUpdatedAt, setSeatMapUpdatedAt] = useState("demo");
+  const [seatMapError, setSeatMapError] = useState<string | null>(null);
+  const [seatMapLive, setSeatMapLive] = useState(false);
+  const [seatMapLoading, setSeatMapLoading] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [droppedMovie, setDroppedMovie] = useState<Movie | null>(null);
   const [detailsShownAt, setDetailsShownAt] = useState<number | null>(null);
@@ -998,6 +1012,7 @@ export function ReelroomApp({
   const [booking, setBooking] = useState(false);
   const [checkoutClosing, setCheckoutClosing] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
+  const [bookingCode, setBookingCode] = useState<string | null>(null);
   const [checkoutMethod, setCheckoutMethod] = useState<
     "card" | "apple" | "google"
   >("card");
@@ -1077,6 +1092,8 @@ export function ReelroomApp({
   const spotifySessionNextAllowedAtRef = useRef(0);
   const seatMapViewportRef = useRef<HTMLDivElement>(null);
   const isLastLightDetailsVisible = droppedMovie?.title === "The Last Light";
+  const seatMovie = selected ?? heroMovie;
+  const seatMapKey = `${seatMovie.id}:${selectedDay}:${showtime}`;
 
   const clearSpotifyEndTimer = () => {
     if (spotifyEndTimerRef.current === null) return;
@@ -1097,6 +1114,7 @@ export function ReelroomApp({
         if (!cancelled) {
           const nextUser = result.user ?? null;
           setProfileUser(nextUser);
+          setSeatView(nextUser?.isPremium ? "3d" : "2d");
           setCheckoutForm((current) => ({
             ...current,
             name: nextUser?.name ?? "",
@@ -1107,6 +1125,7 @@ export function ReelroomApp({
       } catch {
         if (!cancelled) {
           setProfileUser(null);
+          setSeatView("2d");
           setCheckoutForm((current) => ({ ...current, name: "", email: "" }));
           setProfileSessionReady(true);
         }
@@ -1119,6 +1138,87 @@ export function ReelroomApp({
       window.removeEventListener("reelroom-profile-session", syncProfile);
     };
   }, []);
+
+  useEffect(() => {
+    const reset = window.setTimeout(() => {
+      setSeatRecords(createSeatMap(seatMapKey));
+      setSeatMapUpdatedAt("demo");
+      setSeatMapError(null);
+      setSeatMapLive(false);
+    }, 0);
+    return () => window.clearTimeout(reset);
+  }, [seatMapKey]);
+
+  useEffect(() => {
+    if (!profileUser?.isPremium) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    const loadSeatMap = async (initial: boolean) => {
+      if (initial) setSeatMapLoading(true);
+      try {
+        const params = new URLSearchParams({
+          movieId: seatMovie.id,
+          day: selectedDay,
+          showtime,
+        });
+        const response = await fetch(`/api/tickets/seat-map?${params}`, {
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          seats?: SeatRecord[];
+          updatedAt?: string;
+          live?: boolean;
+          error?: string;
+        } | null;
+        if (response.status === 403) {
+          setSeatView("2d");
+          setSeatMapError(payload?.error ?? "Premium membership is required.");
+          return;
+        }
+        if (!response.ok || !Array.isArray(payload?.seats))
+          throw new Error(payload?.error ?? "Live seat map unavailable.");
+        if (cancelled) return;
+        const nextSeats = payload.seats;
+        setSeatRecords(nextSeats);
+        setSeatMapLive(payload.live === true);
+        setSeatMapError(null);
+        setSeatMapUpdatedAt(
+          payload.updatedAt
+            ? new Date(payload.updatedAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "live",
+        );
+        setSelectedSeats((current) =>
+          current.filter((label) =>
+            nextSeats.some(
+              (seat) => seat.label === label && seat.status === "available",
+            ),
+          ),
+        );
+      } catch (error) {
+        if (!cancelled && !controller.signal.aborted)
+          setSeatMapError(
+            error instanceof Error
+              ? `${error.message} Showing the cached room for now.`
+              : "Live seat map unavailable. Showing the cached room for now.",
+          );
+      } finally {
+        if (initial && !cancelled) setSeatMapLoading(false);
+      }
+    };
+
+    void loadSeatMap(true);
+    const refresh = window.setInterval(() => void loadSeatMap(false), 15_000);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearInterval(refresh);
+    };
+  }, [profileUser?.isPremium, seatMovie.id, selectedDay, showtime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1993,6 +2093,7 @@ export function ReelroomApp({
   const openCheckout = () => {
     setCheckoutClosing(false);
     setCheckoutStatus("idle");
+    setBookingCode(null);
     setCheckoutMethod("card");
     setCheckoutForm((current) => ({
       ...current,
@@ -2040,7 +2141,7 @@ export function ReelroomApp({
       [field]: validateCheckoutField(field, checkoutForm[field]) || undefined,
     }));
   };
-  const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
+  const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (checkoutMethod !== "card") {
       announce(
@@ -2064,7 +2165,27 @@ export function ReelroomApp({
     if (Object.keys(nextErrors).length) return;
 
     setCheckoutStatus("loading");
-    window.setTimeout(() => {
+    try {
+      const response = await fetch("/api/tickets/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          movieId: ticketMovie.id,
+          day: selectedDay,
+          showtime: activeShowtime,
+          seatLabels: selectedSeats,
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        bookingCode?: string;
+        error?: string;
+      } | null;
+      if (!response.ok || !result?.bookingCode)
+        throw new Error(
+          result?.error ?? "The selected seats could not be reserved.",
+        );
+      setBookingCode(result.bookingCode);
       setCheckoutStatus("success");
       void recordUserSignal(
         {
@@ -2073,7 +2194,11 @@ export function ReelroomApp({
           tmdbId: ticketMovie.tmdbId,
           mediaType: ticketMovie.mediaType,
           genres: ticketMovie.genres,
-          metadata: { date: selectedDayOption.date, showtime: activeShowtime },
+          metadata: {
+            date: selectedDayOption.date,
+            showtime: activeShowtime,
+            bookingCode: result.bookingCode,
+          },
         },
         canRecordUserActivity,
       );
@@ -2084,7 +2209,14 @@ export function ReelroomApp({
         announce("Booking confirmed. Ticket history is ready for Profile.");
         setPage("profile");
       }, 1500);
-    }, 900);
+    } catch (error) {
+      setCheckoutStatus("idle");
+      announce(
+        error instanceof Error
+          ? error.message
+          : "The selected seats could not be reserved.",
+      );
+    }
   };
   const shareMovie = async (movie: Movie) => {
     const shareUrl = window.location.href;
@@ -2670,6 +2802,7 @@ export function ReelroomApp({
               );
               if (result.user) {
                 setProfileUser(result.user);
+                setSeatView(result.user.isPremium ? "3d" : "2d");
                 setCheckoutForm((current) => ({
                   ...current,
                   name: result.user?.name ?? "",
@@ -3402,51 +3535,20 @@ export function ReelroomApp({
     </div>
   );
 
-  const ticketMovie = selected ?? heroMovie;
-  const seats = [
-    "A1",
-    "A2",
-    "A3",
-    "A4",
-    "A5",
-    "A6",
-    "A7",
-    "A8",
-    "B1",
-    "B2",
-    "B3",
-    "B4",
-    "B5",
-    "B6",
-    "B7",
-    "B8",
-    "C1",
-    "C2",
-    "C3",
-    "C4",
-    "C5",
-    "C6",
-    "C7",
-    "C8",
-    "D1",
-    "D2",
-    "D3",
-    "D4",
-    "D5",
-    "D6",
-    "D7",
-    "D8",
-    "E1",
-    "E2",
-    "E3",
-    "E4",
-    "E5",
-    "E6",
-    "E7",
-    "E8",
-  ];
-  const occupied = new Set(["A3", "A4", "C6", "D2", "D3", "E7"]);
-  const goldenSeats = new Set(["C3", "C4", "C5", "C6"]);
+  const ticketMovie = seatMovie;
+  const hoveredSeatRecord = hoveredSeat
+    ? (seatRecords.find((seat) => seat.label === hoveredSeat) ?? null)
+    : null;
+  const occupied = new Set(
+    seatRecords
+      .filter((seat) => seat.status !== "available")
+      .map((seat) => seat.label),
+  );
+  const goldenSeats = new Set(
+    seatRecords
+      .filter((seat) => seat.tier === "premium")
+      .map((seat) => seat.label),
+  );
   const activeShowtime = ticketMovie.showtimes.includes(showtime)
     ? showtime
     : (ticketMovie.showtimes[0] ?? showtime);
@@ -3476,7 +3578,7 @@ export function ReelroomApp({
     showtimeDays.find((day) => day.id === selectedDay) ?? showtimeDays[0];
   const seatPrice = (seat: string) =>
     ticketMovie.price +
-    (seat.startsWith("A") ? 3 : seat.startsWith("B") ? 1 : 0);
+    (seatRecords.find((record) => record.label === seat)?.priceDelta ?? 0);
   const ticketSubtotal = selectedSeats.reduce(
     (total, seat) => total + seatPrice(seat),
     0,
@@ -3493,7 +3595,7 @@ export function ReelroomApp({
     bookingFee +
     groupDiscount;
   const chooseSmartGroup = () => {
-    const rows = ["A", "B", "C", "D", "E"];
+    const rows = SEAT_ROWS;
     const target = Math.min(Math.max(groupSize, 1), 6);
     for (const row of rows) {
       for (let start = 1; start <= 9 - target; start += 1) {
@@ -3515,6 +3617,15 @@ export function ReelroomApp({
       left: direction * 220,
       behavior: "smooth",
     });
+  };
+  const toggleSeat = (seatLabel: string) => {
+    const seat = seatRecords.find((record) => record.label === seatLabel);
+    if (!seat || seat.status !== "available") return;
+    setSelectedSeats((current) =>
+      current.includes(seatLabel)
+        ? current.filter((label) => label !== seatLabel)
+        : [...current, seatLabel],
+    );
   };
   const shareBookingSession = async () => {
     const roomUrl = new URL(window.location.href);
@@ -3833,6 +3944,7 @@ export function ReelroomApp({
           </div>
 
           <section
+            id="seat-map-view-panel"
             className="reelroom-seat-map-section mt-6 rounded-[1.5rem] border border-white/[.1] bg-surface-2/45 p-4 sm:p-5"
             aria-labelledby="seat-map-heading"
           >
@@ -3872,7 +3984,179 @@ export function ReelroomApp({
               </div>
             </div>
 
-            <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface/45 p-2.5">
+              <div
+                className="flex rounded-full border border-border bg-surface-2/65 p-1"
+                role="tablist"
+                aria-label="Seat map view"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  id="seat-view-tab-2d"
+                  aria-selected={seatView === "2d"}
+                  aria-controls="seat-map-view-panel"
+                  onClick={() => setSeatView("2d")}
+                  className={cn(
+                    "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
+                    seatView === "2d"
+                      ? "bg-ink text-canvas"
+                      : "text-muted hover:text-ink",
+                  )}
+                >
+                  <Armchair className="size-3" /> 2D map
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="seat-view-tab-3d"
+                  aria-selected={seatView === "3d"}
+                  aria-disabled={!profileUser?.isPremium}
+                  aria-controls="seat-map-view-panel"
+                  disabled={!profileUser?.isPremium}
+                  onClick={() => {
+                    if (profileUser?.isPremium) setSeatView("3d");
+                  }}
+                  className={cn(
+                    "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
+                    seatView === "3d" && profileUser?.isPremium
+                      ? "bg-ink text-canvas"
+                      : profileUser?.isPremium
+                        ? "text-muted hover:text-ink"
+                        : "cursor-not-allowed text-muted/60",
+                  )}
+                >
+                  <Sparkles className="size-3" /> 3D premium
+                </button>
+              </div>
+              {profileUser?.isPremium ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-mint/30 bg-mint/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-mint">
+                  <span className="size-1.5 rounded-full bg-mint" /> Premium
+                  access
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPage(profileUser ? "profile" : "login")}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-amber/35 bg-amber/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-amber hover:border-amber/60"
+                >
+                  <Sparkles className="size-3" /> Unlock 3D view
+                </button>
+              )}
+            </div>
+
+            {profileUser?.isPremium && seatView === "3d" ? (
+              <div className="mt-5 space-y-3">
+                <TicketSeat3DView
+                  seats={seatRecords}
+                  selectedSeats={selectedSeats}
+                  liveVersion={seatMapLive ? seatMapUpdatedAt : "cached"}
+                  onToggleSeat={toggleSeat}
+                  onHoverSeat={(seat) => setHoveredSeat(seat?.label ?? null)}
+                  onFallback={() => setSeatView("2d")}
+                />
+                {hoveredSeatRecord ? (
+                  <div className="rounded-2xl border border-amber/25 bg-amber/10 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <span className="font-mono text-[9px] uppercase tracking-[.12em] text-amber">
+                          Seat detail
+                        </span>
+                        <h4 className="mt-1 font-display text-xl font-semibold tracking-[-.04em] text-ink">
+                          {hoveredSeatRecord.label}
+                        </h4>
+                      </div>
+                      <span className="rounded-full border border-cobalt/35 bg-cobalt/10 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt">
+                        {hoveredSeatRecord.tier} tier
+                      </span>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-ink-2 sm:grid-cols-4">
+                      <div>
+                        <dt className="font-mono uppercase tracking-[.08em] text-muted">
+                          Row
+                        </dt>
+                        <dd className="mt-1 text-ink">
+                          {hoveredSeatRecord.row}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono uppercase tracking-[.08em] text-muted">
+                          View quality
+                        </dt>
+                        <dd className="mt-1 text-ink">
+                          {hoveredSeatRecord.viewQuality}%
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono uppercase tracking-[.08em] text-muted">
+                          Price
+                        </dt>
+                        <dd className="mt-1 text-ink">
+                          ₹{seatPrice(hoveredSeatRecord.label).toFixed(2)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono uppercase tracking-[.08em] text-muted">
+                          Status
+                        </dt>
+                        <dd className="mt-1 capitalize text-ink">
+                          {hoveredSeatRecord.status}
+                        </dd>
+                      </div>
+                    </dl>
+                    <button
+                      type="button"
+                      disabled={hoveredSeatRecord.status !== "available"}
+                      onClick={() => toggleSeat(hoveredSeatRecord.label)}
+                      className="mt-3 min-h-11 rounded-full border border-amber/45 px-4 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-amber hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {selectedSeats.includes(hoveredSeatRecord.label)
+                        ? "Remove from booking"
+                        : hoveredSeatRecord.status === "available"
+                          ? "Select this seat"
+                          : "Seat unavailable"}
+                    </button>
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-1 font-mono text-[9px] uppercase tracking-[.08em] text-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        seatMapLoading || !seatMapLive ? "bg-amber" : "bg-mint",
+                      )}
+                    />
+                    {seatMapLoading
+                      ? "Syncing live room"
+                      : seatMapLive
+                        ? `Live room · updated ${seatMapUpdatedAt}`
+                        : "Cached room · live sync pending"}
+                  </span>
+                  {hoveredSeat ? (
+                    <span className="rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 text-amber">
+                      {hoveredSeat} ·{" "}
+                      {goldenSeats.has(hoveredSeat)
+                        ? "Golden zone"
+                        : "Standard view"}
+                    </span>
+                  ) : null}
+                </div>
+                {seatMapError ? (
+                  <p
+                    role="status"
+                    className="rounded-xl border border-amber/25 bg-amber/10 px-3 py-2 text-[10px] leading-5 text-amber"
+                  >
+                    {seatMapError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div
+              className={cn(
+                "mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]",
+                profileUser?.isPremium && seatView === "3d" && "hidden",
+              )}
+            >
               <div className="min-w-0">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface/55 p-2">
                   <div
@@ -4002,13 +4286,7 @@ export function ReelroomApp({
                                 onFocus={() => setHoveredSeat(seat)}
                                 onMouseLeave={() => setHoveredSeat(null)}
                                 onBlur={() => setHoveredSeat(null)}
-                                onClick={() =>
-                                  setSelectedSeats((current) =>
-                                    isSelected
-                                      ? current.filter((item) => item !== seat)
-                                      : [...current, seat],
-                                  )
-                                }
+                                onClick={() => toggleSeat(seat)}
                                 className={cn(
                                   "reelroom-seat group/seat relative min-h-11 min-w-11 aspect-square rounded-xl border transition duration-300 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber",
                                   isOccupied &&
@@ -4812,7 +5090,7 @@ export function ReelroomApp({
                 <Check className="size-9" />
               </div>
               <div className="mt-7 font-mono text-[10px] uppercase tracking-[.22em] text-mint">
-                Payment confirmed
+                Reservation confirmed
               </div>
               <h2
                 id="checkout-title"
@@ -4821,13 +5099,18 @@ export function ReelroomApp({
                 Your seats are yours.
               </h2>
               <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-ink-2">
-                A confirmation is ready for {checkoutForm.email}. We&apos;ll
-                keep the ticket in your Reelscape profile.
+                Your seats are reserved for {checkoutForm.email}. Payment stays
+                with the provider handoff and is not processed in demo mode.
               </p>
               <div className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-4 py-2 font-mono text-[10px] uppercase tracking-[.1em] text-ink-2">
                 <Ticket className="size-3.5 text-amber" /> {ticketMovie.title} ·{" "}
                 {selectedDayOption.date}
               </div>
+              {bookingCode ? (
+                <div className="mx-auto mt-3 inline-flex items-center rounded-full border border-mint/25 bg-mint/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[.12em] text-mint">
+                  Confirmation {bookingCode}
+                </div>
+              ) : null}
             </div>
           </div>
         ) : (

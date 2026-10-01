@@ -12,9 +12,17 @@ import { getDatabase } from "@/lib/mongodb";
 const scrypt = promisify(scryptCallback);
 export const SESSION_COOKIE = "reelroom_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const DEV_PREMIUM_FIXTURE_COOKIE = "reelroom_dev_premium_fixture";
+const DEV_PREMIUM_FIXTURE_TOKEN = randomBytes(32).toString("base64url");
+const DEV_PREMIUM_FIXTURE_TTL_SECONDS = 60 * 60;
 let sessionExpiryIndexPromise: Promise<string> | null = null;
 
-export type PublicUser = { id: string; name: string; email: string };
+export type PublicUser = {
+  id: string;
+  name: string;
+  email: string;
+  isPremium: boolean;
+};
 
 export type UserDocument = {
   _id: string;
@@ -22,7 +30,45 @@ export type UserDocument = {
   email: string;
   passwordHash: string;
   createdAt: Date;
+  isPremium?: boolean;
 };
+
+export const PREMIUM_TEST_FIXTURE_USER: PublicUser = {
+  id: "dev-premium-3d-fixture",
+  name: "Premium 3D QA Fixture",
+  email: "premium-3d-qa@example.test",
+  isPremium: true,
+};
+
+export function isPremiumTestFixtureEnabled() {
+  return (
+    process.env.NODE_ENV === "development" &&
+    process.env.ENABLE_PREMIUM_TEST_FIXTURE === "true"
+  );
+}
+
+export function isPremiumTestFixtureUser(
+  user: Pick<PublicUser, "id"> | null | undefined,
+) {
+  return (
+    isPremiumTestFixtureEnabled() && user?.id === PREMIUM_TEST_FIXTURE_USER.id
+  );
+}
+
+export function setPremiumTestFixtureCookie(response: Response) {
+  if (!isPremiumTestFixtureEnabled()) return;
+  response.headers.append(
+    "Set-Cookie",
+    `${DEV_PREMIUM_FIXTURE_COOKIE}=${DEV_PREMIUM_FIXTURE_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DEV_PREMIUM_FIXTURE_TTL_SECONDS}`,
+  );
+}
+
+export function clearPremiumTestFixtureCookie(response: Response) {
+  response.headers.append(
+    "Set-Cookie",
+    `${DEV_PREMIUM_FIXTURE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+  );
+}
 
 type SessionDocument = {
   _id: string;
@@ -63,7 +109,12 @@ function hashSessionToken(token: string) {
 }
 
 export function toPublicUser(user: UserDocument): PublicUser {
-  return { id: user._id, name: user.name, email: user.email };
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    isPremium: user.isPremium === true,
+  };
 }
 
 export async function createSession(userId: string) {
@@ -119,7 +170,16 @@ export async function revokeSession(token: string | undefined) {
 }
 
 export async function getCurrentUser(): Promise<PublicUser | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const cookieStore = await cookies();
+  if (
+    isPremiumTestFixtureEnabled() &&
+    cookieStore.get(DEV_PREMIUM_FIXTURE_COOKIE)?.value ===
+      DEV_PREMIUM_FIXTURE_TOKEN
+  ) {
+    return { ...PREMIUM_TEST_FIXTURE_USER };
+  }
+
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
   const db = await getDatabase();
