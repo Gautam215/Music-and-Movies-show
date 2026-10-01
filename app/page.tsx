@@ -1,5 +1,5 @@
 import { ReelroomApp } from "@/components/reelroom-app";
-import { getCurrentUser } from "@/lib/auth-session";
+import { getCurrentUser, isPremiumTestFixtureUser } from "@/lib/auth-session";
 import { getOmdbMovies } from "@/lib/omdb";
 import {
   getCuratedMovies,
@@ -28,6 +28,9 @@ export default async function Page() {
   } catch {
     currentUser = null;
   }
+  const personalizationUserId = isPremiumTestFixtureUser(currentUser)
+    ? undefined
+    : currentUser?.id;
   const [
     featuredMovie,
     currentReel,
@@ -36,8 +39,8 @@ export default async function Page() {
     omdbMovies,
     dailyUpdates,
   ] = await Promise.all([
-    getFeaturedScreening({ userId: currentUser?.id, region }),
-    getCurrentReel({ userId: currentUser?.id, region }),
+    getFeaturedScreening({ userId: personalizationUserId, region }),
+    getCurrentReel({ userId: personalizationUserId, region }),
     getTopReelMovies(),
     getCuratedMovies(),
     getOmdbMovies(),
@@ -67,6 +70,7 @@ export default async function Page() {
           ? {
               name: currentUser.name,
               email: currentUser.email,
+              isPremium: currentUser.isPremium,
               location: profileLocation,
             }
           : null
