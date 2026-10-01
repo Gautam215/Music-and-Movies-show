@@ -121,6 +121,11 @@ test("public pages and API boundaries communicate reliably", async () => {
     });
     assert.equal(disabledPremiumFixture.response.status, 404);
 
+    const invalidTrailer = await request(
+      "/api/movies/trailer?tmdbId=not-a-number&mediaType=movie",
+    );
+    assert.equal(invalidTrailer.response.status, 400);
+
     const anonymousSeatMap = await request(
       "/api/tickets/seat-map?movieId=movie-1&day=today&showtime=1:40%20PM",
     );

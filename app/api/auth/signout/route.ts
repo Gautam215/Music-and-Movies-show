@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
+  clearPremiumTestFixtureCookie,
   clearSessionCookie,
   revokeSession,
   SESSION_COOKIE,
@@ -22,5 +23,6 @@ export async function POST(request: Request) {
     { headers: privateJsonHeaders() },
   );
   clearSessionCookie(response);
+  clearPremiumTestFixtureCookie(response);
   return response;
 }

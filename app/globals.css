@@ -1952,6 +1952,15 @@ body:has(.reelroom-app[data-page="updates"]) {
     display: none;
   }
 }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .reelroom-floating-nav {
+    left: auto;
+    right: max(1rem, env(safe-area-inset-right));
+    transform: scale(0.92);
+    transform-origin: top right;
+    animation: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .reelroom-floating-nav {
     animation: none;
@@ -2790,6 +2799,18 @@ body:has(.reelroom-app[data-background="black-hole"]) .rounded-2xl.bg-surface {
   box-shadow:
     0 24px 60px hsl(var(--canvas) / 0.28),
     inset 0 1px hsl(var(--ink) / 0.08);
+}
+
+@media (max-width: 380px) {
+  .reelroom-3d-legend {
+    bottom: 9rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .reelroom-3d-legend {
+    max-width: calc(100% - 23.75rem);
+  }
 }
 
 .reelroom-3d-canvas {

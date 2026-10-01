@@ -42,18 +42,153 @@ Personal signal and saved content on Profile (desktop).
 ![Profile experience on Profile on mobile](screenshots/profile-mobile.png)
 Personal signal and saved content on Profile (mobile).
 
-## 3D Theater Access
+## 3D Theater
 
-The interactive 3D seat view is available to all signed-in users, regardless of paid Premium status. Anonymous visitors can use the 2D map and sign in to enable 3D; the 2D map remains available when WebGL is unavailable.
+The Three.js view turns the existing seat labels and states into a small cinema and is included for every signed-in account, regardless of paid Premium status. Anonymous visitors keep the 2D seat map and can sign in to unlock 3D. It keeps the same booking actions. If WebGL is unavailable, the existing 2D seat map remains available.
+
+**3D runtime: NOT VERIFIED.** The opt-in development fixture and authenticated sample seat-map API were validated locally, but the cloud browser could not reach the local development server. The public site showed only its existing 2D ticket surface. The diagrams and implementation notes below describe the source; they are not claims of completed 3D browser testing.
+
+For local QA only, set `ENABLE_PREMIUM_TEST_FIXTURE=true` and run `npm run dev`. In that same browser, activate the fixture with `fetch('/api/dev/premium-fixture', { method: 'POST' })` and reload the page. The fixture models a signed-in account without paid Premium status, so it verifies that 3D access is tied to login instead of a membership flag. Sign out or send `DELETE` to the same endpoint to clear it. The route also requires `NODE_ENV=development`; it returns 404 otherwise. The fixture uses an in-memory, one-hour cookie, does not create a user/session/payment record, serves unclaimed sample seats, and cannot save favorites, viewing history, or bookings.
+
+### 1. Full Flow
+
+```mermaid
+flowchart LR
+    records["Existing seat records"] --> pose["getTheaterSeatPose()"]
+    pose --> seats["Instanced 3D chairs"]
+    pose --> camera["Seat camera POV"]
+    seats --> hit["Pointer ray hit"]
+    hit --> guard["Available-seat check"]
+    guard --> state["Existing seat selection state"]
+    state --> seats
+    webgl["WebGL unavailable"] --> fallback["Existing 2D seat map"]
+```
+
+The renderer maps each stable seat label, row, column, and tier to a theater-world position and rotation. This keeps the curved 3D layout separate from the flat positions used by the 2D map and booking flow.
+
+### 2. Room Build
+
+```mermaid
+flowchart TB
+    room["Theater room group"] --> floor["Floor"]
+    room --> walls["Screen wall + acoustic side walls"]
+    room --> rows["Raised row platforms"]
+    rows --> center["Center aisle stairs"]
+    rows --> sides["Side aisle stairs"]
+    room --> stage["Front stage"]
+    room --> screen["Screen + frame + glow"]
+    rows --> seats["Curved, raked seat rows"]
+```
+
+The same row layout sets seat height, platforms, and stair steps. Stair edges use low-emission light so the dark room stays readable.
+
+### 3. Seat Build
+
+```mermaid
+flowchart LR
+    labels["Seat label + tier"] --> zone["Premium / accessible / standard / economy"]
+    zone --> geometry["Rounded cushion + back + armrests"]
+    zone --> footrest["Premium footrest"]
+    geometry --> instances["Shared geometry + material instances"]
+    instances --> state["Available / selected / held / occupied colors"]
+    labels --> atlas["One chair-label atlas"]
+```
+
+Seats share geometry and materials instead of creating a separate mesh for every part. Premium seats include a footrest; the existing accessible tier gets a wider, mint-colored chair.
+
+### 4. Camera and Seat POV
+
+```mermaid
+flowchart LR
+    selected["Selected seat label"] --> lookup["Pose lookup"]
+    lookup --> pose["Seat x, y, z + rotationY"]
+    pose --> eye["Eye point + local rear offset"]
+    eye --> target["Cinema screen target"]
+    target --> transition["Eased arc above seat rows"]
+    transition --> view["Overview / screen / seat POV"]
+```
+
+Each seat gets its own camera position from its theater pose and orientation. The camera aims at the screen. Transitions lift above the chair rows before settling into the next view; reduced-motion mode skips the animation.
+
+### 5. Interaction
+
+```mermaid
+flowchart TB
+    pointer["Mouse / touch"] --> ray["Reuse one seat raycaster"]
+    ray --> label["Seat label"]
+    keys["Arrow / Enter / Space / Escape"] --> keyboard["Seat row navigation"]
+    keyboard --> label
+    label --> status["Available?"]
+    status -->|yes| parent["Existing selection callback"]
+    status -->|no| focus["Focus only; do not select"]
+    parent --> mesh["Update chair color + camera"]
+```
+
+The pointer ray covers cushions, backs, footrests, and armrests. Held or occupied seats may be viewed but cannot be selected. Touch drag and pinch use the same orbit controls.
+
+### 6. Light and Sound
+
+```mermaid
+flowchart LR
+    screen["Screen"] --> glow["Emissive screen surface"]
+    screen --> spot["Warm spot + blue screen light"]
+    room["Room surfaces"] --> hemi["Soft hemisphere fill"]
+    steps["Stair nosings"] --> aisle["Low amber aisle light"]
+    chairs["Rounded seat materials"] --> shadows["Soft shadows"]
+```
+
+```mermaid
+flowchart LR
+    screen["Projector position"] --> ambience["Opt-in projector ambience"]
+    seat["Selected seat pose"] --> whoosh["Selection whoosh"]
+    camera["Camera position + direction"] --> listener["Web Audio listener"]
+    ambience --> spatial["Spatial panner"]
+    whoosh --> spatial
+    listener --> spatial
+    spatial --> output["Browser audio output"]
+```
+
+Audio is built with the browser's Web Audio API. It is optional and starts only after the user presses the ambience control.
+
+### 7. Responsive Behavior
+
+```mermaid
+flowchart LR
+    resize["Canvas size change"] --> observer["ResizeObserver"]
+    observer --> camera["Update camera aspect"]
+    observer --> renderer["Resize renderer"]
+    slow["Slow device / offline"] --> reduced["Lower pixel ratio + fewer effects"]
+    motion["Reduced-motion setting"] --> snap["Skip camera animation"]
+    failure["WebGL error"] --> map["Keep the 2D seat map"]
+```
+
+The canvas follows its container. Lower quality keeps the seat map and controls usable. The 2D view remains the fallback if the graphics context fails.
+
+### 8. Code and Checks
+
+```mermaid
+flowchart LR
+    geometry["modules/theater/frontend/seat-geometry.ts"] --> scene["components/ticket-seat-3d-view.tsx"]
+    map["lib/seat-map.ts"] --> scene
+    scene --> tests["tests/theater-3d.test.ts"]
+    tests --> type["Typecheck + lint + format"]
+    type --> build["Production build"]
+    build --> browser["Desktop / tablet / mobile checks"]
+    browser --> regression["Confirm non-3D flows untouched"]
+```
+
+The geometry helpers are plain TypeScript, so seat positions, camera aim, row rise, and camera easing can be tested without loading WebGL. The scene keeps its geometry, lights, interaction, and audio in one lazy-loaded view.
 
 ## Stack
 
 - Next.js App Router with TypeScript strict mode.
 - Tailwind CSS with shadcn-compatible `components/ui` primitives.
 - `lucide-react` for interface icons.
+- Three.js for the lazy-loaded premium 3D theater.
 - Convex schema and transactional seat-hold functions under `convex/`.
 - MongoDB-backed email/password authentication under `app/api/auth/`.
 - Two-week TMDB featured screening plus a separate daily Current Reel across movies, TV, and anime with regional guest fallback and logged-in viewing-history personalization.
+- Movie details load official YouTube trailers through TMDB when `TMDB_READ_ACCESS_TOKEN` is configured.
 - Works Wheel from 21st.dev at `components/ui/works-wheel.tsx`.
 - Black Hole visual system at `components/ui/black-hole-hero-section.tsx`, used as the global hero language.
 
@@ -86,7 +221,7 @@ The Works Wheel imports the shared `cn` helper through `@/lib/utils`, and `compo
 
 ## Backend Boundary
 
-The UI currently uses deterministic in-memory state for review. `convex/schema.ts` and `convex/bookings.ts` define the first production seam: authenticated seat holds, expiry, movies, shows, songs, reviews, and orders. Connect `NEXT_PUBLIC_CONVEX_URL`, then replace the local state mutations with Convex hooks. Payment should remain provider-hosted, with signed webhooks and idempotency before launch.
+The 2D fallback keeps a deterministic local base map, while any authenticated user can request validated live claims through `/api/tickets/seat-map` for the 3D view. Checkout posts only the selected show and seat labels to `/api/tickets/confirm`, which writes unique MongoDB seat claims and returns a booking code; payment remains provider-hosted and is not processed by this demo. `convex/schema.ts` and `convex/bookings.ts` remain the first production seam for authenticated seat holds, expiry, movies, shows, songs, reviews, and orders. Connect `NEXT_PUBLIC_CONVEX_URL`, then replace the MongoDB ticket claim route with Convex hooks before launch. Payment should use signed webhooks and idempotency.
 
 ## Verification
 
@@ -105,7 +240,7 @@ npm run audit
 
 `npm run test:api` starts the production build on an isolated local port and checks public pages, rate-limit headers, authentication boundaries, Spotify error responses, and cross-origin request rejection. It should run after `npm run build`.
 
-The unit tests use Node's built-in test runner and cover same-origin validation, transient upstream retries, safe versus unsafe retry behavior, and fallback rate-limit headers.
+The unit tests use Node's built-in test runner. They cover same-origin checks, safe retries, fallback rate limits, theater geometry, individual seat POV, camera transitions, seat navigation, and trailer selection.
 
 ## CI/CD
 

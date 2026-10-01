@@ -19,6 +19,13 @@ export type Movie = {
   mediaType?: "movie" | "tv" | "anime";
   trendScore?: number;
   trendRegion?: string;
+  trailer?: MovieTrailer;
+};
+
+export type MovieTrailer = {
+  key: string;
+  name: string;
+  embedUrl: string;
 };
 
 export type MovieUpdateFeeds = {
