@@ -28,6 +28,7 @@ import {
   isWebglAvailable,
   type SeatRecord,
 } from "@/lib/seat-map";
+import { getYouTubePlayerState, youtubeEmbedUrl } from "@/lib/movie-trailers";
 import {
   easeInOutCubic,
   getAdjacentTheaterSeat,
@@ -35,6 +36,7 @@ import {
   getTheaterRowPlatformPose,
   getTheaterSeatPoses,
   getTheaterScreenCurveOffset,
+  getTheaterSeatColor,
   getScreenCameraPose,
   getSeatCameraPose,
   getSeatZone,
@@ -54,10 +56,21 @@ type ViewStatus = "loading" | "ready" | "unsupported" | "error" | "disabled";
 type QualityMode = "full" | "reduced";
 type CameraMode = "overview" | "pov" | "screen";
 
+type TrailerScreenState = {
+  title: string;
+  key: string | null;
+  loading: boolean;
+  error: string | null;
+};
+
 type Props = {
   seats: SeatRecord[];
   selectedSeats: string[];
   liveVersion: string;
+  movieTitle: string;
+  trailerKey: string | null;
+  trailerLoading: boolean;
+  trailerError: string | null;
   onToggleSeat: (label: string) => void;
   onHoverSeat: (seat: SeatRecord | null) => void;
   onFallback: () => void;
@@ -85,6 +98,7 @@ type SceneRuntime = {
   focusScreen: () => void;
   exitPov: () => void;
   adjustOrbit: (change: OrbitChange) => void;
+  setTrailerScreen: (state: TrailerScreenState) => void;
   setQuality: (next: QualityMode) => void;
   setReducedMotion: (reduced: boolean) => void;
   dispose: () => void;
@@ -428,24 +442,23 @@ function parseSeatStreamMessage(raw: string) {
 }
 
 function seatColor(three: ThreeModule, seat: SeatRecord, selected: boolean) {
-  if (selected) return new three.Color("#f4d28c");
-  if (seat.status === "occupied") return new three.Color("#303444");
-  if (seat.status === "held") return new three.Color("#6d75b6");
-  if (seat.tier === "premium") return new three.Color("#7c88ff");
-  if (seat.tier === "accessible") return new three.Color("#72d6bd");
-  if (getSeatZone(seat) === "economy") return new three.Color("#77809f");
-  return new three.Color("#a7aec7");
+  return new three.Color(getTheaterSeatColor(seat.status, selected));
 }
 
 export function TicketSeat3DView({
   seats,
   selectedSeats,
   liveVersion,
+  movieTitle,
+  trailerKey,
+  trailerLoading,
+  trailerError,
   onToggleSeat,
   onHoverSeat,
   onFallback,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const screenLayerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const seatsRef = useRef(seats);
   const selectedRef = useRef(selectedSeats);
@@ -471,6 +484,12 @@ export function TicketSeat3DView({
   const keyboardSeatRef = useRef<string | null>(null);
   const audioRef = useRef<AudioRuntime | null>(null);
   const headingRef = useRef(heading);
+  const trailerScreenRef = useRef<TrailerScreenState>({
+    title: movieTitle,
+    key: trailerKey,
+    loading: trailerLoading,
+    error: trailerError,
+  });
 
   useEffect(() => {
     seatsRef.current = seats;
@@ -484,6 +503,17 @@ export function TicketSeat3DView({
       keyboardSeatRef.current = selectedSeats.at(-1) ?? null;
     runtimeRef.current?.updateSeats(seats, selectedSeats);
   }, [seats, selectedSeats, onToggleSeat, onHoverSeat]);
+
+  useEffect(() => {
+    const next = {
+      title: movieTitle,
+      key: trailerKey,
+      loading: trailerLoading,
+      error: trailerError,
+    };
+    trailerScreenRef.current = next;
+    runtimeRef.current?.setTrailerScreen(next);
+  }, [movieTitle, trailerKey, trailerLoading, trailerError]);
 
   useEffect(() => {
     try {
@@ -599,6 +629,7 @@ export function TicketSeat3DView({
     let frame = 0;
     let idleHandle: number | null = null;
     let cleanupInteractions = () => undefined;
+    let cleanupScreenOverlay: () => void = () => undefined;
 
     const idleWindow = window as Window & {
       requestIdleCallback?: (
@@ -611,7 +642,10 @@ export function TicketSeat3DView({
     const loadScene = async () => {
       setStatus("loading");
       try {
-        const three = await import("three");
+        const [three, css3d] = await Promise.all([
+          import("three"),
+          import("three/addons/renderers/CSS3DRenderer.js"),
+        ]);
         if (cancelled) return;
         const context = getContext("webgl2") ?? getContext("webgl");
         if (!context) {
@@ -635,6 +669,17 @@ export function TicketSeat3DView({
         scene.background = new three.Color("#090b13");
         scene.fog = new three.Fog("#090b13", 13, 30);
         const camera = new three.PerspectiveCamera(38, 1, 0.1, 60);
+        const screenLayer = screenLayerRef.current;
+        if (!screenLayer)
+          throw new Error("The theater screen layer is missing.");
+        const cssRenderer = new css3d.CSS3DRenderer();
+        cssRenderer.domElement.className = "reelroom-3d-screen-renderer";
+        cssRenderer.domElement.style.position = "absolute";
+        cssRenderer.domElement.style.inset = "0";
+        cssRenderer.domElement.style.pointerEvents = "none";
+        screenLayer.appendChild(cssRenderer.domElement);
+        cleanupScreenOverlay = () => cssRenderer.domElement.remove();
+        const cssScene = new three.Scene();
         const room = new three.Group();
         scene.add(room);
         const audioForward = new three.Vector3();
@@ -918,6 +963,42 @@ export function TicketSeat3DView({
         );
         room.add(screenGlow);
 
+        const screenCssWidth = 1200;
+        const screenCssHeight =
+          screenCssWidth * (THEATER_SCREEN_HEIGHT / THEATER_SCREEN_WIDTH);
+        const screenElement = document.createElement("div");
+        screenElement.className = "reelroom-3d-screen-surface";
+        screenElement.style.width = `${screenCssWidth}px`;
+        screenElement.style.height = `${screenCssHeight}px`;
+        const screenIframe = document.createElement("iframe");
+        screenIframe.className = "reelroom-3d-screen-iframe";
+        screenIframe.title = `${trailerScreenRef.current.title} movie preview`;
+        screenIframe.allow =
+          "autoplay; encrypted-media; picture-in-picture; web-share";
+        screenIframe.allowFullscreen = true;
+        screenIframe.referrerPolicy = "strict-origin-when-cross-origin";
+        screenIframe.style.height = "100%";
+        screenIframe.style.width = "auto";
+        screenIframe.style.maxWidth = "100%";
+        screenIframe.style.aspectRatio = "16 / 9";
+        screenIframe.style.visibility = "hidden";
+        screenIframe.style.pointerEvents = "auto";
+        const screenStatus = document.createElement("div");
+        screenStatus.className = "reelroom-3d-screen-status";
+        screenStatus.setAttribute("role", "status");
+        screenStatus.textContent = "Choose a seat to start the preview.";
+        screenElement.append(screenIframe, screenStatus);
+        const cssScreen = new css3d.CSS3DObject(screenElement);
+        const cssScreenWidth = THEATER_SCREEN_WIDTH - 0.2;
+        cssScreen.position.set(
+          THEATER_SCREEN_CENTER.x,
+          THEATER_SCREEN_CENTER.y,
+          THEATER_SCREEN_CENTER.z - 0.075,
+        );
+        cssScreen.scale.setScalar(cssScreenWidth / screenCssWidth);
+        cssScreen.visible = false;
+        cssScene.add(cssScreen);
+
         const lowDetail = new three.Mesh(
           new three.BoxGeometry(11, 0.08, 6.4),
           new three.MeshStandardMaterial({ color: "#171b29", roughness: 0.92 }),
@@ -948,7 +1029,12 @@ export function TicketSeat3DView({
         roomLod.addLevel(lowDetail, 13);
         room.add(roomLod);
 
-        scene.add(new three.HemisphereLight("#d9dcff", "#080912", 1.7));
+        const ambientLight = new three.HemisphereLight(
+          "#d9dcff",
+          "#080912",
+          1.7,
+        );
+        scene.add(ambientLight);
         const keyLight = new three.SpotLight(
           "#f4d9b0",
           5.2,
@@ -968,6 +1054,20 @@ export function TicketSeat3DView({
         const rimLight = new three.PointLight("#7684ff", 2.7, 14, 2);
         rimLight.position.set(-4.5, 2.8, 1.2);
         scene.add(rimLight);
+        const leftSeatLight = new three.PointLight("#9b78ff", 1.15, 12, 2);
+        leftSeatLight.position.set(-5.2, 1.45, 0.1);
+        scene.add(leftSeatLight);
+        const rightSeatLight = new three.PointLight("#63c9d7", 0.9, 12, 2);
+        rightSeatLight.position.set(5.2, 1.45, 0.1);
+        scene.add(rightSeatLight);
+        const cinemaLights = [
+          { light: ambientLight, bright: 1.7, dim: 0.32 },
+          { light: keyLight, bright: 5.2, dim: 0.42 },
+          { light: screenLight, bright: 4.2, dim: 1.75 },
+          { light: rimLight, bright: 2.7, dim: 0.8 },
+          { light: leftSeatLight, bright: 1.15, dim: 0.62 },
+          { light: rightSeatLight, bright: 0.9, dim: 0.5 },
+        ];
 
         const poseList = getTheaterSeatPoses(seatsRef.current);
         const poseByLabel = new Map(
@@ -1073,8 +1173,8 @@ export function TicketSeat3DView({
           if (!indexes.length) continue;
           const material = new three.MeshStandardMaterial({
             color: "#ffffff",
-            roughness: zone === "premium" ? 0.52 : 0.68,
-            metalness: zone === "premium" ? 0.16 : 0.08,
+            roughness: 0.68,
+            metalness: 0.08,
           });
           const seatMesh = new three.InstancedMesh(
             geometryByZone[zone].seat,
@@ -1141,6 +1241,14 @@ export function TicketSeat3DView({
         let currentPoses = poseList;
         let focusLabel: string | null = null;
         let cameraMode: CameraMode = "overview";
+        let screenActive = false;
+        let screenState = trailerScreenRef.current;
+        let activeEmbedUrl = "";
+        let playerOrigin = "";
+        let cinemaDarkness = 0;
+        let cinemaDarknessTarget = 0;
+        let cinemaDarknessFrom = 0;
+        let cinemaDarknessStartedAt = 0;
         let orbit = { yaw: 0, pitch: 0.58, distance: 8.4 };
         let transition: {
           startedAt: number;
@@ -1175,6 +1283,139 @@ export function TicketSeat3DView({
         const stopRender = () => {
           if (frame) window.cancelAnimationFrame(frame);
           frame = 0;
+        };
+
+        const applyCinemaLighting = (darkness: number) => {
+          cinemaLights.forEach(({ light, bright, dim }) => {
+            light.intensity = three.MathUtils.lerp(bright, dim, darkness);
+          });
+        };
+        const setCinemaDimmed = (dimmed: boolean) => {
+          const target = dimmed ? 1 : 0;
+          if (target === cinemaDarknessTarget) return;
+          cinemaDarknessTarget = target;
+          cinemaDarknessFrom = cinemaDarkness;
+          cinemaDarknessStartedAt = performance.now();
+          if (reducedMotion) {
+            cinemaDarkness = target;
+            applyCinemaLighting(cinemaDarkness);
+            scheduleRender();
+          } else {
+            scheduleRender();
+          }
+        };
+        const clearScreenPlayer = () => {
+          if (activeEmbedUrl) {
+            screenIframe.src = "about:blank";
+            screenIframe.removeAttribute("src");
+            activeEmbedUrl = "";
+            playerOrigin = "";
+          }
+          screenIframe.style.visibility = "hidden";
+          setCinemaDimmed(false);
+        };
+        const updateScreenPlayer = () => {
+          if (!screenActive) {
+            clearScreenPlayer();
+            screenStatus.style.display = "grid";
+            screenStatus.textContent = "Choose a seat to start the preview.";
+            return;
+          }
+
+          const embedUrl = screenState.key
+            ? youtubeEmbedUrl(screenState.key)
+            : null;
+          if (!embedUrl || screenState.loading || screenState.error) {
+            clearScreenPlayer();
+            screenStatus.style.display = "grid";
+            screenStatus.textContent = screenState.loading
+              ? "Finding this film's preview..."
+              : "No preview is available for this title.";
+            return;
+          }
+
+          const url = new URL(embedUrl);
+          url.searchParams.set("autoplay", "0");
+          url.searchParams.set("controls", "1");
+          url.searchParams.set("enablejsapi", "1");
+          url.searchParams.set("origin", window.location.origin);
+          url.searchParams.set("playsinline", "1");
+          const nextEmbedUrl = url.toString();
+          screenIframe.title = `${screenState.title} movie preview`;
+          screenStatus.style.display = "none";
+          screenIframe.style.visibility = "visible";
+          if (activeEmbedUrl === nextEmbedUrl) return;
+          activeEmbedUrl = nextEmbedUrl;
+          playerOrigin = url.origin;
+          setCinemaDimmed(false);
+          screenIframe.src = nextEmbedUrl;
+        };
+        const setScreenActive = (active: boolean) => {
+          if (screenActive === active) return;
+          screenActive = active;
+          cssScreen.visible = active;
+          updateScreenPlayer();
+          scheduleRender();
+        };
+        const listenForPlayerState = () => {
+          if (!screenActive || !playerOrigin) return;
+          const command = JSON.stringify({
+            event: "command",
+            func: "addEventListener",
+            args: ["onStateChange"],
+            id: "reelroom-screen",
+            channel: "widget",
+          });
+          screenIframe.contentWindow?.postMessage(
+            JSON.stringify({
+              event: "listening",
+              id: "reelroom-screen",
+              channel: "widget",
+            }),
+            playerOrigin,
+          );
+          screenIframe.contentWindow?.postMessage(command, playerOrigin);
+        };
+        const onPlayerLoad = () => listenForPlayerState();
+        const onPlayerMessage = (event: MessageEvent<unknown>) => {
+          if (
+            !screenActive ||
+            event.source !== screenIframe.contentWindow ||
+            ![
+              playerOrigin,
+              "https://www.youtube.com",
+              "https://www.youtube-nocookie.com",
+            ].includes(event.origin)
+          )
+            return;
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message) as unknown;
+            } catch {
+              return;
+            }
+          }
+          if (
+            message &&
+            typeof message === "object" &&
+            (message as { event?: unknown }).event === "onReady"
+          )
+            listenForPlayerState();
+          const playerState = getYouTubePlayerState(message);
+          if (playerState !== null) setCinemaDimmed(playerState === 1);
+        };
+        screenIframe.addEventListener("load", onPlayerLoad);
+        window.addEventListener("message", onPlayerMessage);
+        cleanupScreenOverlay = () => {
+          screenIframe.removeEventListener("load", onPlayerLoad);
+          window.removeEventListener("message", onPlayerMessage);
+          screenIframe.removeAttribute("src");
+          cssRenderer.domElement.remove();
+        };
+        const updateTrailerScreen = (next: TrailerScreenState) => {
+          screenState = next;
+          updateScreenPlayer();
         };
 
         const updateHeading = () => {
@@ -1223,9 +1464,6 @@ export function TicketSeat3DView({
 
         const renderSeatInstances = () => {
           const selected = new Set(selectedRef.current);
-          const focusedPose = focusLabel
-            ? currentPoses.find((pose) => pose.label === focusLabel)
-            : null;
           const setInstance = (
             mesh: THREE.InstancedMesh,
             localIndex: number,
@@ -1279,15 +1517,6 @@ export function TicketSeat3DView({
               const emphasis = isFocused ? 1.025 : 1;
               const scale = pose.scale * emphasis;
               const color = seatColor(three, seat, selected.has(seat.label));
-              if (focusedPose && !isFocused) {
-                const distance = Math.hypot(
-                  pose.x - focusedPose.x,
-                  pose.z - focusedPose.z,
-                );
-                color.multiplyScalar(
-                  Math.max(0.58, Math.min(1, 0.7 + distance * 0.08)),
-                );
-              }
               setInstance(group.seats, localIndex, pose, scale, 0, 0, color);
               setInstance(
                 group.backs,
@@ -1376,6 +1605,7 @@ export function TicketSeat3DView({
           focusLabel = label;
           cameraMode = "pov";
           setFocusedSeat(label);
+          setScreenActive(selectedRef.current.length > 0);
           renderSeatInstances();
           startTransition(povPose);
           trackTheaterEvent("POV_enter", { seat: label, zone: pose.zone });
@@ -1385,8 +1615,9 @@ export function TicketSeat3DView({
           cameraMode = "screen";
           focusLabel = null;
           povPose = null;
-          screenPose = getScreenCameraPose();
+          screenPose = getScreenCameraPose(camera.aspect);
           setFocusedSeat(null);
+          setScreenActive(selectedRef.current.length > 0);
           renderSeatInstances();
           startTransition(screenPose);
         };
@@ -1398,6 +1629,7 @@ export function TicketSeat3DView({
           povPose = null;
           screenPose = null;
           setFocusedSeat(null);
+          setScreenActive(false);
           renderSeatInstances();
           startTransition(overviewPose());
         };
@@ -1411,7 +1643,9 @@ export function TicketSeat3DView({
           const nextFocus = selected.at(-1) ?? null;
           if (nextFocus && cameraMode !== "screen" && nextFocus !== focusLabel)
             beginPov(nextFocus);
-          if (!nextFocus && focusLabel) beginOverview();
+          if (!nextFocus && (focusLabel || cameraMode === "screen"))
+            beginOverview();
+          setScreenActive(selected.length > 0 && cameraMode !== "overview");
           renderSeatInstances();
           scheduleRender();
         };
@@ -1439,6 +1673,16 @@ export function TicketSeat3DView({
           }
 
           let keepAnimating = false;
+          if (cinemaDarkness !== cinemaDarknessTarget) {
+            const progress = Math.min(1, (now - cinemaDarknessStartedAt) / 520);
+            cinemaDarkness = three.MathUtils.lerp(
+              cinemaDarknessFrom,
+              cinemaDarknessTarget,
+              easeInOutCubic(progress),
+            );
+            applyCinemaLighting(cinemaDarkness);
+            if (progress < 1) keepAnimating = true;
+          }
           if (transition) {
             const progress = Math.min(
               1,
@@ -1536,6 +1780,7 @@ export function TicketSeat3DView({
           camera.updateProjectionMatrix();
           try {
             renderer.render(scene, camera);
+            cssRenderer.render(cssScene, camera);
           } catch {
             contextLost = true;
             setStatus("error");
@@ -1567,9 +1812,14 @@ export function TicketSeat3DView({
             if (cameraMode !== "overview") beginOverview();
             updateOrbit(change);
           },
+          setTrailerScreen: updateTrailerScreen,
           setQuality: (_next: QualityMode) => undefined,
           setReducedMotion: (next: boolean) => {
             reducedMotion = next;
+            if (next && cinemaDarkness !== cinemaDarknessTarget) {
+              cinemaDarkness = cinemaDarknessTarget;
+              applyCinemaLighting(cinemaDarkness);
+            }
             if (next && transition) {
               camera.position.copy(transition.toPosition);
               currentTarget.copy(transition.toTarget);
@@ -1630,6 +1880,9 @@ export function TicketSeat3DView({
 
         runtime.dispose = () => {
           stopRender();
+          screenIframe.removeAttribute("src");
+          cleanupScreenOverlay();
+          cssScene.clear();
           disposeScene(scene);
           renderer.dispose();
         };
@@ -1796,7 +2049,13 @@ export function TicketSeat3DView({
           const width = Math.max(1, rect.width);
           const height = Math.max(1, rect.height);
           renderer.setSize(width, height, false);
+          cssRenderer.setSize(width, height);
           camera.aspect = width / height;
+          if (cameraMode === "screen") {
+            screenPose = getScreenCameraPose(camera.aspect);
+            if (transition) transition.toFov = screenPose.fov;
+            else camera.fov = screenPose.fov;
+          }
           camera.updateProjectionMatrix();
           scheduleRender();
         };
@@ -1838,6 +2097,7 @@ export function TicketSeat3DView({
         scheduleRender();
       } catch {
         if (!cancelled) {
+          cleanupScreenOverlay();
           setStatus("error");
           trackTheaterEvent("network_fallback_triggered", {
             source: "renderer",
@@ -1861,6 +2121,7 @@ export function TicketSeat3DView({
       if (frame) window.cancelAnimationFrame(frame);
       runtimeRef.current?.dispose();
       runtimeRef.current = null;
+      cleanupScreenOverlay();
     };
   }, [reloadKey]);
 
@@ -2050,12 +2311,17 @@ export function TicketSeat3DView({
         tabIndex={0}
         onKeyDown={handleCanvasKeyDown}
       />
+      <div
+        ref={screenLayerRef}
+        className="reelroom-3d-screen-layer pointer-events-none absolute inset-0 overflow-hidden"
+      />
       <p id="reelroom-3d-instructions" className="sr-only">
         Use the arrow keys to move between seats. Press Enter or Space to select
         or remove an available seat. Press Escape to return to the theatre
         overview. Seat labels are printed on chair backs. Selected seats are
-        amber, held seats are indigo, occupied seats are charcoal, and pale
-        seats are available. Mint seats are accessible and slightly wider.
+        amber, held seats are indigo, occupied seats are charcoal, and all
+        available seats share one pale color. Accessible seats are slightly
+        wider.
       </p>
       {status === "loading" ? (
         <div
@@ -2066,7 +2332,7 @@ export function TicketSeat3DView({
             <div className="reelroom-3d-skeleton h-28 rounded-2xl" />
             <LoaderCircle className="mx-auto size-5 animate-spin text-amber" />
             <p className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-              Loading premium room assets
+              Preparing the cinema
             </p>
           </div>
         </div>
@@ -2079,7 +2345,7 @@ export function TicketSeat3DView({
             <Sparkles className="mx-auto size-6 text-amber" />
             <h4 className="mt-3 font-display text-xl font-semibold text-ink">
               {status === "disabled"
-                ? "Premium room is temporarily off."
+                ? "The 3D view is temporarily unavailable."
                 : status === "error"
                   ? "The 3D room needs a quick reset."
                   : "3D needs a compatible graphics mode."}
@@ -2245,7 +2511,7 @@ export function TicketSeat3DView({
           ? ` Selected seats: ${selectedSeats.join(", ")}.`
           : " No seats selected."}
         {focusedRecord
-          ? ` Camera focused on seat ${focusedRecord.label}, ${focusedRecord.status}, ${focusedRecord.tier} tier.`
+          ? ` Camera focused on seat ${focusedRecord.label}, ${focusedRecord.status}.`
           : screenView
             ? " Camera focused on the cinema screen."
             : ""}

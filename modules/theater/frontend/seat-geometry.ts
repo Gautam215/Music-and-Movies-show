@@ -41,10 +41,10 @@ const MAX_INWARD_ROTATION = 0.12;
 export const THEATER_SEAT_EYE_HEIGHT = 1.18;
 export const THEATER_SEAT_CAMERA_REAR_OFFSET = 0.32;
 export const THEATER_SEAT_CAMERA_FOV = 48;
-export const THEATER_SCREEN_WIDTH = 7.6;
-export const THEATER_SCREEN_HEIGHT = 3.18;
+export const THEATER_SCREEN_WIDTH = 9.6;
+export const THEATER_SCREEN_HEIGHT = 4.02;
 export const THEATER_SCREEN_CURVE_SAG = 0.15;
-export const THEATER_SCREEN_CENTER = { x: 0, y: 3.55, z: -4.6 } as const;
+export const THEATER_SCREEN_CENTER = { x: 0, y: 3.35, z: -4.6 } as const;
 export const THEATER_CENTER_AISLE_WIDTH = 1.15;
 
 export function getTheaterScreenCurveOffset(x: number) {
@@ -63,6 +63,16 @@ export function getSeatZone(seat: Pick<SeatRecord, "row" | "column" | "tier">) {
   )
     return "economy" as const;
   return "standard" as const;
+}
+
+export function getTheaterSeatColor(
+  status: SeatRecord["status"],
+  selected = false,
+) {
+  if (selected) return "#f4d28c";
+  if (status === "occupied") return "#303444";
+  if (status === "held") return "#6d75b6";
+  return "#a7aec7";
 }
 
 export function getTheaterRowPlatformPose(rowIndex: number) {
@@ -158,11 +168,26 @@ export function getTheaterSeatPoses(
   });
 }
 
-export function getScreenCameraPose(): TheaterCameraPose {
+export function getScreenCameraPose(aspect = 2.4): TheaterCameraPose {
+  const position = { x: 0, y: 2.1, z: 3.6 };
+  const distance = Math.hypot(
+    position.x - THEATER_SCREEN_CENTER.x,
+    position.y - THEATER_SCREEN_CENTER.y,
+    position.z - THEATER_SCREEN_CENTER.z,
+  );
+  const horizontalFov = 2 * Math.atan((THEATER_SCREEN_WIDTH * 0.53) / distance);
+  const fovForWidth =
+    2 * Math.atan(Math.tan(horizontalFov / 2) / Math.max(0.5, aspect));
+  const fovForHeight = 2 * Math.atan((THEATER_SCREEN_HEIGHT * 0.53) / distance);
+
   return {
-    position: { x: 0, y: 2.1, z: 3.6 },
+    position,
     target: THEATER_SCREEN_CENTER,
-    fov: 48,
+    fov: Math.max(
+      48,
+      (fovForWidth * 180) / Math.PI,
+      (fovForHeight * 180) / Math.PI,
+    ),
   };
 }
 

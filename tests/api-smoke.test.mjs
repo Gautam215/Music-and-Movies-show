@@ -126,6 +126,16 @@ test("public pages and API boundaries communicate reliably", async () => {
     );
     assert.equal(invalidTrailer.response.status, 400);
 
+    const invalidTrailerTitle = await request(
+      "/api/movies/trailer?tmdbId=1&mediaType=movie&title=%20",
+    );
+    assert.equal(invalidTrailerTitle.response.status, 400);
+
+    const invalidTrailerYear = await request(
+      "/api/movies/trailer?tmdbId=1&mediaType=movie&title=Film&year=1800",
+    );
+    assert.equal(invalidTrailerYear.response.status, 400);
+
     const anonymousSeatMap = await request(
       "/api/tickets/seat-map?movieId=movie-1&day=today&showtime=1:40%20PM",
     );

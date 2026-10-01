@@ -1109,9 +1109,9 @@ export function ReelroomApp({
   const seatMapKey = `${seatMovie.id}:${selectedDay}:${showtime}`;
 
   useEffect(() => {
-    const movie = selected;
+    if (page !== "tickets" || !profileUser?.canAccess3DTheater) return;
+    const movie = seatMovie;
     if (
-      !movie ||
       movie.trailer ||
       !movie.tmdbId ||
       !movie.mediaType ||
@@ -1123,7 +1123,12 @@ export function ReelroomApp({
     const params = new URLSearchParams({
       tmdbId: String(movie.tmdbId),
       mediaType: movie.mediaType,
+      title: movie.title,
     });
+    const year =
+      movie.releaseDateIso?.slice(0, 4) ??
+      movie.release.match(/\b\d{4}\b/)?.[0];
+    if (year) params.set("year", year);
     const loadTrailer = async () => {
       try {
         const response = await fetch(`/api/movies/trailer?${params}`, {
@@ -1160,7 +1165,12 @@ export function ReelroomApp({
 
     void loadTrailer();
     return () => controller.abort();
-  }, [loadedTrailer?.movieId, selected]);
+  }, [
+    loadedTrailer?.movieId,
+    page,
+    profileUser?.canAccess3DTheater,
+    seatMovie,
+  ]);
 
   const clearSpotifyEndTimer = () => {
     if (spotifyEndTimerRef.current === null) return;
@@ -2805,7 +2815,7 @@ export function ReelroomApp({
                 className="mt-4"
                 onClick={() => openMovie(selectedMovie)}
               >
-                Open details &amp; trailer <ArrowRight className="size-4" />
+                Open movie details <ArrowRight className="size-4" />
               </Button>
             </div>
           </div>
@@ -2847,7 +2857,7 @@ export function ReelroomApp({
                   openMovie(droppedMovie);
                 }}
               >
-                Open details &amp; trailer <ArrowRight className="size-4" />
+                Open movie details <ArrowRight className="size-4" />
               </Button>
             </div>
           ) : null}
@@ -3639,6 +3649,24 @@ export function ReelroomApp({
   );
 
   const ticketMovie = seatMovie;
+  const ticketTrailer =
+    ticketMovie.trailer ??
+    (loadedTrailer?.movieId === ticketMovie.id ? loadedTrailer.trailer : null);
+  const ticketTrailerLoading = Boolean(
+    page === "tickets" &&
+    profileUser?.canAccess3DTheater &&
+    ticketMovie.tmdbId &&
+    ticketMovie.mediaType &&
+    !ticketMovie.trailer &&
+    loadedTrailer?.movieId !== ticketMovie.id,
+  );
+  const ticketTrailerError = ticketMovie.trailer
+    ? null
+    : loadedTrailer?.movieId === ticketMovie.id
+      ? loadedTrailer.error
+      : ticketMovie.tmdbId && ticketMovie.mediaType
+        ? null
+        : "No preview is available for this title.";
   const hoveredSeatRecord = hoveredSeat
     ? (seatRecords.find((seat) => seat.label === hoveredSeat) ?? null)
     : null;
@@ -4080,10 +4108,12 @@ export function ReelroomApp({
                   <span className="size-2 rounded-full border border-white/10 bg-white/5" />{" "}
                   Taken
                 </span>
-                <span className="flex items-center gap-1.5 text-cobalt">
-                  <span className="size-2 rounded-full border border-cobalt/60 bg-cobalt/30" />{" "}
-                  Golden zone
-                </span>
+                {seatView === "2d" ? (
+                  <span className="flex items-center gap-1.5 text-cobalt">
+                    <span className="size-2 rounded-full border border-cobalt/60 bg-cobalt/30" />{" "}
+                    Golden zone
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -4129,12 +4159,13 @@ export function ReelroomApp({
                         : "cursor-not-allowed text-muted/60",
                   )}
                 >
-                  <Sparkles className="size-3" /> 3D premium
+                  <Sparkles className="size-3" /> 3D theater
                 </button>
               </div>
               {profileUser?.canAccess3DTheater ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-mint/30 bg-mint/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-mint">
-                  <span className="size-1.5 rounded-full bg-mint" /> 3D included
+                  <span className="size-1.5 rounded-full bg-mint" /> 3D access
+                  active
                 </span>
               ) : (
                 <button
@@ -4153,6 +4184,10 @@ export function ReelroomApp({
                   seats={seatRecords}
                   selectedSeats={selectedSeats}
                   liveVersion={seatMapLive ? seatMapUpdatedAt : "cached"}
+                  movieTitle={ticketMovie.title}
+                  trailerKey={ticketTrailer?.key ?? null}
+                  trailerLoading={ticketTrailerLoading}
+                  trailerError={ticketTrailerError}
                   onToggleSeat={toggleSeat}
                   onHoverSeat={(seat) => setHoveredSeat(seat?.label ?? null)}
                   onFallback={() => setSeatView("2d")}
@@ -4168,9 +4203,6 @@ export function ReelroomApp({
                           {hoveredSeatRecord.label}
                         </h4>
                       </div>
-                      <span className="rounded-full border border-cobalt/35 bg-cobalt/10 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] text-cobalt">
-                        {hoveredSeatRecord.tier} tier
-                      </span>
                     </div>
                     <dl className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-ink-2 sm:grid-cols-4">
                       <div>
@@ -4970,27 +5002,6 @@ export function ReelroomApp({
     login: loginPage,
     admin: adminPage,
   }[page];
-  const selectedTrailer =
-    selected?.trailer ??
-    (selected && loadedTrailer?.movieId === selected.id
-      ? loadedTrailer.trailer
-      : null);
-  const trailerLoading = Boolean(
-    selected?.tmdbId &&
-    selected.mediaType &&
-    !selected.trailer &&
-    loadedTrailer?.movieId !== selected.id,
-  );
-  const trailerError = selected?.trailer
-    ? null
-    : selected && loadedTrailer?.movieId === selected.id
-      ? loadedTrailer.error
-      : selected?.tmdbId && selected.mediaType
-        ? null
-        : "No trailer is available for this title yet.";
-  const movieHasTrailerSource = Boolean(
-    selected?.trailer || (selected?.tmdbId && selected.mediaType),
-  );
   const detailModal = selected ? (
     <div
       className="fixed inset-0 z-40 grid place-items-center bg-canvas/85 p-0 backdrop-blur-md sm:p-4"
@@ -5070,7 +5081,14 @@ export function ReelroomApp({
                       setSelected(null);
                     }}
                   >
-                    Book tickets <ArrowRight className="size-4" />
+                    Book Ticket <ArrowRight className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+                    onClick={() => void shareMovie(selected)}
+                  >
+                    <Share2 className="size-4" /> Share
                   </Button>
                   <Button
                     variant="ghost"
@@ -5084,87 +5102,13 @@ export function ReelroomApp({
                           "fill-amber text-amber",
                       )}
                     />{" "}
-                    {favorites.includes(selected.id) ? "Saved" : "Save film"}
+                    {favorites.includes(selected.id) ? "Saved" : "Save Film"}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-                    onClick={() => void shareMovie(selected)}
-                  >
-                    <Share2 className="size-4" /> Share
-                  </Button>
-                  {movieHasTrailerSource ? (
-                    <Button
-                      variant="ghost"
-                      className="border-white/20 bg-white/10 text-white hover:bg-white/15"
-                      onClick={() =>
-                        document
-                          .getElementById("movie-trailer")
-                          ?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                          })
-                      }
-                    >
-                      <Play className="size-4" />
-                      {trailerLoading ? "Loading trailer" : "Watch trailer"}
-                    </Button>
-                  ) : null}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <section
-          id="movie-trailer"
-          className="border-t border-border bg-canvas/95 p-5 sm:p-8"
-          aria-labelledby="movie-trailer-title"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[.14em] text-amber">
-                Trailer / official preview
-              </div>
-              <h3
-                id="movie-trailer-title"
-                className="mt-2 font-display text-2xl font-semibold tracking-[-.06em] text-ink"
-              >
-                Watch before the lights go down
-              </h3>
-            </div>
-            {selectedTrailer ? (
-              <span className="font-mono text-[10px] uppercase tracking-[.12em] text-muted">
-                YouTube · {selectedTrailer.name}
-              </span>
-            ) : null}
-          </div>
-          {trailerLoading ? (
-            <div
-              className="mt-5 grid aspect-video place-items-center rounded-2xl border border-border bg-surface text-xs text-muted"
-              aria-busy="true"
-            >
-              Loading trailer...
-            </div>
-          ) : selectedTrailer ? (
-            <div className="mt-5 aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-cinematic">
-              <iframe
-                className="size-full"
-                src={selectedTrailer.embedUrl}
-                title={`${selected.title} trailer`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
-            </div>
-          ) : (
-            <div
-              className="mt-5 rounded-2xl border border-border bg-surface p-5 text-sm leading-6 text-muted"
-              aria-live="polite"
-            >
-              {trailerError ?? "No trailer is available for this title yet."}
-            </div>
-          )}
-        </section>
         {selectedSoundtrackMovieId === selected.id || soundtrackLoading ? (
           <section className="border-t border-border bg-surface p-5 sm:p-8">
             <div className="flex flex-wrap items-end justify-between gap-4">

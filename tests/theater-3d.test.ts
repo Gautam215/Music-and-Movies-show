@@ -8,6 +8,7 @@ import {
   getTheaterRowPlatformPose,
   getTheaterSeatPoses,
   getTheaterScreenCurveOffset,
+  getTheaterSeatColor,
   getSeatCameraPose,
   getScreenCameraPose,
   getSeatZone,
@@ -73,7 +74,8 @@ test("cinema screen keeps theatrical proportions with a subtle inward curve", ()
   const aspect = THEATER_SCREEN_WIDTH / THEATER_SCREEN_HEIGHT;
 
   assert.ok(aspect > 2.35 && aspect < 2.45);
-  assert.ok(THEATER_SCREEN_HEIGHT > 3);
+  assert.ok(THEATER_SCREEN_WIDTH > 9);
+  assert.ok(THEATER_SCREEN_HEIGHT > 4);
   assert.equal(getTheaterScreenCurveOffset(0), 0);
   assert.equal(
     getTheaterScreenCurveOffset(THEATER_SCREEN_WIDTH / 2),
@@ -83,6 +85,13 @@ test("cinema screen keeps theatrical proportions with a subtle inward curve", ()
     getTheaterScreenCurveOffset(-THEATER_SCREEN_WIDTH / 2),
     -THEATER_SCREEN_CURVE_SAG,
   );
+});
+
+test("available seats share one base color and status colors stay distinct", () => {
+  assert.equal(getTheaterSeatColor("available"), "#a7aec7");
+  assert.equal(getTheaterSeatColor("available", true), "#f4d28c");
+  assert.equal(getTheaterSeatColor("held"), "#6d75b6");
+  assert.equal(getTheaterSeatColor("occupied"), "#303444");
 });
 
 test("seat poses form clean, symmetrical rows with a subtle fan", () => {
@@ -217,11 +226,14 @@ test("camera transitions arc above the seats and keep their endpoints", () => {
 });
 
 test("screen camera is centered on the cinema screen", () => {
-  const camera = getScreenCameraPose();
+  const camera = getScreenCameraPose(2.4);
+  const narrowCamera = getScreenCameraPose(0.9);
 
   assert.deepEqual(camera.target, THEATER_SCREEN_CENTER);
   assert.ok(camera.position.z > 0);
   assert.equal(camera.fov, 48);
+  assert.ok(narrowCamera.fov > camera.fov);
+  assert.ok(narrowCamera.fov < 90);
 });
 
 test("seat POVs aim at the cinema screen from front, middle, and rear rows", () => {
