@@ -39,9 +39,9 @@ export async function GET(request: Request) {
         { error: "Authentication required." },
         { status: 401, headers: privateJsonHeaders() },
       );
-    if (!user.isPremium)
+    if (!user.canAccess3DTheater)
       return NextResponse.json(
-        { error: "Premium membership is required for the 3D seat view." },
+        { error: "This account cannot access the 3D seat view." },
         { status: 403, headers: privateJsonHeaders() },
       );
 
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
         { headers: privateJsonHeaders() },
       );
 
-    console.info("Premium seat map served", {
+    console.info("3D seat map served", {
       user: anonymousUserId(user.id),
       movieId,
       day,
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
       { headers: privateJsonHeaders() },
     );
   } catch (error) {
-    console.error("Premium seat map failed", error);
+    console.error("3D seat map failed", error);
     return NextResponse.json(
       { error: "The live seat map is temporarily unavailable." },
       { status: 500, headers: privateJsonHeaders() },

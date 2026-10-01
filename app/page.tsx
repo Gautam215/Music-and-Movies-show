@@ -71,6 +71,7 @@ export default async function Page() {
               name: currentUser.name,
               email: currentUser.email,
               isPremium: currentUser.isPremium,
+              canAccess3DTheater: currentUser.canAccess3DTheater,
               location: profileLocation,
             }
           : null

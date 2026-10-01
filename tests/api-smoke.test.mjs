@@ -221,7 +221,8 @@ test("development Premium fixture is isolated and non-persistent", async () => {
       headers: { origin: devBaseUrl },
     });
     assert.equal(activated.response.status, 200);
-    assert.equal(activated.body.user.isPremium, true);
+    assert.equal(activated.body.user.isPremium, false);
+    assert.equal(activated.body.user.canAccess3DTheater, true);
     const setCookie =
       activated.response.headers.getSetCookie?.()[0] ??
       activated.response.headers.get("set-cookie");
@@ -234,6 +235,8 @@ test("development Premium fixture is isolated and non-persistent", async () => {
       headers: sameOriginHeaders,
     });
     assert.equal(session.body.user.email, "premium-3d-qa@example.test");
+    assert.equal(session.body.user.isPremium, false);
+    assert.equal(session.body.user.canAccess3DTheater, true);
 
     const page = await fetch(`${devBaseUrl}/`, { headers: { cookie } });
     assert.equal(page.status, 200);

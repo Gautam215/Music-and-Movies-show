@@ -146,6 +146,7 @@ type ProfileUser = {
   name: string;
   email: string;
   isPremium: boolean;
+  canAccess3DTheater: boolean;
   location?: string | null;
 };
 
@@ -987,7 +988,7 @@ export function ReelroomApp({
   const [playing, setPlaying] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [seatView, setSeatView] = useState<SeatView>(
-    initialProfile?.isPremium ? "3d" : "2d",
+    initialProfile?.canAccess3DTheater ? "3d" : "2d",
   );
   const [seatRecords, setSeatRecords] = useState<SeatRecord[]>(() =>
     createSeatMap("reelroom-demo"),
@@ -1114,7 +1115,7 @@ export function ReelroomApp({
         if (!cancelled) {
           const nextUser = result.user ?? null;
           setProfileUser(nextUser);
-          setSeatView(nextUser?.isPremium ? "3d" : "2d");
+          setSeatView(nextUser?.canAccess3DTheater ? "3d" : "2d");
           setCheckoutForm((current) => ({
             ...current,
             name: nextUser?.name ?? "",
@@ -1150,7 +1151,12 @@ export function ReelroomApp({
   }, [seatMapKey]);
 
   useEffect(() => {
-    if (!profileUser?.isPremium) return;
+    if (
+      !profileUser?.canAccess3DTheater ||
+      page !== "tickets" ||
+      seatView !== "3d"
+    )
+      return;
     const controller = new AbortController();
     let cancelled = false;
     const loadSeatMap = async (initial: boolean) => {
@@ -1174,7 +1180,9 @@ export function ReelroomApp({
         } | null;
         if (response.status === 403) {
           setSeatView("2d");
-          setSeatMapError(payload?.error ?? "Premium membership is required.");
+          setSeatMapError(
+            payload?.error ?? "This account cannot access the 3D seat view.",
+          );
           return;
         }
         if (!response.ok || !Array.isArray(payload?.seats))
@@ -1218,7 +1226,14 @@ export function ReelroomApp({
       controller.abort();
       window.clearInterval(refresh);
     };
-  }, [profileUser?.isPremium, seatMovie.id, selectedDay, showtime]);
+  }, [
+    page,
+    profileUser?.canAccess3DTheater,
+    seatView,
+    seatMovie.id,
+    selectedDay,
+    showtime,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2802,7 +2817,7 @@ export function ReelroomApp({
               );
               if (result.user) {
                 setProfileUser(result.user);
-                setSeatView(result.user.isPremium ? "3d" : "2d");
+                setSeatView(result.user.canAccess3DTheater ? "3d" : "2d");
                 setCheckoutForm((current) => ({
                   ...current,
                   name: result.user?.name ?? "",
@@ -4011,17 +4026,17 @@ export function ReelroomApp({
                   role="tab"
                   id="seat-view-tab-3d"
                   aria-selected={seatView === "3d"}
-                  aria-disabled={!profileUser?.isPremium}
+                  aria-disabled={!profileUser?.canAccess3DTheater}
                   aria-controls="seat-map-view-panel"
-                  disabled={!profileUser?.isPremium}
+                  disabled={!profileUser?.canAccess3DTheater}
                   onClick={() => {
-                    if (profileUser?.isPremium) setSeatView("3d");
+                    if (profileUser?.canAccess3DTheater) setSeatView("3d");
                   }}
                   className={cn(
                     "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.08em] transition",
-                    seatView === "3d" && profileUser?.isPremium
+                    seatView === "3d" && profileUser?.canAccess3DTheater
                       ? "bg-ink text-canvas"
-                      : profileUser?.isPremium
+                      : profileUser?.canAccess3DTheater
                         ? "text-muted hover:text-ink"
                         : "cursor-not-allowed text-muted/60",
                   )}
@@ -4029,10 +4044,9 @@ export function ReelroomApp({
                   <Sparkles className="size-3" /> 3D premium
                 </button>
               </div>
-              {profileUser?.isPremium ? (
+              {profileUser?.canAccess3DTheater ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-mint/30 bg-mint/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-mint">
-                  <span className="size-1.5 rounded-full bg-mint" /> Premium
-                  access
+                  <span className="size-1.5 rounded-full bg-mint" /> 3D included
                 </span>
               ) : (
                 <button
@@ -4040,12 +4054,12 @@ export function ReelroomApp({
                   onClick={() => setPage(profileUser ? "profile" : "login")}
                   className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-amber/35 bg-amber/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[.08em] text-amber hover:border-amber/60"
                 >
-                  <Sparkles className="size-3" /> Unlock 3D view
+                  <Sparkles className="size-3" /> Sign in for 3D
                 </button>
               )}
             </div>
 
-            {profileUser?.isPremium && seatView === "3d" ? (
+            {profileUser?.canAccess3DTheater && seatView === "3d" ? (
               <div className="mt-5 space-y-3">
                 <TicketSeat3DView
                   seats={seatRecords}
@@ -4154,7 +4168,9 @@ export function ReelroomApp({
             <div
               className={cn(
                 "mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]",
-                profileUser?.isPremium && seatView === "3d" && "hidden",
+                profileUser?.canAccess3DTheater &&
+                  seatView === "3d" &&
+                  "hidden",
               )}
             >
               <div className="min-w-0">

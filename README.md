@@ -42,6 +42,10 @@ Personal signal and saved content on Profile (desktop).
 ![Profile experience on Profile on mobile](screenshots/profile-mobile.png)
 Personal signal and saved content on Profile (mobile).
 
+## 3D Theater Access
+
+The interactive 3D seat view is available to all signed-in users, regardless of paid Premium status. Anonymous visitors can use the 2D map and sign in to enable 3D; the 2D map remains available when WebGL is unavailable.
+
 ## Stack
 
 - Next.js App Router with TypeScript strict mode.
