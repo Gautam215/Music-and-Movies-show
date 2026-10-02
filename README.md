@@ -1,281 +1,238 @@
-# Reelscape React App
-
-This is the full-stack-ready Next.js source tree for the Movie & Entertainment Platform PRD.
+# Reelscape
 
 [![CI](https://github.com/Gautam215/Music-and-Movies-show/actions/workflows/ci.yml/badge.svg)](https://github.com/Gautam215/Music-and-Movies-show/actions/workflows/ci.yml)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-music--and--movies--show.vercel.app-111827?style=for-the-badge&logo=vercel&logoColor=white)](https://music-and-movies-show.vercel.app/)
+[![Production](https://img.shields.io/badge/Production-live-111827?style=for-the-badge&logo=vercel&logoColor=white)](https://music-and-movies-show.vercel.app/)
 
-## Showcase
+Reelscape is a Next.js movie-discovery and cinema-ticket experience. It combines film browsing, saved titles, a 2D seat map, a sign-in-gated Three.js theater, and trailer previews positioned on the theater screen. Optional soundtrack features connect to Spotify when configured.
 
-The live UI is available at [music-and-movies-show.vercel.app](https://music-and-movies-show.vercel.app/).
-Run `npm run screenshots` against a production server on `localhost:3000` to refresh the desktop and mobile captures below.
+## Overview
 
-### Home
-
-![Black Hole hero on Home](screenshots/home-desktop.png)
-Black Hole hero and featured screening on Home (desktop).
-
-![Black Hole hero on Home on mobile](screenshots/home-mobile.png)
-Black Hole hero and featured screening on Home (mobile).
-
-### Songs
-
-![Soundtrack player on Songs](screenshots/songs-desktop.png)
-Spotify soundtrack player and recommendations on Songs (desktop).
-
-![Soundtrack player on Songs on mobile](screenshots/songs-mobile.png)
-Spotify soundtrack player and recommendations on Songs (mobile).
-
-### Tickets
-
-![Seat selection on Tickets](screenshots/tickets-desktop.png)
-Showtime selection and interactive seat map on Tickets (desktop).
-
-![Seat selection on Tickets on mobile](screenshots/tickets-mobile.png)
-Showtime selection and interactive seat map on Tickets (mobile).
-
-### Profile
-
-![Profile experience on Profile](screenshots/profile-desktop.png)
-Personal signal and saved content on Profile (desktop).
-
-![Profile experience on Profile on mobile](screenshots/profile-mobile.png)
-Personal signal and saved content on Profile (mobile).
-
-## 3D Theater
-
-The Three.js view maps the existing seat labels and states into a small cinema for signed-in users. Anonymous visitors keep the 2D seat map and can sign in to use 3D. Both views use the same booking actions, and the 2D map remains available if WebGL is unavailable.
-
-The ticket screen resolves a YouTube preview for the selected title from TMDB. If TMDB has no usable video, the optional YouTube Data API fallback runs only when `YOUTUBE_API_KEY` is configured and it finds one unambiguous, public, embeddable title/year match. Otherwise, the screen reports that no preview is available. The iframe is shown on the CSS3D screen in seat POV or Screen view when a seat is selected; playback starts only when the viewer presses YouTube's player controls. The renderer listens for playback state to dim the room lights.
-
-**3D runtime: NOT VERIFIED.** The opt-in development fixture and authenticated sample seat-map API were validated locally, but the cloud browser could not reach the local development server. The public site showed only its existing 2D ticket surface. The diagrams and implementation notes below describe the source; they are not claims of completed 3D browser testing.
-
-For local QA only, set `ENABLE_PREMIUM_TEST_FIXTURE=true` and run `npm run dev`. In that same browser, activate the fixture with `fetch('/api/dev/premium-fixture', { method: 'POST' })` and reload the page. The fixture models an authenticated account with paid membership inactive, so it verifies that 3D access is tied to sign-in rather than membership. Sign out or send `DELETE` to the same endpoint to clear it. The route also requires `NODE_ENV=development`; it returns 404 otherwise. The fixture uses an in-memory, one-hour cookie, does not create a user/session/payment record, serves unclaimed sample seats, and cannot save favorites, viewing history, or bookings.
-
-### 1. Full Flow
-
-```mermaid
-flowchart LR
-    records["Existing seat records"] --> pose["getTheaterSeatPoses()"]
-    pose --> seats["Instanced 3D chairs"]
-    pose --> camera["Seat camera POV"]
-    seats --> hit["Pointer ray hit"]
-    hit --> guard["Available-seat check"]
-    guard --> state["Existing seat selection state"]
-    state --> seats
-    webgl["WebGL unavailable"] --> fallback["Existing 2D seat map"]
-```
-
-The renderer maps each stable seat label, row, column, and tier to a theater-world position and rotation. This keeps the curved 3D layout separate from the flat positions used by the 2D map and booking flow.
-
-### 2. Room Build
-
-```mermaid
-flowchart TB
-    room["Theater room group"] --> floor["Floor"]
-    room --> walls["Screen wall + acoustic side walls"]
-    room --> rows["Raised row platforms"]
-    rows --> center["Center aisle stairs"]
-    rows --> sides["Side aisle stairs"]
-    room --> stage["Front stage"]
-    room --> screen["Screen + frame + glow"]
-    rows --> seats["Curved, raked seat rows"]
-```
-
-The same row layout sets seat height, platforms, and stair steps. Stair edges use low-emission light so the dark room stays readable.
-
-### 3. Seat Build
-
-```mermaid
-flowchart LR
-    labels["Seat label + tier"] --> zone["Center / accessible / standard / economy"]
-    zone --> geometry["Rounded cushion + back + armrests"]
-    zone --> footrest["Center-zone footrest"]
-    geometry --> instances["Shared geometry + material instances"]
-    instances --> state["Available / selected / held / occupied colors"]
-    labels --> atlas["One chair-label atlas"]
-```
-
-Seats share geometry and materials instead of creating a separate mesh for every part. Center-zone seats include a footrest. Accessible seats are slightly wider; seat colors communicate availability and selection consistently across all zones.
-
-### 4. Camera and Seat POV
-
-```mermaid
-flowchart LR
-    selected["Selected seat label"] --> lookup["Pose lookup"]
-    lookup --> pose["Seat x, y, z + rotationY"]
-    pose --> eye["Eye point + local rear offset"]
-    eye --> target["Cinema screen target"]
-    target --> transition["Eased arc above seat rows"]
-    transition --> view["Overview / screen / seat POV"]
-```
-
-Each seat gets its own camera position from its theater pose and orientation. The camera aims at the screen. Transitions lift above the chair rows before settling into the next view; reduced-motion mode skips the animation.
-
-### 5. Interaction
-
-```mermaid
-flowchart TB
-    pointer["Mouse / touch"] --> ray["Reuse one seat raycaster"]
-    ray --> label["Seat label"]
-    keys["Arrow / Enter / Space / Escape"] --> keyboard["Seat row navigation"]
-    keyboard --> label
-    label --> status["Available?"]
-    status -->|yes| parent["Existing selection callback"]
-    status -->|no| focus["Focus only; do not select"]
-    parent --> mesh["Update chair color + camera"]
-```
-
-The pointer ray covers cushions, backs, footrests, and armrests. Held or occupied seats may be viewed but cannot be selected. Touch drag and pinch use the same orbit controls.
-
-### 6. Light and Sound
-
-```mermaid
-flowchart LR
-    screen["Screen"] --> glow["Emissive screen surface"]
-    screen --> spot["Warm spot + blue screen light"]
-    room["Room surfaces"] --> hemi["Soft hemisphere fill"]
-    steps["Stair nosings"] --> aisle["Low amber aisle light"]
-    chairs["Rounded seat materials"] --> shadows["Soft shadows"]
-```
-
-```mermaid
-flowchart LR
-    screen["Projector position"] --> ambience["Opt-in projector ambience"]
-    seat["Selected seat pose"] --> whoosh["Selection whoosh"]
-    camera["Camera position + direction"] --> listener["Web Audio listener"]
-    ambience --> spatial["Spatial panner"]
-    whoosh --> spatial
-    listener --> spatial
-    spatial --> output["Browser audio output"]
-```
-
-The ambience and seat-selection cues use the browser's Web Audio API. Ambience is optional and starts only after the user presses its control. Trailer video runs inside the YouTube iframe on the screen, so its audio stays under YouTube's control and is not routed through the Web Audio spatial panner. Only the local ambience and selection cues are spatialized. The iframe's playback-state messages drive the scene-light dimming; this behavior is implemented but not browser-verified yet.
-
-### 7. Responsive Behavior
-
-```mermaid
-flowchart LR
-    resize["Canvas size change"] --> observer["ResizeObserver"]
-    observer --> camera["Update camera aspect"]
-    observer --> renderer["Resize renderer"]
-    slow["Slow device / offline"] --> reduced["Lower pixel ratio + fewer effects"]
-    motion["Reduced-motion setting"] --> snap["Skip camera animation"]
-    failure["WebGL error"] --> map["Keep the 2D seat map"]
-```
-
-The canvas follows its container. Lower quality keeps the seat map and controls usable. The 2D view remains the fallback if the graphics context fails.
-
-### 8. Code and Checks
-
-```mermaid
-flowchart LR
-    geometry["modules/theater/frontend/seat-geometry.ts"] --> scene["components/ticket-seat-3d-view.tsx"]
-    map["lib/seat-map.ts"] --> scene
-    scene --> tests["tests/theater-3d.test.ts"]
-    tests --> type["Typecheck + lint + format"]
-    type --> build["Production build"]
-    build --> browser["Desktop / tablet / mobile checks"]
-    browser --> regression["Confirm non-3D flows untouched"]
-```
-
-The geometry helpers are plain TypeScript, so seat positions, camera aim, row rise, seat colors, and camera easing can be tested without loading WebGL. Three.js, the CSS3D screen, player integration, lighting, and interactions live in the lazy-loaded view.
-
-## Stack
-
-- Next.js App Router with TypeScript strict mode.
-- Tailwind CSS with shadcn-compatible `components/ui` primitives.
-- `lucide-react` for interface icons.
-- Three.js for the lazy-loaded 3D theater.
-- Convex schema and transactional seat-hold functions under `convex/`.
-- MongoDB-backed email/password authentication under `app/api/auth/`.
-- Two-week TMDB featured screening plus a separate daily Current Reel across movies, TV, and anime with regional guest fallback and logged-in viewing-history personalization.
-- Ticket trailers use TMDB first; the optional YouTube Data API fallback requires `YOUTUBE_API_KEY` and a single confident title/year match.
-- Works Wheel from 21st.dev at `components/ui/works-wheel.tsx`.
-- Black Hole visual system at `components/ui/black-hole-hero-section.tsx`, used as the global hero language.
-
-## Run
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000`.
+- Browse movie, television, and anime catalogs, open details, save favorites, and share a movie from the current page.
+- Choose a screening and seats in the 2D booking view, or use the sign-in-gated 3D seat theater.
+- Load a selected title's trailer inside the 3D booking flow instead of a separate Watch Trailer action in movie details.
+- Use MongoDB-backed email/password accounts, sessions, user signals, and confirmed seat claims.
+- Browse soundtrack features with optional Spotify OAuth and API credentials.
 
 ## Screenshots
 
-The screenshot script covers Home, Songs, Tickets, and Profile at 1440px desktop and 375px mobile widths.
-Install Chromium once before running it locally:
+These checked-in captures cover the main app surfaces; the automated capture script does not authenticate or render the 3D theater.
+
+| Surface | Desktop                                                | Mobile                                               |
+| ------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| Home    | [home-desktop.png](screenshots/home-desktop.png)       | [home-mobile.png](screenshots/home-mobile.png)       |
+| Songs   | [songs-desktop.png](screenshots/songs-desktop.png)     | [songs-mobile.png](screenshots/songs-mobile.png)     |
+| Tickets | [tickets-desktop.png](screenshots/tickets-desktop.png) | [tickets-mobile.png](screenshots/tickets-mobile.png) |
+| Profile | [profile-desktop.png](screenshots/profile-desktop.png) | [profile-mobile.png](screenshots/profile-mobile.png) |
+
+## Core Features
+
+### Movie Experience
+
+- Discover films, television, and anime using TMDB feeds when `TMDB_READ_ACCESS_TOKEN` is configured, with curated and optional OMDb fallbacks.
+- Open a movie detail dialog, book tickets for the selected movie, save or unsave it, and share it through the Web Share API or clipboard.
+- Movie saves and viewing history persist for signed-in users. Guest saves are temporary UI state.
+- Sharing uses the current page URL; it does not generate a unique permalink for each movie.
+- The movie detail dialog has no Watch Trailer button. Trailer playback belongs to the 3D ticket flow below.
+
+### 2D Booking
+
+- Choose a movie, a listed day and showtime, and seats from the 2D seat map.
+- The base map contains 40 deterministic sample seats across rows A-E. Its initial availability and the displayed schedule/prices are not supplied by a cinema inventory service.
+- Guests can use the 2D surface; the server requires a signed-in account to confirm a booking.
+- Confirmation writes a booking code and seat claims to MongoDB. Selecting a seat does not create a server-side expiring hold; the countdown shown in the UI is not a payment or inventory guarantee.
+- The checkout form is demo UI. No payment provider is called and no payment is processed. Do not enter real card details.
+
+### 3D Theater
+
+The 3D view is available to signed-in users. The current server model sets `canAccess3DTheater` for every authenticated account; paid membership or premium-tier entitlement is not enforced.
+
+- Five curved, raked rows use raised platforms, center/side aisles, and stairs. Seat geometry includes cushions, backs, armrests, labels, and zone-specific details.
+- Available, selected, held, and occupied seats have distinct colors. A pointer hit-test maps clicks and taps to the same seat-selection state used by the 2D flow.
+- Each seat has its own eye-level camera pose aimed at the screen. The overview, selected-seat POV, and screen view are joined by eased camera transitions; reduced-motion mode skips those transitions.
+- Mouse and touch drag orbit the room; two-pointer touch adjusts the view. Arrow keys move seat focus, Enter or Space selects/removes an available seat, and Escape returns to the overview.
+- The canvas resizes with its container. The renderer can reduce quality when performance is low or the browser is offline. If WebGL is unavailable or fails, the 2D seat map remains available.
+
+### Trailer Playback
+
+```text
+Movie -> Book Ticket -> 3D -> Select Seat -> Seat POV -> Play trailer on the cinema screen
+```
+
+- With a TMDB token configured, the trailer API first checks videos for the selected TMDB movie or TV ID.
+- If TMDB has no usable YouTube trailer, the server may use the YouTube Data API only when `YOUTUBE_API_KEY` is configured and a title is available.
+- YouTube fallback candidates must match the selected title, have no conflicting release year, be public, processed, embeddable, and not region-restricted. Ambiguous best matches are rejected; unmatched trailers are not shown.
+- When no reliable trailer is found, the screen reports: `No preview is available for this title.`
+- The YouTube iframe is aligned to the physical cinema screen using the CSS3D renderer. It is not a full-page video overlay or a WebGL video texture.
+- Playback is user-started (`autoplay=0`). Changing seats or moving between seat POV and screen view keeps the same trailer iframe when the selected movie/video is unchanged. Returning to the overview hides and clears the active player.
+- YouTube player-state messages dim and restore the theater lights. This behavior is present in source, but has not been verified in an authenticated 3D browser session.
+
+### Cinema Rendering
+
+Three.js renders the room, curved seat layout, raised platforms and stairs, screen wall, physical screen frame, screen glow, lights, and shadows. A separate CSS3D layer places the interactive YouTube iframe on the screen surface, in alignment with the screen mesh. The iframe therefore moves with the theater camera rather than covering the page as a conventional video overlay.
+
+The scene is lazy-loaded and uses WebGL. Resize handling updates the renderer and camera; reduced-quality mode lowers rendering cost, and WebGL failure leaves the 2D seat map as the fallback.
+
+### Audio
+
+- The optional projector ambience is synthesized with Web Audio oscillators and routed through an HRTF panner located at the screen. The audio listener follows the active 3D camera.
+- When the ambience audio context is active, selecting a seat can play a short synthesized whoosh panned at that seat.
+- Ambience starts only after the user activates its control, which also satisfies browser audio-start restrictions. Oscillators, panners, the audio context, iframe, and event listeners are cleaned up when the view is disposed.
+- Trailer audio stays inside the cross-origin YouTube player. It is not routed through the Web Audio panner and is not spatialized by this application.
+
+## Backend Architecture
+
+```mermaid
+flowchart LR
+    browser[Browser: Next.js and React] --> routes[Next.js Route Handlers]
+    routes --> mongo[(MongoDB)]
+    routes --> tmdb[TMDB]
+    routes --> omdb[Optional OMDb]
+    routes --> youtube[Optional YouTube Data API]
+    routes --> spotify[Optional Spotify APIs]
+    browser --> scene[Three.js and WebGL theater]
+    scene --> screen[CSS3D screen with YouTube iframe]
+```
+
+| Area                  | Current implementation                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web app               | Next.js App Router, React, TypeScript, and route handlers running on Node.js.                                                                                             |
+| Accounts and sessions | MongoDB-backed email/password users and opaque cookie sessions.                                                                                                           |
+| User data             | MongoDB stores signed-in favorites, viewing signals, booking records, and confirmed seat claims.                                                                          |
+| Seat map              | A generated sample layout is overlaid with MongoDB claims in the authenticated 3D seat-map API. The client refreshes that API periodically.                               |
+| Movie services        | TMDB is primary for movie discovery and trailer lookup; OMDb enrichment and YouTube fallback are optional.                                                                |
+| Music services        | Spotify OAuth/API routes are optional and require Spotify app configuration.                                                                                              |
+| Realtime              | The 3D client can consume an externally hosted WebSocket or Server-Sent Events URL. No stream server is included; without one, the client uses the REST seat-map refresh. |
+| Convex                | Convex files remain as scaffolding only. The active account and ticket APIs use MongoDB; `NEXT_PUBLIC_CONVEX_URL` is not used.                                            |
+
+Important route groups include `/api/auth/*`, `/api/tickets/*`, `/api/movies/trailer`, `/api/user-signals`, `/api/viewing-history`, `/api/notifications`, and `/api/spotify/*`.
+
+## Security
+
+The following controls are implemented; they are not a guarantee that the application is free of security risk.
+
+- Passwords are stored as scrypt-derived hashes with per-password random salts and timing-safe comparison. Session tokens are random, and only their SHA-256 hashes are stored in MongoDB.
+- Session cookies are `HttpOnly` and `SameSite=Lax`, gain the `Secure` attribute in production, and expire after 30 days. MongoDB TTL indexes support expiry cleanup.
+- Protected ticket, seat-map, profile, and user-signal operations derive the user identity from the server-side session. Ticket and trailer inputs are type-, length-, and format-checked before database or external API calls.
+- MongoDB filters are constructed by server code from validated scalar fields; request bodies are not passed through as raw MongoDB query objects.
+- `proxy.ts` rate-limits `/api/*` requests. It uses an atomic Redis operation when an Upstash-compatible endpoint is configured and a process-local in-memory fallback when Redis credentials are absent or Redis fails. Defaults are 120 requests per 60 seconds; the fallback is not shared between server instances. If a configured Redis store fails, behavior is fail-open by default; `RATE_LIMIT_FAIL_CLOSED=true` returns `503` instead. Without Redis credentials, the in-memory fallback is used regardless of that flag.
+- Selected state-changing routes reject a foreign `Origin` or `Referer`. There is no separate CSRF token. The helper accepts requests when both headers are absent for client compatibility. No wildcard CORS policy is configured.
+- Response headers include a Content Security Policy, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Cross-Origin-Opener-Policy`. The current CSP includes inline script/style allowances required by the app.
+- Server-only API credentials must not use a `NEXT_PUBLIC_` name. Personal JSON responses use private/no-store caching, and route errors return generic client messages while details are logged server-side.
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local`. It contains empty credential placeholders and safe local defaults. Values beginning with `NEXT_PUBLIC_` are included in browser-visible code and must never contain secrets.
+
+| Variable                             | Scope                    | Purpose                                                                                                                                                                |
+| ------------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MONGODB_URI`                        | Server secret            | Required for registration, sessions, saved signals, and booking records.                                                                                               |
+| `MONGODB_DB_NAME`                    | Server setting           | Database name; defaults to `reelscape`.                                                                                                                                |
+| `TMDB_READ_ACCESS_TOKEN`             | Server secret            | Enables live TMDB feeds and primary trailer lookup.                                                                                                                    |
+| `YOUTUBE_API_KEY`                    | Server secret, optional  | Enables the validated YouTube trailer fallback.                                                                                                                        |
+| `OMDB_API_KEY`                       | Server secret, optional  | Enables OMDb enrichment. `OMDB_MOVIE_IDS` optionally overrides the configured IMDb ID list.                                                                            |
+| `SPOTIFY_CLIENT_ID`                  | Server OAuth setting     | Spotify app client ID.                                                                                                                                                 |
+| `SPOTIFY_CLIENT_SECRET`              | Server secret            | Spotify app secret; keep it server-side.                                                                                                                               |
+| `SPOTIFY_REDIRECT_URI`               | Server OAuth setting     | Must match the Spotify app's configured callback URL.                                                                                                                  |
+| `NEXT_PUBLIC_APP_URL`                | Public URL               | Application origin used when constructing the Spotify callback URL if no redirect URI is set.                                                                          |
+| `UPSTASH_REDIS_REST_URL`             | Server URL, optional     | Shared rate-limit store. `REDIS_REST_URL` is also accepted.                                                                                                            |
+| `UPSTASH_REDIS_REST_TOKEN`           | Server secret, optional  | Redis REST token. `REDIS_REST_TOKEN` is also accepted.                                                                                                                 |
+| `RATE_LIMIT_WINDOW_MS`               | Server setting           | Rate-limit window; default `60000`.                                                                                                                                    |
+| `RATE_LIMIT_MAX_REQUESTS`            | Server setting           | Requests per window; default `120`.                                                                                                                                    |
+| `RATE_LIMIT_KEY_PREFIX`              | Server setting           | Redis key prefix; default `reelroom:api`.                                                                                                                              |
+| `RATE_LIMIT_FAIL_CLOSED`             | Server setting           | Default `false`; set `true` to return `503` when a configured Redis request fails. If Redis URL/token is unset, the local fallback remains active.                     |
+| `NEXT_PUBLIC_THEATER_3D_ENABLED`     | Public feature flag      | Three.js theater is enabled by default; set to `false` to disable it.                                                                                                  |
+| `NEXT_PUBLIC_TICKET_SEAT_STREAM_URL` | Public URL, optional     | External WebSocket (`ws:`/`wss:`) or SSE (`http:`/`https:`) seat-event endpoint. Do not put credentials in this URL; the stream server is not part of this repository. |
+| `ENABLE_PREMIUM_TEST_FIXTURE`        | Development-only setting | Enables the in-memory QA fixture only when `NODE_ENV=development`; it is not a production account or paid entitlement.                                                 |
+
+The code does not currently read an `AUTH_SECRET`. The test-fixture variable's historical name does not mean paid-tier access is implemented.
+
+## Local Development
+
+Use Node.js 22 and npm, matching CI.
+
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+Open `http://localhost:3000`. Configure `MONGODB_URI` for accounts and persistent ticket/user data. Configure the relevant server-side API credentials to enable TMDB, OMDb, YouTube fallback, Spotify, or shared Redis behavior.
+
+## Testing
+
+Run the commands defined in `package.json` and `.github/workflows/ci.yml`:
+
+```bash
+npm run format:check
+npm run typecheck
+npm run lint
+npm run audit
+npm test
+npm run build
+npm run test:api
+```
+
+`npm run test:api` expects a completed production build and starts its own Next.js server on port 3100. The unit tests use Node's built-in test runner. Security-related assertions are part of the unit and API smoke suites; there is no separate penetration-test suite.
+
+For production-style screenshots, install Chromium, then run the built app in one terminal and capture it from another:
 
 ```bash
 npx playwright install chromium
 npm run build
 npm run start
-npm run screenshots
 ```
 
-Set `BASE_URL` to capture another running deployment, for example `BASE_URL=https://music-and-movies-show.vercel.app npm run screenshots`.
+In a second terminal, run `npm run screenshots`. The script captures Home, Songs, Tickets, and Profile at 1440x1000 desktop and 375x812 mobile browser viewports. To capture another running site, set `BASE_URL`, for example `BASE_URL=https://music-and-movies-show.vercel.app npm run screenshots`.
 
-## Why `components/ui`
+### Latest Verified CI Snapshot
 
-The Works Wheel imports the shared `cn` helper through `@/lib/utils`, and `components/ui` is the conventional shadcn location for portable primitives. Keeping it there makes future `shadcn add` commands and generated imports work without path changes.
+The latest verified main-branch run listed here was for commit `2860a19` on 2026-10-01: [GitHub Actions run](https://github.com/Gautam215/Music-and-Movies-show/actions/runs/36919465799).
 
-## Backend Boundary
+| Check                              | Result                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `npm test`                         | PASS - 30 tests, 30 passed, 0 failed.                                                                 |
+| `npm run test:api`                 | PASS - 2 tests, 2 passed, 0 failed.                                                                   |
+| Formatting, TypeScript, and ESLint | PASS.                                                                                                 |
+| Production build                   | PASS.                                                                                                 |
+| `npm run audit`                    | PASS - npm reported 0 dependency vulnerabilities at that run. This is not a full security assessment. |
+| UI screenshot capture              | PASS - Home, Songs, Tickets, and Profile screenshots were generated.                                  |
+| Vercel production deployment       | PASS.                                                                                                 |
 
-The 2D fallback keeps a deterministic local base map, while any authenticated user can request validated live claims through `/api/tickets/seat-map` for the 3D view. Checkout posts only the selected show and seat labels to `/api/tickets/confirm`, which writes unique MongoDB seat claims and returns a booking code; payment remains provider-hosted and is not processed by this demo. `convex/schema.ts` and `convex/bookings.ts` remain the first production seam for authenticated seat holds, expiry, movies, shows, songs, reviews, and orders. Connect `NEXT_PUBLIC_CONVEX_URL`, then replace the MongoDB ticket claim route with Convex hooks before launch. Payment should use signed webhooks and idempotency.
+## Browser Verification
 
-## Verification
+**PASS**
 
-Run the complete local verification pipeline after installing dependencies:
+- The automated screenshot job covers 1440x1000 desktop and 375x812 mobile browser emulation for Home, Songs, Tickets, and Profile.
+- A manual production spot-check loaded Home and the ticket flow at 1440x900 and 390x844 browser viewports. The 3D sign-in prompt was observed, and neither viewport had horizontal overflow.
 
-```bash
-npm ci
-npm run format:check
-npm run typecheck
-npm run lint
-npm test
-npm run build
-npm run test:api
-npm run audit
-```
+**NOT VERIFIED**
 
-`npm run test:api` starts the production build on an isolated local port and checks public pages, rate-limit headers, authentication boundaries, Spotify error responses, and cross-origin request rejection. It should run after `npm run build`.
+- Premium 3D runtime verification was not available in this environment. The authenticated WebGL scene, seat POV transitions, on-screen trailer playback, seat changes during playback, and spatial cues have not been exercised in an authorized signed-in browser session.
+- The unit tests cover geometry and selection helpers; they are not a live WebGL/browser test.
 
-The unit tests use Node's built-in test runner. They cover same-origin checks, safe retries, fallback rate limits, theater geometry, individual seat POV, camera transitions, seat navigation, and trailer selection.
+## Deployment
 
-## CI/CD
+- Platform: Vercel.
+- Production URL: [music-and-movies-show.vercel.app](https://music-and-movies-show.vercel.app/).
+- Status: production deployment is confirmed. The latest main-branch CI run listed above passed its Vercel production deployment job; the public homepage and ticket flow also loaded during the manual spot-check.
+- GitHub Actions deploys same-repository PR previews after verification and screenshots pass. Pushes to `main` deploy production after those jobs pass; fork PR previews are skipped because repository secrets are not exposed to fork workflows.
+- The workflow reads these GitHub Actions secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. Store values in repository Actions secrets, not in this README or `.env.example`.
 
-`.github/workflows/ci.yml` runs formatting, type-checking, lint, dependency audit, unit tests, the production build, API regression checks, and UI screenshot capture for pushes to `main` and pull requests. The Vercel preview job runs after those checks for same-repository pull requests. The production job runs only after every check is green on a push to `main` and uses the Vercel CLI explicitly, so deployment failures fail the workflow.
+## Known Limitations
 
-The deployment jobs require these GitHub Actions secrets under **Settings → Secrets and variables → Actions**:
+- Showtimes, displayed prices, and the 40-seat base map are sample data, not live cinema inventory. MongoDB records this app's confirmed seat claims, but no cinema operator inventory service is integrated.
+- The seat-selection countdown is presentation-only; seats are not held on the server until the confirmation request. Confirmations create records and booking codes but do not charge a card, call a payment provider, or send a ticket email.
+- 3D is sign-in-gated, not premium-subscription-gated. The current code grants the 3D capability to all authenticated users.
+- Trailer availability depends on TMDB data and, for fallback search, a configured YouTube API key. The player requires a user gesture to start; trailer audio remains under YouTube's control and is not spatialized.
+- WebGL support and performance vary by device. The 2D seat map is the fallback; authenticated 3D behavior has not been runtime-verified here.
+- Shared seat events require an external WebSocket/SSE service if configured. No such service is deployed from this repository. Without one, seat data refreshes through the REST API.
+- Without shared Redis, rate limiting falls back to process-local memory and is not coordinated across server instances.
+- Spotify, OMDb, TMDB, YouTube, MongoDB, and Redis capabilities depend on their respective services and configuration.
 
-- `VERCEL_TOKEN`: a Vercel access token with deployment permission.
-- `VERCEL_ORG_ID`: the Vercel team or account ID that owns the project.
+## Security Disclosure
 
-The workflow links the `music-and-movies-show` Vercel project by name, so a project ID secret is not required. Never commit these values or put them in `.env` files. Pull requests from forks intentionally skip the preview deployment because GitHub does not expose repository secrets to untrusted fork workflows.
+For a suspected vulnerability, use GitHub's private vulnerability reporting for this repository when available. If it is unavailable, contact the maintainers privately through GitHub. Please do not post credentials or unpatched exploit details in a public issue.
 
-## Stack Inventory
+## License
 
-- Languages: TypeScript, TSX, JavaScript, ECMAScript modules, CSS, HTML, JSON, YAML, Markdown.
-- Frontend: Next.js 16 App Router, React 19, Tailwind CSS 3, Lucide React, shadcn-compatible UI utilities, CSS animations, Spotify Web Playback SDK integration.
-- Backend: Next.js Route Handlers and middleware proxy, Node.js 22 runtime, MongoDB Node driver, Convex schema/mutations, scrypt password hashing, opaque httpOnly cookie sessions.
-- External services: TMDB, OMDb, Spotify Web API, Spotify OAuth/PKCE, and optional Upstash-compatible Redis rate limiting.
-- Tooling: npm lockfile, TypeScript compiler, ESLint 9 with `eslint-config-next`, Prettier 3, Node test runner, Next.js production server, GitHub Actions, Dependabot.
-- Deployment boundary: the app is a standard Next.js deployment; environment variables in `.env.example` are server configuration and must be supplied by the deployment platform.
-
-## API Rate Limiting
-
-Every `/api/*` request passes through `proxy.ts`. The proxy uses one atomic Redis Lua `EVAL` script to increment a per-client fixed-window counter and set its expiry without race conditions. It works with any Upstash-compatible Redis REST endpoint.
-
-Configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in the deployment environment. The defaults allow 120 requests per client per 60 seconds; override them with `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_MS`. Set `RATE_LIMIT_FAIL_CLOSED=true` when Redis outages must reject API traffic with `503` instead of temporarily allowing it.
-
-## Authentication
-
-Set `MONGODB_URI` and optionally `MONGODB_DB_NAME` before using `/register`. The form creates users in the `users` collection and stores only scrypt password hashes. Login sessions are opaque, httpOnly cookies backed by the `sessions` collection. The Google button stays disabled until a Google OAuth provider is configured.
-
-Browser API calls use `lib/client-fetch.ts`, which retries transient failures and `429` responses with exponential backoff, jitter, and the server's `Retry-After` value when present.
-
-## Spotify Token Management
-
-Spotify user tokens remain in `httpOnly` cookies. Server routes share one token manager that refreshes an expired access token once per request, persists rotated refresh tokens, caches client-credentials tokens in memory, spaces upstream requests, coordinates concurrent refreshes, and retries transient Spotify responses with exponential backoff while honoring `Retry-After`. The browser throttles session and playlist refreshes, and `429` responses are returned with their retry window so the UI does not immediately hammer Spotify again.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
