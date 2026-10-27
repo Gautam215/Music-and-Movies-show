@@ -11,7 +11,15 @@ function getClientPromise() {
   if (!uri) throw new Error("MONGODB_URI is not configured");
 
   if (!clientPromise) {
-    clientPromise = new MongoClient(uri).connect();
+    const promise = new MongoClient(uri).connect();
+    // Self-heal: if this connection fails, do not keep the rejected
+    // promise forever. Clear it so the next request tries again.
+    promise.catch(() => {
+      if (clientPromise === promise) clientPromise = undefined;
+      if (globalForMongo.mongoClientPromise === promise)
+        globalForMongo.mongoClientPromise = undefined;
+    });
+    clientPromise = promise;
     if (process.env.NODE_ENV !== "production")
       globalForMongo.mongoClientPromise = clientPromise;
   }

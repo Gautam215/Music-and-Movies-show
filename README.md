@@ -218,6 +218,17 @@ The latest verified main-branch run listed here was for commit `2860a19` on 2026
 - GitHub Actions deploys same-repository PR previews after verification and screenshots pass. Pushes to `main` deploy production after those jobs pass; fork PR previews are skipped because repository secrets are not exposed to fork workflows.
 - The workflow reads these GitHub Actions secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. Store values in repository Actions secrets, not in this README or `.env.example`.
 
+### Self-healing on Vercel (beginner level)
+
+Vercel has no long-running server process, so PM2/systemd/Docker restart does not apply here. Instead, Vercel already restarts a crashed serverless instance on the next request, and this repo adds the two small pieces that make that usable:
+
+- `GET /api/health` — returns `{ ok, database, time }`. It is 200 when the server is up, and 503 when a configured MongoDB cannot be reached within 3 seconds. It never crashes on a failed check.
+- `lib/mongodb.ts` — if a MongoDB connection fails, the rejected connection is cleared instead of being kept forever, so the next request tries to connect again.
+
+To actually notice a downtime without opening the site yourself, point a free uptime monitor (for example UptimeRobot) at `https://music-and-movies-show.vercel.app/api/health` every 5 minutes. The monitor alerts you when it stops getting 200, and its regular pings also keep a Vercel instance warm.
+
+What this does not do: it does not restart anything in milliseconds, and it does not give Netflix-style multi-server failover. A cold Vercel instance still takes seconds to start on the first request after a crash or a long idle period. That level needs multiple regions/instances and a load balancer, which is beyond this intermediate setup.
+
 ## Known Limitations
 
 - Showtimes, displayed prices, and the 40-seat base map are sample data, not live cinema inventory. MongoDB records this app's confirmed seat claims, but no cinema operator inventory service is integrated.
