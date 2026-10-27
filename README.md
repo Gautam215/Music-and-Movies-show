@@ -70,35 +70,35 @@ What this diagram does not show, on purpose: there is no payment step and no ser
 
 Versions from `package.json` at the time of this redesign:
 
-| Area | Stack |
-| --- | --- |
-| Web app | Next.js 16, React 19, TypeScript, Tailwind CSS, App Router, Node.js route handlers |
-| 3D | Three.js, WebGL, CSS3D renderer for the screen iframe |
-| Data | MongoDB (driver 6.x) for accounts, sessions, favorites, viewing signals, booking records, and confirmed seat claims |
-| Movie/music services | TMDB (primary), OMDb (optional enrichment), YouTube Data API (optional trailer fallback), Spotify OAuth/APIs (optional) |
-| UI | Lucide React icons; hand-rolled CSS keyframes and `requestAnimationFrame` motion (no animation library in `package.json`) |
-| Scaffolding only | Convex files (`convex/schema.ts`, `convex/bookings.ts`) are not the active account/ticket path — see the note under Architecture |
+| Area                 | Stack                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Web app              | Next.js 16, React 19, TypeScript, Tailwind CSS, App Router, Node.js route handlers                                               |
+| 3D                   | Three.js, WebGL, CSS3D renderer for the screen iframe                                                                            |
+| Data                 | MongoDB (driver 6.x) for accounts, sessions, favorites, viewing signals, booking records, and confirmed seat claims              |
+| Movie/music services | TMDB (primary), OMDb (optional enrichment), YouTube Data API (optional trailer fallback), Spotify OAuth/APIs (optional)          |
+| UI                   | Lucide React icons; hand-rolled CSS keyframes and `requestAnimationFrame` motion (no animation library in `package.json`)        |
+| Scaffolding only     | Convex files (`convex/schema.ts`, `convex/bookings.ts`) are not the active account/ticket path — see the note under Architecture |
 
 ## API routes
 
-| Group | Routes |
-| --- | --- |
-| Health | `GET /api/health` — returns `{ ok, database, time }`; 200 when up, 503 when a configured MongoDB cannot be reached within 3 seconds |
-| Auth | `POST /api/auth/register`, `POST /api/auth/signin`, `GET /api/auth/session`, `POST /api/auth/signout` |
-| Tickets | `GET /api/tickets/seat-map`, `POST /api/tickets/confirm` |
-| Movies | `GET /api/movies/trailer` |
-| User data | `GET` / `POST /api/user-signals`, `POST /api/viewing-history`, `GET /api/notifications` |
-| Spotify | `GET /api/spotify/login`, `GET /api/spotify/callback`, `GET /api/spotify/session`, `GET /api/spotify/token`, `GET /api/spotify/tracks`, `GET /api/spotify/playlist`, `POST /api/spotify/player` |
-| Development only | `POST /api/dev/premium-fixture` — in-memory QA fixture, only when `NODE_ENV=development`; it is not a production account or paid entitlement |
+| Group            | Routes                                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health           | `GET /api/health` — returns `{ ok, database, time }`; 200 when up, 503 when a configured MongoDB cannot be reached within 3 seconds                                                             |
+| Auth             | `POST /api/auth/register`, `POST /api/auth/signin`, `GET /api/auth/session`, `POST /api/auth/signout`                                                                                           |
+| Tickets          | `GET /api/tickets/seat-map`, `POST /api/tickets/confirm`                                                                                                                                        |
+| Movies           | `GET /api/movies/trailer`                                                                                                                                                                       |
+| User data        | `GET` / `POST /api/user-signals`, `POST /api/viewing-history`, `GET /api/notifications`                                                                                                         |
+| Spotify          | `GET /api/spotify/login`, `GET /api/spotify/callback`, `GET /api/spotify/session`, `GET /api/spotify/token`, `GET /api/spotify/tracks`, `GET /api/spotify/playlist`, `POST /api/spotify/player` |
+| Development only | `POST /api/dev/premium-fixture` — in-memory QA fixture, only when `NODE_ENV=development`; it is not a production account or paid entitlement                                                    |
 
 ## Screenshots
 
 These checked-in captures cover the main app surfaces; the automated capture script does not authenticate or render the 3D theater.
 
-| Surface | Desktop | Mobile |
-| --- | --- | --- |
-| Home | [home-desktop.png](screenshots/home-desktop.png) | [home-mobile.png](screenshots/home-mobile.png) |
-| Songs | [songs-desktop.png](screenshots/songs-desktop.png) | [songs-mobile.png](screenshots/songs-mobile.png) |
+| Surface | Desktop                                                | Mobile                                               |
+| ------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| Home    | [home-desktop.png](screenshots/home-desktop.png)       | [home-mobile.png](screenshots/home-mobile.png)       |
+| Songs   | [songs-desktop.png](screenshots/songs-desktop.png)     | [songs-mobile.png](screenshots/songs-mobile.png)     |
 | Tickets | [tickets-desktop.png](screenshots/tickets-desktop.png) | [tickets-mobile.png](screenshots/tickets-mobile.png) |
 | Profile | [profile-desktop.png](screenshots/profile-desktop.png) | [profile-mobile.png](screenshots/profile-mobile.png) |
 
@@ -118,26 +118,26 @@ These controls are implemented; they are not a guarantee that the application is
 
 Copy `.env.example` to `.env.local`. It contains empty credential placeholders and safe local defaults. Values beginning with `NEXT_PUBLIC_` are included in browser-visible code and must never contain secrets. The code does not currently read an `AUTH_SECRET`.
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `MONGODB_URI` | Server secret | Required for registration, sessions, saved signals, and booking records |
-| `MONGODB_DB_NAME` | Server setting | Database name; defaults to `reelscape` |
-| `TMDB_READ_ACCESS_TOKEN` | Server secret | Enables live TMDB feeds and primary trailer lookup |
-| `YOUTUBE_API_KEY` | Server secret, optional | Enables the validated YouTube trailer fallback |
-| `OMDB_API_KEY` | Server secret, optional | Enables OMDb enrichment. `OMDB_MOVIE_IDS` optionally overrides the configured IMDb ID list |
-| `SPOTIFY_CLIENT_ID` | Server OAuth setting | Spotify app client ID |
-| `SPOTIFY_CLIENT_SECRET` | Server secret | Spotify app secret; keep it server-side |
-| `SPOTIFY_REDIRECT_URI` | Server OAuth setting | Must match the Spotify app's configured callback URL |
-| `NEXT_PUBLIC_APP_URL` | Public URL | Application origin used when constructing the Spotify callback URL if no redirect URI is set |
-| `UPSTASH_REDIS_REST_URL` | Server URL, optional | Shared rate-limit store. `REDIS_REST_URL` is also accepted |
-| `UPSTASH_REDIS_REST_TOKEN` | Server secret, optional | Redis REST token. `REDIS_REST_TOKEN` is also accepted |
-| `RATE_LIMIT_WINDOW_MS` | Server setting | Rate-limit window; default `60000` |
-| `RATE_LIMIT_MAX_REQUESTS` | Server setting | Requests per window; default `120` |
-| `RATE_LIMIT_KEY_PREFIX` | Server setting | Redis key prefix; default `reelroom:api` |
-| `RATE_LIMIT_FAIL_CLOSED` | Server setting | Default `false`; set `true` to return `503` when a configured Redis request fails. If Redis URL/token is unset, the local fallback remains active |
-| `NEXT_PUBLIC_THEATER_3D_ENABLED` | Public feature flag | Three.js theater is enabled by default; set to `false` to disable it |
-| `NEXT_PUBLIC_TICKET_SEAT_STREAM_URL` | Public URL, optional | External WebSocket (`ws:`/`wss:`) or SSE (`http:`/`https:`) seat-event endpoint. Do not put credentials in this URL; the stream server is not part of this repository |
-| `ENABLE_PREMIUM_TEST_FIXTURE` | Development-only setting | Enables the in-memory QA fixture only when `NODE_ENV=development`; it is not a production account or paid entitlement |
+| Variable                             | Scope                    | Purpose                                                                                                                                                               |
+| ------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MONGODB_URI`                        | Server secret            | Required for registration, sessions, saved signals, and booking records                                                                                               |
+| `MONGODB_DB_NAME`                    | Server setting           | Database name; defaults to `reelscape`                                                                                                                                |
+| `TMDB_READ_ACCESS_TOKEN`             | Server secret            | Enables live TMDB feeds and primary trailer lookup                                                                                                                    |
+| `YOUTUBE_API_KEY`                    | Server secret, optional  | Enables the validated YouTube trailer fallback                                                                                                                        |
+| `OMDB_API_KEY`                       | Server secret, optional  | Enables OMDb enrichment. `OMDB_MOVIE_IDS` optionally overrides the configured IMDb ID list                                                                            |
+| `SPOTIFY_CLIENT_ID`                  | Server OAuth setting     | Spotify app client ID                                                                                                                                                 |
+| `SPOTIFY_CLIENT_SECRET`              | Server secret            | Spotify app secret; keep it server-side                                                                                                                               |
+| `SPOTIFY_REDIRECT_URI`               | Server OAuth setting     | Must match the Spotify app's configured callback URL                                                                                                                  |
+| `NEXT_PUBLIC_APP_URL`                | Public URL               | Application origin used when constructing the Spotify callback URL if no redirect URI is set                                                                          |
+| `UPSTASH_REDIS_REST_URL`             | Server URL, optional     | Shared rate-limit store. `REDIS_REST_URL` is also accepted                                                                                                            |
+| `UPSTASH_REDIS_REST_TOKEN`           | Server secret, optional  | Redis REST token. `REDIS_REST_TOKEN` is also accepted                                                                                                                 |
+| `RATE_LIMIT_WINDOW_MS`               | Server setting           | Rate-limit window; default `60000`                                                                                                                                    |
+| `RATE_LIMIT_MAX_REQUESTS`            | Server setting           | Requests per window; default `120`                                                                                                                                    |
+| `RATE_LIMIT_KEY_PREFIX`              | Server setting           | Redis key prefix; default `reelroom:api`                                                                                                                              |
+| `RATE_LIMIT_FAIL_CLOSED`             | Server setting           | Default `false`; set `true` to return `503` when a configured Redis request fails. If Redis URL/token is unset, the local fallback remains active                     |
+| `NEXT_PUBLIC_THEATER_3D_ENABLED`     | Public feature flag      | Three.js theater is enabled by default; set to `false` to disable it                                                                                                  |
+| `NEXT_PUBLIC_TICKET_SEAT_STREAM_URL` | Public URL, optional     | External WebSocket (`ws:`/`wss:`) or SSE (`http:`/`https:`) seat-event endpoint. Do not put credentials in this URL; the stream server is not part of this repository |
+| `ENABLE_PREMIUM_TEST_FIXTURE`        | Development-only setting | Enables the in-memory QA fixture only when `NODE_ENV=development`; it is not a production account or paid entitlement                                                 |
 
 ## Testing
 
